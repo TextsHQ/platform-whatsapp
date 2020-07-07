@@ -1,0 +1,22 @@
+{
+  "name": "@texts/platform-whatsapp",
+  "version": "0.1.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TextsHQ/platform-whatsapp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TextsHQ/platform-whatsapp/issues"
+  },
+  "homepage": "https://github.com/TextsHQ/platform-whatsapp#readme",
+  "dependencies": {
+    "@adiwajshing/baileys": "^2.0.0"
+  }
+}
