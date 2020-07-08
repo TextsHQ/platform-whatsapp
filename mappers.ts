@@ -1,6 +1,13 @@
 import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, decodeMediaMessage } from '@adiwajshing/baileys'
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@texts/platform-sdk'
 
+export interface WACompleteChat extends WAChat {
+    participants: WAContact[]
+    title?: string
+    description?: string
+    imgURL: string
+}
+
 function numberFromJid (jid: string) {
     return '+' + jid.replace ('@s.whatsapp.net', '').replace ('@c.us', '')
 }
@@ -65,9 +72,21 @@ export function mapMessages (message: WAMessage[]): Message[] {
     return message.map (m => mapMessage(m))
 }
 
-export function mapThread (t: WAChat, contacts: WAContact[], selfParticipant: Participant): Thread {
-    return null
+export function mapThread (t: WACompleteChat): Thread {
+    return {
+        _original: t,
+        id: t.jid,
+        title: t.title,
+        description: t.description,
+        imgURL: t.imgURL,
+        isUnread: (t.count as unknown as number) > 0,
+        isArchived: t.archive === 'true',
+        isReadOnly: t.read_only === 'true',
+        messages: t.messages,
+        timestamp: new Date (parseInt(t.t)),
+        type: t.jid.includes('@g.us') ? 'group' : t.jid.includes('@c.us') ? 'single' : 'broadcast'
+    }
 }
-export function mapThreads (threads: any[], contacts: any[]): Thread[] {
-    return null
+export function mapThreads (threads: WACompleteChat[]): Thread[] {
+    return threads.map (t => mapThread(t))
 }

@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/TextsHQ/platform-whatsapp#readme",
   "dependencies": {
-    "@adiwajshing/baileys": "^2.0.0"
+    "@adiwajshing/baileys": "github:adiwajshing/baileys"
   }
 }
