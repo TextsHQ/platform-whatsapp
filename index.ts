@@ -16,7 +16,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     chatMap: Record<string, WAChat> = {}
     meContact: WAContact
     init (session: any) {
-        this.client.loadAuthInfoFromBase64 (session as AuthenticationCredentialsBase64)
+        if (session && session.WABrowserId) {
+            this.client.loadAuthInfoFromBrowser (session)
+        } else if (session.clientToken) {
+            this.client.loadAuthInfoFromBase64 (session)
+        }
     }
     dispose () { this.client.close () }
     async login () {
