@@ -82,7 +82,8 @@ export function mapThread (t: WACompleteChat): Thread {
         isUnread: (t.count as unknown as number) > 0,
         isArchived: t.archive === 'true',
         isReadOnly: t.read_only === 'true',
-        messages: t.messages,
+        messages: mapMessages(t.messages),
+        participants: t.participants.map(c => mapContact(c)),
         timestamp: new Date (parseInt(t.t)),
         type: t.jid.includes('@g.us') ? 'group' : t.jid.includes('@c.us') ? 'single' : 'broadcast'
     }

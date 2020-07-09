@@ -1,5 +1,5 @@
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, AuthenticationCredentialsBase64, WAChat, WAContact, ChatModification } from '@adiwajshing/baileys'
-import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus } from '@texts/platform-sdk'
+import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType } from '@texts/platform-sdk'
 import path from 'path'
 import fs from 'fs'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread } from './mappers'
@@ -24,8 +24,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     dispose () { this.client.close () }
     async login () {
-        this.client.onReadyForPhoneAuthentication = ([ref, publicKey, clientID]) => {
-            const str = `${ref},${publicKey},${clientID}`
+        this.client.onReadyForPhoneAuthentication = keys => {
+            const str = keys.join (',')
             this.loginCallback({ name: 'qr', str })
         }
         this.connCallback ({status: ConnectionStatus.CONNECTING})
@@ -58,6 +58,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     registerCallbacks () {
         this.client.setOnMessageStatusChange (update => {
             this.evCallback ([  ])
+        })
+        this.client.setOnUnreadMessage (true, message => {
+
+        })
+        this.client.setOnPresenceUpdate (update => {
+            let participantID = update.participant
+            if (!participantID && !update.id.includes('@g.us')) {
+                participantID = update.id
+            }
+            this.evCallback ([
+                {
+                    type: update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING,
+                    threadID: update.id,
+                    participantID: participantID,
+                    durationMs: 1000
+                }
+            ])
         })
     }
 
