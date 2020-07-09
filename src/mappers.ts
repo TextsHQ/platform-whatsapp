@@ -1,5 +1,5 @@
 import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, decodeMediaMessage } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@texts/platform-sdk'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@textshq/platform-sdk'
 
 export interface WACompleteChat extends WAChat {
     participants: WAContact[]
@@ -58,7 +58,7 @@ export function mapMessage (message: WAMessage): Message {
         id: message.key.id,
         textHeading: message.broadcast ? 'Broadcast' : null,
         text: message.message?.conversation || message.message?.extendedTextMessage?.text,
-        timestamp: new Date (message.messageTimestamp),
+        timestamp: new Date (typeof message.messageTimestamp === 'number' ? message.messageTimestamp : message.messageTimestamp.toNumber()),
         senderID: message.key.remoteJid,
         isSender: message.key.fromMe,
         attachments: attachment ? [attachment] : [],

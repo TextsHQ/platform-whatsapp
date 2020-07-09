@@ -1,3 +1,5 @@
 node_modules
 package-lock.json
 auth_info.json
+dist
+.npmrc

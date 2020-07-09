@@ -1,7 +1,7 @@
-import { Platform, MessageDeletionMode, Attribute } from '@texts/platform-sdk'
+import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
 const WhatsApp: Platform = {
-    name: 'whatsapp',
+    name: 'whatsapp-baileys',
     displayName: 'WhatsApp',
     version: '0.2.0',
     supportedReactions: [],
@@ -19,3 +19,4 @@ const WhatsApp: Platform = {
     typingDurationMs: 1000,
     getUserLink: p => p.id
 }
+export default WhatsApp

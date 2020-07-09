@@ -1,20 +1,19 @@
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, AuthenticationCredentialsBase64, WAChat, WAContact, ChatModification } from '@adiwajshing/baileys'
-import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType } from '@texts/platform-sdk'
+import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import path from 'path'
 import fs from 'fs'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread } from './mappers'
-import { Participant, OnConnStateChangeCallback } from '../platform-sdk/platform-types'
 
 export default class WhatsAppAPI implements PlatformAPI {
     client = new WAClient ()
     evCallback: OnServerEventCallback = null
     connCallback: OnConnStateChangeCallback = null
-    loginCallback: Function = null
+    loginCallback: Function = () => { }
     chats: WAChat[] = []
     contacts: WAContact[] = []
     contactMap: Record<string, WAContact> = {}
     chatMap: Record<string, WAChat> = {}
-    meContact: WAContact
+    meContact?: WAContact
     init (session: any) {
         if (session && session.WABrowserId) {
             this.client.loadAuthInfoFromBrowser (session)
@@ -81,18 +80,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     async searchUsers (typed: string) {
         let results: Participant[] = []
         this.contacts.forEach (c => {
-            if (c.name.toLowerCase().includes(typed) || c.notify.toLowerCase().includes(typed)) {
+            if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
                 results.push( mapContact (c) )
             }
         })
         return results
     }
-    async createThread (userIDs: string[], title?: string) {
+    async createThread (userIDs: string[], title: string) {
         let chat: WACompleteChat = {
-            jid: null,
+            jid: '',
             count: 0,
             participants: [],
-            imgURL: null,
+            imgURL: '',
             t: new Date().getTime().toString(),
             spam: 'false',
             modify_tag: '',
