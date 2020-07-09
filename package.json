@@ -1,5 +1,6 @@
 {
   "name": "@texts/platform-whatsapp",
+  "private": true,
   "version": "0.1.1",
   "scripts": {
     "prepare": "npm run build",
@@ -12,11 +13,10 @@
   "dependencies": {
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@textshq/platform-sdk": "^0.1.3",
-    "qrcode.react": "^1.0.0",
-    "react": "^16.13.1"
+    "qrcode.react": "^1.0.0"
   },
   "devDependencies": {
-    "@types/react": "^16.8.24",
-    "@types/qrcode.react": "^0.6.3"
+    "@types/qrcode.react": "^0.6.3",
+    "@types/react": "^16.8.24"
   }
 }

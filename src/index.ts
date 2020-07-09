@@ -14,24 +14,30 @@ export default class WhatsAppAPI implements PlatformAPI {
     contactMap: Record<string, WAContact> = {}
     chatMap: Record<string, WAChat> = {}
     meContact?: WAContact
-    init (session?: any) {
+
+    init = (session?: any) => {
+        this.client.onReadyForPhoneAuthentication = keys => {
+            const str = keys.join (',')
+            this.loginCallback({ name: 'qr', str })
+        }
         if (session) {
             if (session.WABrowserId) {
                 this.client.loadAuthInfoFromBrowser (session)
             } else if (session.clientToken) {
                 this.client.loadAuthInfoFromBase64 (session)
             }
+            this.afterLogin()
         }
+        
         
     }
     dispose () { this.client.close () }
     async login () {
-        this.client.onReadyForPhoneAuthentication = keys => {
-            const str = keys.join (',')
-            this.loginCallback({ name: 'qr', str })
-        }
-        this.connCallback ({status: ConnectionStatus.CONNECTING})
-        
+        this.afterLogin()
+        return {type: 'success'} as LoginResult
+    }
+    logout = async () => { await this.client.logout () }
+    afterLogin = async () => {
         const [user, chats, contacts] = await this.client.connect ()
         
         this.connCallback ({status: ConnectionStatus.CONNECTED})
@@ -42,11 +48,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.contacts.forEach (c => this.contactMap[c.jid] = c)
         this.chats.forEach (c => this.chatMap[c.jid] = c)
         this.meContact = this.contactMap[user.id] || {jid: user.id, name: user.name}
-        
-        return {type: 'success'} as LoginResult
     }
-    async logout () { await this.client.logout () }
-    async getCurrentUser () {
+    getCurrentUser = async () => {
         const user = this.client.userMetaData
         const pp = await this.client.getProfilePicture (user.id)
         return {id: user.id, displayText: user.name, imgURL: pp}

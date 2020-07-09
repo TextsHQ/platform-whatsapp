@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import QRCode from 'qrcode.react'
+// import QRCode from 'qrcode.react'
 import { PlatformAPI } from '@textshq/platform-sdk'
 
+let called = false 
 const WhatsAppAuth = ({ api, login }: { api: PlatformAPI, login: Function }) => {
-  const [qrValue, setQRValue] = useState<string>()
-  useEffect(() => {
+  // const [qrValue, setQRValue] = useState<string>()
+  if (!called) {
+    console.log('called')
     api.onLoginEvent(ev => {
+      console.log(ev)
       if (ev.name === 'qr') {
-        setQRValue(ev.qr)
+        console.log('qr', ev.qr)
       } else if (ev.name === 'ready') {
         login()
       }
     })
-  }, [api, login])
+    called = true
+  }
   return (
     <div className="auth imessage-auth">
       <ol>
@@ -22,9 +26,6 @@ const WhatsAppAuth = ({ api, login }: { api: PlatformAPI, login: Function }) => 
         <li>{'Tap on "WhatsApp Web/Desktop", then "Scan QR Code"'}</li>
         <li>Point your phone to this screen:</li>
       </ol>
-      <div className="text-center">
-        {qrValue ? <QRCode size={256} value={qrValue} /> : 'Loading QR code...'}
-      </div>
     </div>
   )
 }
