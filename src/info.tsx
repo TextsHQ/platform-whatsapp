@@ -1,11 +1,9 @@
 import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
-import pkg from '../package.json'
-
 const info: Platform = {
   name: 'whatsapp-baileys',
-  version: pkg.version,
+  version: '0.2.0',
   displayName: 'WhatsApp',
   icon: (props: any) => (
     <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" {...props}>
