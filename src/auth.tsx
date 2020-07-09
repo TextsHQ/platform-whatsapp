@@ -23,7 +23,7 @@ const WhatsAppAuth = ({ api, login }: { api: PlatformAPI, login: Function }) => 
         <li>Point your phone to this screen:</li>
       </ol>
       <div className="text-center">
-        {qrValue ? <QRCode size={256} includeMargin value={qrValue} /> : 'Loading QR code...'}
+        {qrValue ? <QRCode size={256} value={qrValue} /> : 'Loading QR code...'}
       </div>
     </div>
   )

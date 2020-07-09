@@ -14,12 +14,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     contactMap: Record<string, WAContact> = {}
     chatMap: Record<string, WAChat> = {}
     meContact?: WAContact
-    init (session: any) {
-        if (session && session.WABrowserId) {
-            this.client.loadAuthInfoFromBrowser (session)
-        } else if (session.clientToken) {
-            this.client.loadAuthInfoFromBase64 (session)
+    init (session?: any) {
+        if (session) {
+            if (session.WABrowserId) {
+                this.client.loadAuthInfoFromBrowser (session)
+            } else if (session.clientToken) {
+                this.client.loadAuthInfoFromBase64 (session)
+            }
         }
+        
     }
     dispose () { this.client.close () }
     async login () {
@@ -29,7 +32,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         this.connCallback ({status: ConnectionStatus.CONNECTING})
         
-        const [user, chats, contacts, unread] = await this.client.connect ()
+        const [user, chats, contacts] = await this.client.connect ()
         
         this.connCallback ({status: ConnectionStatus.CONNECTED})
         this.registerCallbacks ()
@@ -66,9 +69,10 @@ export default class WhatsAppAPI implements PlatformAPI {
             if (!participantID && !update.id.includes('@g.us')) {
                 participantID = update.id
             }
+            const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
             this.evCallback ([
                 {
-                    type: update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING,
+                    type: updateType,
                     threadID: update.id,
                     participantID: participantID,
                     durationMs: 1000
@@ -148,7 +152,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     async searchMessages (typed: string, beforeCursor?: string, threadID?: string) {
         if (threadID) {
-            throw 'local search in thread not supported yet'
+            throw new Error('local search in thread not supported yet')
         }
         const page = beforeCursor ? parseInt(beforeCursor) : 0
         const response = await this.client.searchMessages (typed, 25, page)
@@ -217,10 +221,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     async deleteMessage (threadID: string, messageID: string, forEveryone: boolean) {
-        if (!forEveryone) {
-            throw new Error ('Cannot handle not forEveryone RN')
+        const key = {id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id}
+        if (forEveryone) {
+            await this.client.deleteMessage (threadID, key)
+        } else {
+            await this.client.clearMessage (key)
         }
-        await this.client.deleteMessage (threadID, {id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id})
         return true
     }
     async markAsUnread (threadID: string) {

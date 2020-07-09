@@ -3,3 +3,4 @@ package-lock.json
 auth_info.json
 dist
 .npmrc
+.DS_Store
