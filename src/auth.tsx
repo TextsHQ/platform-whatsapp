@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import QRCode from 'qrcode.react'
-
-import { PlatformAPI } from '../../platform-common/platform-types'
+import { PlatformAPI } from '@textshq/platform-sdk'
 
 const WhatsAppAuth = ({ api, login }: { api: PlatformAPI, login: Function }) => {
   const [qrValue, setQRValue] = useState<string>()

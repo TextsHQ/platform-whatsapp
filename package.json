@@ -12,6 +12,7 @@
   "dependencies": {
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk",
+    "qrcode.react": "^1.0.0",
     "react": "^16.13.1"
   }
 }
