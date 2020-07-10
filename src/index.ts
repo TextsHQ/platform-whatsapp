@@ -15,18 +15,20 @@ export default class WhatsAppAPI implements PlatformAPI {
     chatMap: Record<string, WAChat> = {}
     meContact?: WAContact
 
-    init = (session?: any) => {
+    init = async (session?: any) => {
         this.client.browserDescription = Browsers.ubuntu ('Chromium') // set to Chromium on Ubuntu 18.04
         this.restoreRession (session)
         this.registerCallbacks ()
-        this.connect ()
+        await this.connect ()
     }
     restoreRession (session?: any) {
         if (!session) { return }
 
         if (session.WABrowserId) {
+            this.log ('restoring session from browser')
             this.client.loadAuthInfoFromBrowser (session)
         } else if (session.clientToken) {
+            this.log ('restoring session from base64')
             this.client.loadAuthInfoFromBase64 (session)
         }
     }
@@ -36,6 +38,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     logout = async () => { await this.client.logout () }
     connect = async () => {
+        this.log ('began connect')
         const [user, chats, contacts] = await this.client.connect ()
         
         this.chats = chats
@@ -44,17 +47,23 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.chats.forEach (c => this.chatMap[c.jid] = c)
         this.meContact = this.contactMap[user.id] || {jid: user.id, name: user.name}
 
-        this.loginCallback ({name: 'ready'})
-        this.connCallback ({status: ConnectionStatus.CONNECTED})
+        this.log ('connected successfully')
+
+        if (this.loginCallback) this.loginCallback ({name: 'ready'})
+        //if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
     }
     getCurrentUser = async () => {
+        this.log ('requested user data')
         const user = this.client.userMetaData
         const pp = await this.client.getProfilePicture (user.id)
         return {id: user.id, displayText: user.name, imgURL: pp}
     }
     serializeSession = () => this.client.base64EncodedAuthInfo ()
     subscribeToEvents = (onEvent: OnServerEventCallback) => { this.evCallback = onEvent }
-    onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => { this.connCallback = onEvent }
+    onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => { 
+        this.connCallback = onEvent 
+        if (this.meContact) this.connCallback ({status: ConnectionStatus.CONNECTED})
+    }
     unsubscribeToEvents = () => this.evCallback = null
     onLoginEvent = (onEvent: Function) => { this.loginCallback = onEvent }
 
@@ -128,9 +137,11 @@ export default class WhatsAppAPI implements PlatformAPI {
         return mapThread (chat)
     }
     async getThreads (inboxName: InboxName, beforeCursor?: string) {
-        if (inboxName === InboxName.REQUESTS) {
+        if (inboxName !== InboxName.REQUESTS) {
             return {items: [], hasMore: false} 
         }
+        this.log ('requested thread data, page: ' + beforeCursor)
+
         const page = parseInt (beforeCursor || '0')
         const batchSize = 50
         const lastItem = Math.min ((page+1)*batchSize, this.chats.length)
@@ -147,6 +158,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             }
             chat.participants.push (this.meContact)
             chat.imgURL = await this.client.getProfilePicture (chat.jid)
+            
             chats.push (chat)
         }
         return {
@@ -271,6 +283,15 @@ export default class WhatsAppAPI implements PlatformAPI {
         } else {
             await this.client.modifyChat (threadID, ('un' + key) as ChatModification)
             delete chat[key]
+        }
+    }
+    log (txt) {
+        const content = JSON.stringify (txt) + '\n'
+        const file = '/Users/adhirajsingh/Desktop/baileys-log.txt'
+        if (fs.existsSync(file)) {
+            fs.appendFileSync (file, content)
+        } else {
+            fs.writeFileSync (file, content)
         }
     }
 }
