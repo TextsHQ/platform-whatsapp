@@ -18,7 +18,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     init = (session?: any) => {
         this.client.onReadyForPhoneAuthentication = keys => {
             const str = keys.join (',')
-            this.loginCallback({ name: 'qr', str })
+            this.loginCallback({ name: 'qr', qr: str })
         }
         if (session) {
             if (session.WABrowserId) {
@@ -26,10 +26,8 @@ export default class WhatsAppAPI implements PlatformAPI {
             } else if (session.clientToken) {
                 this.client.loadAuthInfoFromBase64 (session)
             }
-            this.afterLogin()
         }
-        
-        
+        this.afterLogin()
     }
     dispose () { this.client.close () }
     async login () {
