@@ -16,7 +16,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     meContact?: WAContact
 
     init = async (session?: any) => {
-        this.getThreads = this.getThreads.bind (this)
         this.client.browserDescription = Browsers.ubuntu ('Chrome') // set to Chrome on Ubuntu 18.04
         this.restoreRession (session)
         this.registerCallbacks ()
@@ -67,7 +66,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     unsubscribeToEvents = () => this.evCallback = null
     onLoginEvent = (onEvent: Function) => { this.loginCallback = onEvent }
 
-    registerCallbacks () {
+    registerCallbacks = async () => {
         this.client.onReadyForPhoneAuthentication = keys => {
             const str = keys.join (',')
             this.loginCallback({ name: 'qr', qr: str })
@@ -136,7 +135,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.chats.splice (0, 0, chat)
         return mapThread (chat)
     }
-    async getThreads (inboxName: InboxName, beforeCursor?: string) {
+    getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
         if (inboxName !== InboxName.NORMAL) {
             return {items: [], hasMore: false} 
         }
@@ -185,7 +184,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             oldestCursor: (page+1).toString()
         }
     }
-    async getMessages (threadID: string, cursor: string) {
+    getMessages = async (threadID: string, cursor: string) => {
         const messages = await this.client.loadConversation (threadID, 25, cursor && JSON.parse(cursor))
         const oldestCursor = messages[messages.length-1]?.key
         return {
@@ -194,18 +193,18 @@ export default class WhatsAppAPI implements PlatformAPI {
             oldestCursor: oldestCursor && JSON.stringify(oldestCursor) 
         }
     }
-    async sendTextMessage (threadID: string, text: string, options?: MessageSendOptions) {
+    sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
         return this.sendMessage (threadID, text, null, options)
     }
-    async sendFileFromFilePath (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) {
+    sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
         const { base: fileName } = path.parse(filePath)
         const buffer = await fs.readFileSync(filePath)
         return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
     }
-    async sendFileFromBuffer (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) {
+    sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => {
         return this.sendMessage (threadID, fileBuffer, mimeType, options)
     }
-    async sendMessage (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) {
+    sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
         let chat = this.chatMap[threadID]
         if (!chat) {
             if (threadID.includes('@g.us')) {
@@ -243,7 +242,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         return true
     }
 
-    async deleteMessage (threadID: string, messageID: string, forEveryone: boolean) {
+    deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
         const key = {id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id}
         if (forEveryone) {
             await this.client.deleteMessage (threadID, key)
@@ -252,26 +251,26 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         return true
     }
-    async markAsUnread (threadID: string) {
+    markAsUnread = async (threadID: string) => {
         await this.client.markChatUnread (threadID)
     }
-    async sendTypingIndicator (threadID: string, typing: boolean) {
+    sendTypingIndicator = async (threadID: string, typing: boolean) => {
         await this.client.updatePresence (threadID, typing ? Presence.composing : Presence.available)
     }
-    async sendReadReceipt (threadID: string, messageID: string) {
+    sendReadReceipt = async (threadID: string, messageID: string) => {
         await this.client.sendReadReceipt (threadID, messageID)
     }
-    async changeThreadTitle (threadID: string, newTitle: string) {
+    changeThreadTitle = async (threadID: string, newTitle: string) => {
         await this.client.groupUpdateSubject (threadID, newTitle)
         return true
     }
-    async pinThread (threadID: string, pinned: boolean) {
+    pinThread = async (threadID: string, pinned: boolean) => {
         return this.modThread (threadID, pinned, 'pin')
     }
-    async muteThread (threadID: string, muted: boolean) {
+    muteThread = async (threadID: string, muted: boolean) => {
         return this.modThread (threadID, muted, 'mute')
     }
-    async archiveThread (threadID: string, archived: boolean) {
+    archiveThread = async (threadID: string, archived: boolean) => {
         return this.modThread (threadID, archived, 'archive')
     }
     protected async modThread (threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
@@ -295,12 +294,13 @@ export default class WhatsAppAPI implements PlatformAPI {
         return this.client.getProfilePicture (jid).catch (() => null)
     }
     log (txt) {
+        console.log(txt)
         const content = JSON.stringify (txt) + '\n'
-        const file = '/Users/adhirajsingh/Desktop/baileys-log.txt'
-        if (fs.existsSync(file)) {
-            fs.appendFileSync (file, content)
-        } else {
-            fs.writeFileSync (file, content)
-        }
+        // const file = require('os').homedir() + '/Desktop/baileys-log.txt'
+        // if (fs.existsSync(file)) {
+        //     fs.appendFileSync (file, content)
+        // } else {
+        //     fs.writeFileSync (file, content)
+        // }
     }
 }

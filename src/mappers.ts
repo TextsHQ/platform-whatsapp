@@ -55,6 +55,7 @@ export function mapMessage (message: WAMessage): Message {
     }
     return {
         _original: message,
+        cursor: message.key,
         id: message.key.id,
         textHeading: message.broadcast ? 'Broadcast' : null,
         text: message.message?.conversation || message.message?.extendedTextMessage?.text,
@@ -80,7 +81,7 @@ export function mapThread (t: WACompleteChat): Thread {
         description: t.description,
         imgURL: t.imgURL,
         isUnread: (t.count as unknown as number) > 0,
-        isArchived: t.archive === 'true',
+        // isArchived: t.archive === 'true',
         isReadOnly: t.read_only === 'true',
         messages: mapMessages(t.messages),
         participants: t.participants.map(c => mapContact(c)),
