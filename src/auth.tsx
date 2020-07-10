@@ -1,6 +1,5 @@
 import React, { Component } from 'react'
 import QRCode from 'qrcode.react'
-import * as QR from 'qrcode-terminal'
 import { PlatformAPI } from '@textshq/platform-sdk'
 
 let called = false 
@@ -29,7 +28,6 @@ export default class WAAuth extends Component {
     api.onLoginEvent (ev => {
       console.log(ev)
       if (ev.name === 'qr') {
-        QR.generate (ev.qr, {small: true})
         this.setState ({qrValue: ev.qr})
       } else if (ev.name === 'ready') {
         (this.props as any).login()
@@ -48,7 +46,7 @@ export default class WAAuth extends Component {
           <li>Point your phone to this screen:</li>
         </ol>
         <div className="text-center" style={{margin: '50px'}}>
-          {qrValue ? <QRCode size={256} value={qrValue} /> : 'Loading QR code...'}
+          {qrValue ? <QRCode size={256} includeMargin value={qrValue} /> : 'Loading QR code...'}
         </div>
       </div>
     )

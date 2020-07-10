@@ -1,4 +1,4 @@
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, AuthenticationCredentialsBase64, WAChat, WAContact, ChatModification } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, AuthenticationCredentialsBase64, WAChat, WAContact, ChatModification, Browsers } from '@adiwajshing/baileys'
 import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import path from 'path'
 import fs from 'fs'
@@ -16,36 +16,36 @@ export default class WhatsAppAPI implements PlatformAPI {
     meContact?: WAContact
 
     init = (session?: any) => {
-        this.client.onReadyForPhoneAuthentication = keys => {
-            const str = keys.join (',')
-            this.loginCallback({ name: 'qr', qr: str })
+        this.client.browserDescription = Browsers.ubuntu ('Chromium') // set to Chromium on Ubuntu 18.04
+        this.restoreRession (session)
+        this.registerCallbacks ()
+        this.connect ()
+    }
+    restoreRession (session?: any) {
+        if (!session) { return }
+
+        if (session.WABrowserId) {
+            this.client.loadAuthInfoFromBrowser (session)
+        } else if (session.clientToken) {
+            this.client.loadAuthInfoFromBase64 (session)
         }
-        if (session) {
-            if (session.WABrowserId) {
-                this.client.loadAuthInfoFromBrowser (session)
-            } else if (session.clientToken) {
-                this.client.loadAuthInfoFromBase64 (session)
-            }
-        }
-        this.afterLogin()
     }
     dispose () { this.client.close () }
     async login () {
-        this.afterLogin()
         return {type: 'success'} as LoginResult
     }
     logout = async () => { await this.client.logout () }
-    afterLogin = async () => {
+    connect = async () => {
         const [user, chats, contacts] = await this.client.connect ()
         
-        this.connCallback ({status: ConnectionStatus.CONNECTED})
-        this.registerCallbacks ()
-
         this.chats = chats
         this.contacts = contacts 
         this.contacts.forEach (c => this.contactMap[c.jid] = c)
         this.chats.forEach (c => this.chatMap[c.jid] = c)
         this.meContact = this.contactMap[user.id] || {jid: user.id, name: user.name}
+
+        this.loginCallback ({name: 'ready'})
+        this.connCallback ({status: ConnectionStatus.CONNECTED})
     }
     getCurrentUser = async () => {
         const user = this.client.userMetaData
@@ -59,6 +59,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     onLoginEvent = (onEvent: Function) => { this.loginCallback = onEvent }
 
     registerCallbacks () {
+        this.client.onReadyForPhoneAuthentication = keys => {
+            const str = keys.join (',')
+            this.loginCallback({ name: 'qr', qr: str })
+        }
         this.client.setOnMessageStatusChange (update => {
             this.evCallback ([  ])
         })
