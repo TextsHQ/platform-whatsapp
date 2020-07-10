@@ -20,7 +20,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.client.browserDescription = Browsers.ubuntu ('Chrome') // set to Chrome on Ubuntu 18.04
         this.restoreRession (session)
         this.registerCallbacks ()
-        await this.connect ()
+        if (session) await this.connect ()
+        else this.connect ()
     }
     restoreRession (session?: any) {
         if (!session) { return }
