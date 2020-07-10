@@ -2,40 +2,23 @@ import React, { Component } from 'react'
 import QRCode from 'qrcode.react'
 import { PlatformAPI } from '@textshq/platform-sdk'
 
-let called = false 
-const WhatsAppAuth = ({ api, login }: { api: PlatformAPI, login: Function }) => {
-  
-  if (!called) {
-    console.log('called')
+export default class WhatsAppAuth extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { qrValue: null as string }
+    const { api } = this.props as any
     api.onLoginEvent(ev => {
       console.log(ev)
       if (ev.name === 'qr') {
-        console.log('qr', ev.qr)
-      } else if (ev.name === 'ready') {
-        login()
-      }
-    })
-    called = true
-  }
-  
-}
-
-export default class WAAuth extends Component {
-  constructor (props) {
-    super (props)
-    this.state = {qrValue: null as string}
-    const api = (this.props as any).api
-    api.onLoginEvent (ev => {
-      console.log(ev)
-      if (ev.name === 'qr') {
-        this.setState ({qrValue: ev.qr})
+        this.setState({ qrValue: ev.qr })
       } else if (ev.name === 'ready') {
         (this.props as any).login()
       }
     })
   }
-  render () {
-    const qrValue = (this.state as any).qrValue
+
+  render() {
+    const { qrValue } = this.state as any
     return (
       <div className="auth imessage-auth">
         <ol>
@@ -45,7 +28,7 @@ export default class WAAuth extends Component {
           <li>{'Tap on "WhatsApp Web/Desktop", then "Scan QR Code"'}</li>
           <li>Point your phone to this screen:</li>
         </ol>
-        <div className="text-center" style={{margin: '50px'}}>
+        <div className="text-center" style={{ margin: '50px' }}>
           {qrValue ? <QRCode size={256} includeMargin value={qrValue} /> : 'Loading QR code...'}
         </div>
       </div>

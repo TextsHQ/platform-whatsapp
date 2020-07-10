@@ -1,7 +1,11 @@
-node_modules
-package-lock.json
-yarn.lock
 auth_info.json
+
+_*
 dist
-.npmrc
+
 .DS_Store
+node_modules
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

@@ -17,12 +17,12 @@ const info: Platform = {
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
   maxGroupTitleLength: 25,
   typingDurationMs: 1000,
-  attributes: new Set ([
+  attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_PIN_THREAD,
     Attribute.SEARCH_USERS_IN_CONTACTS,
     Attribute.SUPPORTS_QUOTED_MESSAGES,
-    Attribute.SUPPORTS_SEARCH
+    Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,
 }

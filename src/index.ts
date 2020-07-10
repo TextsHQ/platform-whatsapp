@@ -1,306 +1,344 @@
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, AuthenticationCredentialsBase64, WAChat, WAContact, ChatModification, Browsers } from '@adiwajshing/baileys'
-import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import path from 'path'
 import fs from 'fs'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers } from '@adiwajshing/baileys'
+import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread } from './mappers'
 
 export default class WhatsAppAPI implements PlatformAPI {
-    client = new WAClient ()
-    evCallback: OnServerEventCallback = null
-    connCallback: OnConnStateChangeCallback = null
-    loginCallback: Function = () => { }
-    chats: WAChat[] = []
-    contacts: WAContact[] = []
-    contactMap: Record<string, WAContact> = {}
-    chatMap: Record<string, WAChat> = {}
-    meContact?: WAContact
+  client = new WAClient()
 
-    init = async (session?: any) => {
-        this.client.browserDescription = Browsers.ubuntu ('Chrome') // set to Chrome on Ubuntu 18.04
-        this.restoreRession (session)
-        this.registerCallbacks ()
-        if (session) await this.connect ()
-        else this.connect ()
-    }
-    restoreRession (session?: any) {
-        if (!session) { return }
+  evCallback: OnServerEventCallback = null
 
-        if (session.WABrowserId) {
-            this.log ('restoring session from browser')
-            this.client.loadAuthInfoFromBrowser (session)
-        } else if (session.clientToken) {
-            this.log ('restoring session from base64')
-            this.client.loadAuthInfoFromBase64 (session)
-        }
-    }
-    dispose () { this.client.close () }
-    async login () { return {type: 'success'} as LoginResult }
-    logout = async () => { await this.client.logout () }
-    connect = async () => {
-        this.log ('began connect')
-        const [user, chats, contacts] = await this.client.connect ()
-        
-        this.chats = chats
-        this.contacts = contacts 
-        this.contacts.forEach (c => this.contactMap[c.jid] = c)
-        this.chats.forEach (c => this.chatMap[c.jid] = c)
-        this.meContact = this.contactMap[user.id] || {jid: user.id, name: user.name}
+  connCallback: OnConnStateChangeCallback = null
 
-        this.log ('connected successfully')
+  loginCallback: Function = () => { }
 
-        if (this.loginCallback) this.loginCallback ({name: 'ready'})
-        //if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
-    }
-    getCurrentUser = async () => {
-        this.log ('requested user data')
-        const user = this.client.userMetaData
-        const pp = await this.safelyGetProfilePicture (user.id)
-        return {id: user.id, displayText: user.name, imgURL: pp}
-    }
-    serializeSession = () => this.client.base64EncodedAuthInfo ()
-    subscribeToEvents = (onEvent: OnServerEventCallback) => { this.evCallback = onEvent }
-    onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => { 
-        this.connCallback = onEvent 
-        if (this.meContact) this.connCallback ({status: ConnectionStatus.CONNECTED})
-    }
-    unsubscribeToEvents = () => this.evCallback = null
-    onLoginEvent = (onEvent: Function) => { this.loginCallback = onEvent }
+  chats: WAChat[] = []
 
-    registerCallbacks = async () => {
-        this.client.onReadyForPhoneAuthentication = keys => {
-            const str = keys.join (',')
-            this.loginCallback({ name: 'qr', qr: str })
-        }
-        this.client.setOnMessageStatusChange (update => {
-            this.evCallback ([  ])
-        })
-        this.client.setOnUnreadMessage (true, message => {
+  contacts: WAContact[] = []
 
-        })
-        this.client.setOnPresenceUpdate (update => {
-            let participantID = update.participant
-            if (!participantID && !update.id.includes('@g.us')) {
-                participantID = update.id
-            }
-            const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
-            this.evCallback ([
-                {
-                    type: updateType,
-                    threadID: update.id,
-                    participantID: participantID,
-                    durationMs: 1000
-                }
-            ])
-        })
-    }
+  contactMap: Record<string, WAContact> = {}
 
-    async searchUsers (typed: string) {
-        let results: Participant[] = []
-        this.contacts.forEach (c => {
-            if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
-                results.push( mapContact (c) )
-            }
-        })
-        return results
-    }
-    async createThread (userIDs: string[], title: string) {
-        let chat: WACompleteChat = {
-            jid: '',
-            count: 0,
-            participants: [],
-            imgURL: '',
-            t: new Date().getTime().toString(),
-            spam: 'false',
-            modify_tag: '',
-            messages: [],
-            title: title
-        }
-        if (userIDs.length > 1) {
-            const meta = await this.client.groupCreate (title, userIDs)
-            const participants = Object.keys (meta.participants).map (p => this.contactMap[p] || {jid: p})
-            chat.jid = meta.gid
-            chat.participants = [this.meContact, ...participants]
-        } else if (userIDs.length === 1) {
-            chat.jid = userIDs[0]
-            chat.participants = [ this.meContact, ...userIDs.map(id => this.contactMap[id] || {jid: id}) ]
-            try {
-                chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
-            } catch (error) {
-                console.log ('error in getting profile pic: ' + error)
-            }
-        } else {
-            throw new Error ('no users provided')
-        }
-        this.chatMap[chat.jid] = chat
-        this.chats.splice (0, 0, chat)
-        return mapThread (chat)
-    }
-    getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
-        if (inboxName !== InboxName.NORMAL) {
-            return {items: [], hasMore: false} 
-        }
-        this.log ('requested thread data, page: ' + beforeCursor)
+  chatMap: Record<string, WAChat> = {}
 
-        const page = parseInt (beforeCursor || '0')
-        const batchSize = 50
-        const lastItem = Math.min ((page+1)*batchSize, this.chats.length)
-        
-        let chats: WACompleteChat[] = []
-        for (let i = page*batchSize; i < lastItem;i++) {
-            let chat = this.chats[i] as any
-            if (chat.jid.includes('@g.us')) { // is a group
-                try {
-                    const metadata = await this.client.groupMetadata (chat.jid)
-                    chat.title = metadata.subject
-                    chat.participants = metadata.participants.map (p => this.contacts[p.id] || {jid: p.id})
-                } catch (err) {
-                    chat.title = 'Unknown Title'
-                    chat.participants = []
-                    this.log (`error in getting group ${chat.jid}: ${err}`)
-                }
-            } else {
-                chat.participants = [ this.contactMap[chat.jid] || {jid: chat.jid} ]
-            }
-            chat.participants.push (this.meContact)
-            chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
-            
-            chats.push (chat)
-        }
-        return {
-            items: mapThreads (chats), 
-            hasMore: chats.length >= batchSize, 
-            oldestCursor: (page+1).toString() 
-        } 
-    }
-    async searchMessages (typed: string, beforeCursor?: string, threadID?: string) {
-        if (threadID) {
-            throw new Error('local search in thread not supported yet')
-        }
-        const page = beforeCursor ? parseInt(beforeCursor) : 0
-        const response = await this.client.searchMessages (typed, 25, page)
-        return {
-            items: mapMessages (response.messages),
-            hasMore: !response.last,
-            oldestCursor: (page+1).toString()
-        }
-    }
-    getMessages = async (threadID: string, cursor: string) => {
-        const messages = await this.client.loadConversation (threadID, 25, cursor && JSON.parse(cursor))
-        const oldestCursor = messages[messages.length-1]?.key
-        return {
-            items: mapMessages (messages), 
-            hasMore: messages.length >= 25, 
-            oldestCursor: oldestCursor && JSON.stringify(oldestCursor) 
-        }
-    }
-    sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
-        return this.sendMessage (threadID, text, null, options)
-    }
-    sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
-        const { base: fileName } = path.parse(filePath)
-        const buffer = await fs.readFileSync(filePath)
-        return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
-    }
-    sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => {
-        return this.sendMessage (threadID, fileBuffer, mimeType, options)
-    }
-    sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
-        let chat = this.chatMap[threadID]
-        if (!chat) {
-            if (threadID.includes('@g.us')) {
-                throw new Error (`group ${threadID} not found!`)
-            }
-            await this.createThread ([threadID], null)
-            chat = this.chatMap[threadID]
-        }
-        const op: MessageOptions = {}
-        let messageType: MessageType = MessageType.text
-        if (options.quotedMessageID) {
-            const list = await this.client.loadConversation (threadID, 1, {id: threadID, fromMe: false})
-            if (list.length === 0) {
-                throw new Error (`Message ID '${options.quotedMessageID}' does not exist`)
-            }
-            op.quoted = list[0]
-        }
-        if (mimeType) {
-            const mimetypeMap = {
-                [Mimetype.gif]: MessageType.video,
-                [Mimetype.jpeg]: MessageType.image,
-                [Mimetype.mp4]: MessageType.video,
-                [Mimetype.webp]: MessageType.sticker,
-                [Mimetype.ogg]: MessageType.audio,
-                [Mimetype.pdf]: MessageType.document
-            }
-            messageType = mimetypeMap[mimeType] || MessageType.document
-            op.mimetype = mimeType as Mimetype
-        }
-        const resp = await this.client.sendMessage (threadID.replace ('@c.us', '@s.whatsapp.net'), content, messageType, op)
-        const sentMessage = await this.client.loadConversation (threadID, 1, {id: resp.messageID, fromMe: true})
-        
-        chat.messages.splice (0, 0, sentMessage[0])
-        
-        return true
-    }
+  meContact?: WAContact
 
-    deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-        const key = {id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id}
-        if (forEveryone) {
-            await this.client.deleteMessage (threadID, key)
-        } else {
-            await this.client.clearMessage (key)
+  init = async (session?: any) => {
+    this.client.browserDescription = Browsers.ubuntu('Chrome') // set to Chrome on Ubuntu 18.04
+    this.restoreSession(session)
+    this.registerCallbacks()
+    if (session) await this.connect()
+    else this.connect()
+  }
+
+  restoreSession = (session?: any) => {
+    if (!session) return
+
+    if (session.WABrowserId) {
+      this.log('restoring session from browser')
+      this.client.loadAuthInfoFromBrowser(session)
+    } else if (session.clientToken) {
+      this.log('restoring session from base64')
+      this.client.loadAuthInfoFromBase64(session)
+    }
+  }
+
+  dispose = () => {
+    this.client.close()
+  }
+
+  login = (): LoginResult => ({ type: 'success' })
+
+  logout = async () => { await this.client.logout() }
+
+  connect = async () => {
+    this.log('began connect')
+    const [user, chats, contacts] = await this.client.connect()
+
+    this.chats = chats
+    this.contacts = contacts
+    this.contacts.forEach(c => { this.contactMap[c.jid] = c })
+    this.chats.forEach(c => { this.chatMap[c.jid] = c })
+    this.meContact = this.contactMap[user.id] || { jid: user.id, name: user.name }
+
+    this.log('connected successfully')
+
+    if (this.loginCallback) this.loginCallback({ name: 'ready' })
+    // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
+  }
+
+  getCurrentUser = async () => {
+    this.log('requested user data')
+    const user = this.client.userMetaData
+    const pp = await this.safelyGetProfilePicture(user.id)
+    return { id: user.id, displayText: user.name, imgURL: pp }
+  }
+
+  serializeSession = () => this.client.base64EncodedAuthInfo()
+
+  subscribeToEvents = (onEvent: OnServerEventCallback) => {
+    this.evCallback = onEvent
+  }
+
+  onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
+    this.connCallback = onEvent
+    if (this.meContact) this.connCallback({ status: ConnectionStatus.CONNECTED })
+  }
+
+  unsubscribeToEvents = () => {
+    this.evCallback = null
+  }
+
+  onLoginEvent = (onEvent: Function) => {
+    this.loginCallback = onEvent
+  }
+
+  registerCallbacks = async () => {
+    this.client.onReadyForPhoneAuthentication = keys => {
+      const str = keys.join(',')
+      this.loginCallback({ name: 'qr', qr: str })
+    }
+    this.client.setOnMessageStatusChange(update => {
+      this.evCallback([])
+    })
+    this.client.setOnUnreadMessage(true, message => {
+
+    })
+    this.client.setOnPresenceUpdate(update => {
+      let participantID = update.participant
+      if (!participantID && !update.id.includes('@g.us')) {
+        participantID = update.id
+      }
+      const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
+      this.evCallback([
+        {
+          type: updateType,
+          threadID: update.id,
+          participantID,
+          durationMs: 1000,
+        },
+      ])
+    })
+  }
+
+  async searchUsers(typed: string) {
+    const results: Participant[] = []
+    this.contacts.forEach(c => {
+      if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
+        results.push(mapContact(c))
+      }
+    })
+    return results
+  }
+
+  async createThread(userIDs: string[], title: string) {
+    const chat: WACompleteChat = {
+      jid: '',
+      count: 0,
+      participants: [],
+      imgURL: '',
+      t: new Date().getTime().toString(),
+      spam: 'false',
+      modify_tag: '',
+      messages: [],
+      title,
+    }
+    if (userIDs.length > 1) {
+      const meta = await this.client.groupCreate(title, userIDs)
+      const participants = Object.keys(meta.participants).map(p => this.contactMap[p] || { jid: p })
+      chat.jid = meta.gid
+      chat.participants = [this.meContact, ...participants]
+    } else if (userIDs.length === 1) {
+      chat.jid = userIDs[0]
+      chat.participants = [this.meContact, ...userIDs.map(id => this.contactMap[id] || { jid: id })]
+      try {
+        chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+      } catch (error) {
+        console.log('error in getting profile pic: ' + error)
+      }
+    } else {
+      throw new Error('no users provided')
+    }
+    this.chatMap[chat.jid] = chat
+    this.chats.splice(0, 0, chat)
+    return mapThread(chat)
+  }
+
+  getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
+    if (inboxName !== InboxName.NORMAL) {
+      return { items: [], hasMore: false }
+    }
+    this.log('requested thread data, page: ' + beforeCursor)
+
+    const page = parseInt(beforeCursor || '0', 10)
+    const batchSize = 50
+    const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
+
+    const chats: WACompleteChat[] = []
+    for (let i = page * batchSize; i < lastItem; i++) {
+      const chat = this.chats[i] as any
+      if (chat.jid.includes('@g.us')) { // is a group
+        try {
+          const metadata = await this.client.groupMetadata(chat.jid)
+          chat.title = metadata.subject
+          chat.participants = metadata.participants.map(p => this.contacts[p.id] || { jid: p.id })
+        } catch (err) {
+          chat.title = 'Unknown Title'
+          chat.participants = []
+          this.log(`error in getting group ${chat.jid}: ${err}`)
         }
-        return true
+      } else {
+        chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }]
+      }
+      chat.participants.push(this.meContact)
+      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+
+      chats.push(chat)
     }
-    markAsUnread = async (threadID: string) => {
-        await this.client.markChatUnread (threadID)
+    return {
+      items: mapThreads(chats),
+      hasMore: chats.length >= batchSize,
+      oldestCursor: (page + 1).toString(),
     }
-    sendTypingIndicator = async (threadID: string, typing: boolean) => {
-        await this.client.updatePresence (threadID, typing ? Presence.composing : Presence.available)
+  }
+
+  async searchMessages(typed: string, beforeCursor?: string, threadID?: string) {
+    if (threadID) {
+      throw new Error('local search in thread not supported yet')
     }
-    sendReadReceipt = async (threadID: string, messageID: string) => {
-        await this.client.sendReadReceipt (threadID, messageID)
+    const page = beforeCursor ? +beforeCursor : 0
+    const response = await this.client.searchMessages(typed, 25, page)
+    return {
+      items: mapMessages(response.messages),
+      hasMore: !response.last,
+      oldestCursor: (page + 1).toString(),
     }
-    changeThreadTitle = async (threadID: string, newTitle: string) => {
-        await this.client.groupUpdateSubject (threadID, newTitle)
-        return true
+  }
+
+  getMessages = async (threadID: string, cursor: string) => {
+    const messages = await this.client.loadConversation(threadID, 25, cursor && JSON.parse(cursor))
+    const oldestCursor = messages[messages.length - 1]?.key
+    return {
+      items: mapMessages(messages),
+      hasMore: messages.length >= 25,
+      oldestCursor: oldestCursor && JSON.stringify(oldestCursor),
     }
-    pinThread = async (threadID: string, pinned: boolean) => {
-        return this.modThread (threadID, pinned, 'pin')
+  }
+
+  sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => this.sendMessage(threadID, text, null, options)
+
+  sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
+    const { base: fileName } = path.parse(filePath)
+    const buffer = await fs.readFileSync(filePath)
+    return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
+  }
+
+  sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
+
+  sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
+    let chat = this.chatMap[threadID]
+    if (!chat) {
+      if (threadID.includes('@g.us')) {
+        throw new Error(`group ${threadID} not found!`)
+      }
+      await this.createThread([threadID], null)
+      chat = this.chatMap[threadID]
     }
-    muteThread = async (threadID: string, muted: boolean) => {
-        return this.modThread (threadID, muted, 'mute')
+    const op: MessageOptions = {}
+    let messageType: MessageType = MessageType.text
+    if (options?.quotedMessageID) {
+      const list = await this.client.loadConversation(threadID, 1, { id: threadID, fromMe: false })
+      if (list.length === 0) {
+        throw new Error(`Message ID '${options.quotedMessageID}' does not exist`)
+      }
+      op.quoted = list[0]
     }
-    archiveThread = async (threadID: string, archived: boolean) => {
-        return this.modThread (threadID, archived, 'archive')
+    if (mimeType) {
+      const mimetypeMap = {
+        [Mimetype.gif]: MessageType.video,
+        [Mimetype.jpeg]: MessageType.image,
+        [Mimetype.mp4]: MessageType.video,
+        [Mimetype.webp]: MessageType.sticker,
+        [Mimetype.ogg]: MessageType.audio,
+        [Mimetype.pdf]: MessageType.document,
+      }
+      messageType = mimetypeMap[mimeType] || MessageType.document
+      op.mimetype = mimeType as Mimetype
     }
-    protected async modThread (threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
-        const chat = this.chatMap[threadID]
-        if (!chat) {
-            throw new Error ('thread not found')
-        }
-        if ((key in chat) === value) {
-            return // already done, nothing to do
-        }
-        if (value) {
-            const resp = await this.client.modifyChat (threadID, key as ChatModification)
-            if (key === 'archive') chat[key] = value ? 'true' : 'false'
-            else chat[key] = resp.stamp
-        } else {
-            await this.client.modifyChat (threadID, ('un' + key) as ChatModification)
-            delete chat[key]
-        }
+    const resp = await this.client.sendMessage(threadID.replace('@c.us', '@s.whatsapp.net'), content, messageType, op)
+    const sentMessage = await this.client.loadConversation(threadID, 1, { id: resp.messageID, fromMe: true })
+
+    chat.messages.splice(0, 0, sentMessage[0])
+
+    return true
+  }
+
+  deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
+    const key = { id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id }
+    if (forEveryone) {
+      await this.client.deleteMessage(threadID, key)
+    } else {
+      await this.client.clearMessage(key)
     }
-    protected async safelyGetProfilePicture (jid: string): Promise<string> {
-        return this.client.getProfilePicture (jid).catch (() => null)
+    return true
+  }
+
+  markAsUnread = async (threadID: string) => {
+    await this.client.markChatUnread(threadID)
+  }
+
+  sendTypingIndicator = async (threadID: string, typing: boolean) => {
+    await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.available)
+  }
+
+  sendReadReceipt = async (threadID: string, messageID: string) => {
+    await this.client.sendReadReceipt(threadID, messageID)
+  }
+
+  changeThreadTitle = async (threadID: string, newTitle: string) => {
+    await this.client.groupUpdateSubject(threadID, newTitle)
+    return true
+  }
+
+  pinThread = (threadID: string, pinned: boolean) =>
+    this.modThread(threadID, pinned, 'pin')
+
+  muteThread = (threadID: string, muted: boolean) =>
+    this.modThread(threadID, muted, 'mute')
+
+  archiveThread = (threadID: string, archived: boolean) =>
+    this.modThread(threadID, archived, 'archive')
+
+  protected async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
+    const chat = this.chatMap[threadID]
+    if (!chat) {
+      throw new Error('thread not found')
     }
-    log (txt) {
-        console.log(txt)
-        const content = JSON.stringify (txt) + '\n'
-        // const file = require('os').homedir() + '/Desktop/baileys-log.txt'
-        // if (fs.existsSync(file)) {
-        //     fs.appendFileSync (file, content)
-        // } else {
-        //     fs.writeFileSync (file, content)
-        // }
+    if ((key in chat) === value) {
+      return // already done, nothing to do
     }
+    if (value) {
+      const resp = await this.client.modifyChat(threadID, key as ChatModification)
+      if (key === 'archive') chat[key] = value ? 'true' : 'false'
+      else chat[key] = resp.stamp
+    } else {
+      await this.client.modifyChat(threadID, ('un' + key) as ChatModification)
+      delete chat[key]
+    }
+  }
+
+  protected async safelyGetProfilePicture(jid: string): Promise<string> {
+    return this.client.getProfilePicture(jid).catch(() => null)
+  }
+
+  log(txt) {
+    console.log(txt)
+    const content = JSON.stringify(txt) + '\n'
+    // const file = require('os').homedir() + '/Desktop/baileys-log.txt'
+    // if (fs.existsSync(file)) {
+    //     fs.appendFileSync (file, content)
+    // } else {
+    //     fs.writeFileSync (file, content)
+    // }
+  }
 }
