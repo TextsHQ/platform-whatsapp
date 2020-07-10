@@ -16,7 +16,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     meContact?: WAContact
 
     init = async (session?: any) => {
-        this.client.browserDescription = Browsers.ubuntu ('Chromium') // set to Chromium on Ubuntu 18.04
+        this.getThreads = this.getThreads.bind (this)
+        this.client.browserDescription = Browsers.ubuntu ('Chrome') // set to Chrome on Ubuntu 18.04
         this.restoreRession (session)
         this.registerCallbacks ()
         await this.connect ()
@@ -33,9 +34,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
     }
     dispose () { this.client.close () }
-    async login () {
-        return {type: 'success'} as LoginResult
-    }
+    async login () { return {type: 'success'} as LoginResult }
     logout = async () => { await this.client.logout () }
     connect = async () => {
         this.log ('began connect')
@@ -55,7 +54,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     getCurrentUser = async () => {
         this.log ('requested user data')
         const user = this.client.userMetaData
-        const pp = await this.client.getProfilePicture (user.id)
+        const pp = await this.safelyGetProfilePicture (user.id)
         return {id: user.id, displayText: user.name, imgURL: pp}
     }
     serializeSession = () => this.client.base64EncodedAuthInfo ()
@@ -125,7 +124,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             chat.jid = userIDs[0]
             chat.participants = [ this.meContact, ...userIDs.map(id => this.contactMap[id] || {jid: id}) ]
             try {
-                chat.imgURL = await this.client.getProfilePicture (chat.jid)
+                chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
             } catch (error) {
                 console.log ('error in getting profile pic: ' + error)
             }
@@ -137,7 +136,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         return mapThread (chat)
     }
     async getThreads (inboxName: InboxName, beforeCursor?: string) {
-        if (inboxName !== InboxName.REQUESTS) {
+        if (inboxName !== InboxName.NORMAL) {
             return {items: [], hasMore: false} 
         }
         this.log ('requested thread data, page: ' + beforeCursor)
@@ -150,14 +149,20 @@ export default class WhatsAppAPI implements PlatformAPI {
         for (let i = page*batchSize; i < lastItem;i++) {
             let chat = this.chats[i] as any
             if (chat.jid.includes('@g.us')) { // is a group
-                const metadata = await this.client.groupMetadata (chat.jid)
-                chat.title = metadata.subject
-                chat.participants = metadata.participants.map (p => this.contacts[p.id] || {jid: p.id})
+                try {
+                    const metadata = await this.client.groupMetadata (chat.jid)
+                    chat.title = metadata.subject
+                    chat.participants = metadata.participants.map (p => this.contacts[p.id] || {jid: p.id})
+                } catch (err) {
+                    chat.title = 'Unknown Title'
+                    chat.participants = []
+                    this.log (`error in getting group ${chat.jid}: ${err}`)
+                }
             } else {
                 chat.participants = [ this.contactMap[chat.jid] || {jid: chat.jid} ]
             }
             chat.participants.push (this.meContact)
-            chat.imgURL = await this.client.getProfilePicture (chat.jid)
+            chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
             
             chats.push (chat)
         }
@@ -284,6 +289,9 @@ export default class WhatsAppAPI implements PlatformAPI {
             await this.client.modifyChat (threadID, ('un' + key) as ChatModification)
             delete chat[key]
         }
+    }
+    protected async safelyGetProfilePicture (jid: string): Promise<string> {
+        return this.client.getProfilePicture (jid).catch (() => null)
     }
     log (txt) {
         const content = JSON.stringify (txt) + '\n'
