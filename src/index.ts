@@ -2,7 +2,7 @@ import path from 'path'
 import {promises as fs} from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType, WAMessage } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory } from './mappers'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 20
@@ -56,7 +56,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.close()
   }
 
-  login = (): Promise<LoginResult> => Promise.resolve({ type: 'success' })
+  login = async (): Promise<LoginResult> => ({ type: 'success' })
 
   logout = async () => { await this.client.logout() }
 
@@ -73,7 +73,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.chats = this.chats.sort ( (a, b) => (+b.t)-(+a.t) )
     this.meContact = this.contactMap[user.id] || { jid: user.id, name: user.name }
-
+    this.contactMap[user.id.replace('@s.whatsapp.net', '@c.us')] = this.meContact
     this.log('connected successfully')
 
     if (this.loginCallback) this.loginCallback({ name: 'ready' })
@@ -160,10 +160,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       const meta = await this.client.groupCreate(title, userIDs)
       const participants = Object.keys(meta.participants).map(p => this.contactMap[p] || { jid: p })
       chat.jid = meta.gid
-      chat.participants = [this.meContact, ...participants]
+      chat.participants = [...participants, this.meContact]
     } else if (userIDs.length === 1) {
       chat.jid = userIDs[0]
-      chat.participants = [this.meContact, ...userIDs.map(id => this.contactMap[id] || { jid: id })]
+      chat.participants = [...userIDs.map(id => this.contactMap[id] || { jid: id }), this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
     } else {
       throw new Error('no users provided')
@@ -190,16 +190,15 @@ export default class WhatsAppAPI implements PlatformAPI {
             try {
                 const metadata = await this.client.groupMetadata(chat.jid)
                 chat.title = metadata.subject
-                chat.participants = metadata.participants.map(p => this.contacts[p.id] || { jid: p.id })
+                chat.participants = metadata.participants.map(p => this.contactMap[p.id] || { jid: p.id })
             } catch (err) {
                 chat.title = 'Unknown Title'
                 chat.participants = []
                 this.log(`error in getting group ${chat.jid}: ${err}`)
-                }
+            }
         } else {
-            chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }]
+            chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }, this.meContact]
         }
-        chat.participants.push(this.meContact)
         chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
         return chat as WACompleteChat
     })
@@ -228,7 +227,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const messages = cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages
     const oldestCursor = messages[messages.length - 1]?.key
     return {
-      items: mapMessages(messages.filter (m => m.message !== null)),
+      items: mapMessages (messages),
       hasMore: messages.length >= batchSize || !cursor,
       oldestCursor: oldestCursor && JSON.stringify(oldestCursor),
     }
@@ -293,7 +292,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   markAsUnread = async (threadID: string) => {
-    await this.client.markChatUnread(threadID)
+    await this.client.sendReadReceipt(threadID, null, 'unread')
+    this.chatMap[threadID].count = -1
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
@@ -301,7 +301,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendReadReceipt = async (threadID: string, messageID: string) => {
-    await this.client.sendReadReceipt(threadID, messageID)
+    await this.client.sendReadReceipt(threadID, null)
+    this.chatMap[threadID].count = 0
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {
@@ -338,15 +339,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
   loadDynamicMessage = async (message: Message) => {
     const m = message._original as WAMessage
-    const [_, messageType] = getNotificationType(m) as [string, MessageType]
-    if (messageType !== MessageType.audio && messageType !== MessageType.image && messageType !== MessageType.video && messageType !== MessageType.document && messageType !== MessageType.sticker) {
-        return
-    }
     const filename = filenameForMessageAttachment (m)
+    
     try {
       await fs.access (filename)
     } catch {
-      this.log (m.message)
       this.log ('downloading media: ' + filename)
       try {
         await decodeMediaMessage (m.message, filename, false)
@@ -355,7 +352,10 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.log ('error in downloading media of ' + filename + ': ' + error)
       }
     }
-    return message
+    
+    const mapped = mapMessage (m)
+    mapped.attachments[0].data = await fs.readFile (filename)
+    return mapped
   }
 
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
