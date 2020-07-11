@@ -1,6 +1,5 @@
 import React, { Component } from 'react'
 import QRCode from 'qrcode.react'
-import { PlatformAPI } from '@textshq/platform-sdk'
 
 export default class WhatsAppAuth extends Component {
   constructor(props) {
@@ -28,8 +27,8 @@ export default class WhatsAppAuth extends Component {
           <li>{'Tap on "WhatsApp Web/Desktop", then "Scan QR Code"'}</li>
           <li>Point your phone to this screen:</li>
         </ol>
-        <div className="text-center" >
-          {qrValue ? <QRCode size={256} style={{border: '5px solid white'}} value={qrValue} /> : 'Loading QR code...'}
+        <div className="text-center">
+          {qrValue ? React.createElement (QRCode, {size: 256, value: qrValue, includeMargin: true} as any) : 'Loading QR code...'}
         </div>
       </div>
     )

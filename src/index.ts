@@ -1,7 +1,7 @@
 import path from 'path'
 import {promises as fs} from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType } from '@adiwajshing/baileys'
-import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType, WAMessage } from '@adiwajshing/baileys'
+import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory } from './mappers'
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -57,7 +57,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.close()
   }
 
-  login = (): LoginResult => ({ type: 'success' })
+  login = (): Promise<LoginResult> => Promise.resolve({ type: 'success' })
 
   logout = async () => { await this.client.logout() }
 
@@ -227,29 +227,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     const batchSize = this.messagePageSize
     const messages = cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages
     const oldestCursor = messages[messages.length - 1]?.key
-    const mediaDownloads = messages.map (async m => {
-      const [_, messageType] = getNotificationType(m) as [string, MessageType]
-      if (messageType !== MessageType.audio && messageType !== MessageType.image && messageType !== MessageType.video && messageType !== MessageType.document && messageType !== MessageType.sticker) {
-          return
-      }
-      const filename = filenameForMessageAttachment (m)
-      try {
-        await fs.access (filename)
-      } catch {
-        this.log (m.message)
-        this.log ('downloading media: ' + filename)
-        try {
-          await decodeMediaMessage (m.message, filename, false)
-          this.log ('downloaded media: ' + filename)
-        } catch (error) {
-          this.log ('error in downloading media of ' + filename + ': ' + error)
-        }
-        
-      }
-    })
-
-    await Promise.all (mediaDownloads)
-
     return {
       items: mapMessages(messages.filter (m => m.message !== null)),
       hasMore: messages.length >= batchSize || !cursor,
@@ -299,7 +276,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       op.mimetype = mimeType as Mimetype
     }
     const resp = await this.client.sendMessage(threadID.replace('@c.us', '@s.whatsapp.net'), content, messageType, op)
-    const sentMessage = await this.client.loadConversation(threadID, 1, { id: resp.messageID, fromMe: true })
+    const sentMessage = await this.client.loadConversation(threadID, 1)
 
     chat.messages.push(sentMessage[0])
     return true
@@ -358,6 +335,27 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.client.modifyChat(threadID, ('un' + key) as ChatModification)
       delete chat[key]
     }
+  }
+  loadDynamicMessage = async (message: Message) => {
+    const m = message._original as WAMessage
+    const [_, messageType] = getNotificationType(m) as [string, MessageType]
+    if (messageType !== MessageType.audio && messageType !== MessageType.image && messageType !== MessageType.video && messageType !== MessageType.document && messageType !== MessageType.sticker) {
+        return
+    }
+    const filename = filenameForMessageAttachment (m)
+    try {
+      await fs.access (filename)
+    } catch {
+      this.log (m.message)
+      this.log ('downloading media: ' + filename)
+      try {
+        await decodeMediaMessage (m.message, filename, false)
+        this.log ('downloaded media: ' + filename)
+      } catch (error) {
+        this.log ('error in downloading media of ' + filename + ': ' + error)
+      }
+    }
+    return message
   }
 
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
