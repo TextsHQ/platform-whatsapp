@@ -1,8 +1,8 @@
 import path from 'path'
-import fs from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers } from '@adiwajshing/baileys'
+import {promises as fs} from 'fs'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType } from '@adiwajshing/baileys'
 import { PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread } from './mappers'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory } from './mappers'
 
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
@@ -23,10 +23,20 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   meContact?: WAContact
 
+  messagePageSize = 20
+
+  threadPageSize = 20
+
   init = async (session?: any) => {
+    try {
+      await fs.mkdir (defaultWorkingDirectory)
+      await fs.mkdir (defaultAttachmentsDirectory, {recursive: true})
+    } catch { }
+    
     this.client.browserDescription = Browsers.ubuntu('Chrome') // set to Chrome on Ubuntu 18.04
     this.restoreSession(session)
     this.registerCallbacks()
+    
     if (session) await this.connect()
     else this.connect()
   }
@@ -58,7 +68,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chats = chats
     this.contacts = contacts
     this.contacts.forEach(c => { this.contactMap[c.jid] = c })
-    this.chats.forEach(c => { this.chatMap[c.jid] = c })
+    this.chats.forEach(c => { 
+      this.chatMap[c.jid] = c 
+      c.messages = c.messages.reverse ()
+    })
     this.meContact = this.contactMap[user.id] || { jid: user.id, name: user.name }
 
     this.log('connected successfully')
@@ -151,11 +164,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else if (userIDs.length === 1) {
       chat.jid = userIDs[0]
       chat.participants = [this.meContact, ...userIDs.map(id => this.contactMap[id] || { jid: id })]
-      try {
-        chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
-      } catch (error) {
-        console.log('error in getting profile pic: ' + error)
-      }
+      chat.imgURL = await this.safelyGetProfilePicture (chat.jid)
     } else {
       throw new Error('no users provided')
     }
@@ -171,30 +180,31 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.log('requested thread data, page: ' + beforeCursor)
 
     const page = parseInt(beforeCursor || '0', 10)
-    const batchSize = 50
+    const batchSize = this.threadPageSize
+    const firstItem = page*batchSize
     const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
 
-    const chats: WACompleteChat[] = []
-    for (let i = page * batchSize; i < lastItem; i++) {
-      const chat = this.chats[i] as any
-      if (chat.jid.includes('@g.us')) { // is a group
-        try {
-          const metadata = await this.client.groupMetadata(chat.jid)
-          chat.title = metadata.subject
-          chat.participants = metadata.participants.map(p => this.contacts[p.id] || { jid: p.id })
-        } catch (err) {
-          chat.title = 'Unknown Title'
-          chat.participants = []
-          this.log(`error in getting group ${chat.jid}: ${err}`)
+    const chatPromises = this.chats.slice (firstItem, lastItem).map (async _chat => {
+        const chat = _chat as any
+        if (chat.jid.includes('@g.us')) { // is a group
+            try {
+                const metadata = await this.client.groupMetadata(chat.jid)
+                chat.title = metadata.subject
+                chat.participants = metadata.participants.map(p => this.contacts[p.id] || { jid: p.id })
+            } catch (err) {
+                chat.title = 'Unknown Title'
+                chat.participants = []
+                this.log(`error in getting group ${chat.jid}: ${err}`)
+                }
+        } else {
+            chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }]
         }
-      } else {
-        chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }]
-      }
-      chat.participants.push(this.meContact)
-      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
-
-      chats.push(chat)
-    }
+        chat.participants.push(this.meContact)
+        chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+        return chat as WACompleteChat
+    })
+    const chats = await Promise.all (chatPromises)
+    this.log ('done with getting threads')
     return {
       items: mapThreads(chats),
       hasMore: chats.length >= batchSize,
@@ -203,11 +213,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   async searchMessages(typed: string, beforeCursor?: string, threadID?: string) {
-    if (threadID) {
-      throw new Error('local search in thread not supported yet')
-    }
     const page = beforeCursor ? +beforeCursor : 0
-    const response = await this.client.searchMessages(typed, 25, page)
+    const response = await this.client.searchMessages(typed, threadID, 10, page)
     return {
       items: mapMessages(response.messages),
       hasMore: !response.last,
@@ -215,12 +222,37 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getMessages = async (threadID: string, cursor: string) => {
-    const messages = await this.client.loadConversation(threadID, 25, cursor && JSON.parse(cursor))
+  getMessages = async (threadID: string, cursor?: string) => {
+    this.log (`loading messages of ${threadID} ${cursor}`)
+    const batchSize = this.messagePageSize
+    const messages = cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages
     const oldestCursor = messages[messages.length - 1]?.key
+    const mediaDownloads = messages.map (async m => {
+      const [_, messageType] = getNotificationType(m) as [string, MessageType]
+      if (messageType !== MessageType.audio && messageType !== MessageType.image && messageType !== MessageType.video && messageType !== MessageType.document && messageType !== MessageType.sticker) {
+          return
+      }
+      const filename = filenameForMessageAttachment (m)
+      try {
+        await fs.access (filename)
+      } catch {
+        this.log (m.message)
+        this.log ('downloading media: ' + filename)
+        try {
+          await decodeMediaMessage (m.message, filename, false)
+          this.log ('downloaded media: ' + filename)
+        } catch (error) {
+          this.log ('error in downloading media of ' + filename + ': ' + error)
+        }
+        
+      }
+    })
+
+    await Promise.all (mediaDownloads)
+
     return {
-      items: mapMessages(messages),
-      hasMore: messages.length >= 25,
+      items: mapMessages(messages.filter (m => m.message !== null)),
+      hasMore: messages.length >= batchSize || !cursor,
       oldestCursor: oldestCursor && JSON.stringify(oldestCursor),
     }
   }
@@ -229,13 +261,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
     const { base: fileName } = path.parse(filePath)
-    const buffer = await fs.readFileSync(filePath)
+    const buffer = await fs.readFile(filePath)
     return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
   }
 
   sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
 
   sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
+    this.log (`sending message to ${threadID}`)
     let chat = this.chatMap[threadID]
     if (!chat) {
       if (threadID.includes('@g.us')) {
@@ -268,8 +301,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const resp = await this.client.sendMessage(threadID.replace('@c.us', '@s.whatsapp.net'), content, messageType, op)
     const sentMessage = await this.client.loadConversation(threadID, 1, { id: resp.messageID, fromMe: true })
 
-    chat.messages.splice(0, 0, sentMessage[0])
-
+    chat.messages.push(sentMessage[0])
     return true
   }
 
@@ -310,6 +342,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.modThread(threadID, archived, 'archive')
 
   protected async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
+    this.log (`modifying thread ${threadID} ${key}: ${value}`)
     const chat = this.chatMap[threadID]
     if (!chat) {
       throw new Error('thread not found')
@@ -331,14 +364,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.client.getProfilePicture(jid).catch(() => null)
   }
 
-  log(txt) {
-    console.log(txt)
-    const content = JSON.stringify(txt) + '\n'
-    // const file = require('os').homedir() + '/Desktop/baileys-log.txt'
-    // if (fs.existsSync(file)) {
-    //     fs.appendFileSync (file, content)
-    // } else {
-    //     fs.writeFileSync (file, content)
-    // }
+  async log(txt) {
+    const content = new Date().toLocaleString () + '\t' + JSON.stringify(txt) + '\n'
+    const file = defaultWorkingDirectory + '/baileys-log.txt'
+    try {
+      await fs.access (file)
+      await fs.appendFile (file, content)
+    } catch {
+      await fs.writeFile (file, content)
+    }
   }
 }

@@ -28,8 +28,8 @@ export default class WhatsAppAuth extends Component {
           <li>{'Tap on "WhatsApp Web/Desktop", then "Scan QR Code"'}</li>
           <li>Point your phone to this screen:</li>
         </ol>
-        <div className="text-center" style={{ margin: '50px' }}>
-          {qrValue ? <QRCode size={256} includeMargin value={qrValue} /> : 'Loading QR code...'}
+        <div className="text-center" >
+          {qrValue ? <QRCode size={256} style={{border: '5px solid white'}} value={qrValue} /> : 'Loading QR code...'}
         </div>
       </div>
     )

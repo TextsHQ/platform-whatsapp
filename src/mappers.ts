@@ -1,5 +1,6 @@
 import { WAContact, WAMessage, getNotificationType, MessageType, WAChat } from '@adiwajshing/baileys'
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@textshq/platform-sdk'
+import { homedir } from 'os'
 
 export interface WACompleteChat extends WAChat {
   participants: WAContact[]
@@ -22,8 +23,10 @@ export function mapContact(contact: WAContact): Participant {
     phoneNumber: numberFromJid(contact.jid),
   }
 }
+export const defaultWorkingDirectory = homedir() + '/texts-baileys'
+export const defaultAttachmentsDirectory = defaultWorkingDirectory + '/attachments'
 export function filenameForMessageAttachment(message: WAMessage) {
-  return `./attachments/attach_${message.key.id}`
+  return `${defaultAttachmentsDirectory}/attach_${message.key.id}`
 }
 export function mapMessage(message: WAMessage): Message {
   const attachmentMap = {
@@ -41,8 +44,8 @@ export function mapMessage(message: WAMessage): Message {
         || messageType === MessageType.document
         || messageType === MessageType.sticker) {
     const filename = filenameForMessageAttachment(message)
-    const { caption } = message.message[messageType]
-    const thumb = message.message[messageType].jpegThumbnail
+    const caption = message.message[messageType]['caption']
+    const thumb = message.message[messageType]['jpegThumbnail']
     attachment = {
       id: message.key.id,
       type: attachmentMap[messageType] || MessageAttachmentType.UNKNOWN,
