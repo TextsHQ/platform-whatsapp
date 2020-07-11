@@ -1,15 +1,18 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType, WAMessage } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
+const MESSAGE_INFO_STATUS = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
 const MESSAGE_STATUS_MAP = {
-  received: 3,
-  read: 4,
-  'unknown (4)': 4,
+  sent: MESSAGE_INFO_STATUS.SERVER_ACK,
+  received: MESSAGE_INFO_STATUS.DELIVERY_ACK,
+  read: MESSAGE_INFO_STATUS.READ,
+  'unknown (4)': MESSAGE_INFO_STATUS.READ,
+  'unknown (5)': MESSAGE_INFO_STATUS.PLAYED
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
