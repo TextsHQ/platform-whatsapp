@@ -28,7 +28,7 @@ export default class WhatsAppAuth extends Component {
           <li>Point your phone to this screen:</li>
         </ol>
         <div className="text-center">
-          {qrValue ? React.createElement (QRCode, {size: 256, value: qrValue, includeMargin: true} as any) : 'Loading QR code...'}
+          {qrValue ? React.createElement(QRCode, { size: 256, value: qrValue, includeMargin: true } as any) : 'Loading QR code...'}
         </div>
       </div>
     )

@@ -2,7 +2,7 @@ import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, WAMessa
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@textshq/platform-sdk'
 import { homedir } from 'os'
 
-const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE 
+const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
 const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
   // This chat is with the official business account of "X". Click for more info.
@@ -25,8 +25,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
 
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: "{{sender}} was added to this group",
-} 
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: '{{sender}} was added to this group',
+}
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
   [MessageType.image]: MessageAttachmentType.IMG,
@@ -61,8 +61,8 @@ export function filenameForMessageAttachment(message: WAMessage) {
   return `${defaultAttachmentsDirectory}/attach_${message.key.id}`
 }
 export function mapMessage(message: WAMessage): Message {
-  const sender = (message.key.participant || message.key.remoteJid).replace ('@s.whatsapp.net', '@c.us')
-  const backupMessage = PRE_DEFINED_MESSAGES[message.messageStubType]?.replace ('{{sender}}', numberFromJid(message.key.participant || message.key.remoteJid))
+  const sender = (message.key.participant || message.key.remoteJid).replace('@s.whatsapp.net', '@c.us')
+  const backupMessage = PRE_DEFINED_MESSAGES[message.messageStubType]?.replace('{{sender}}', numberFromJid(message.key.participant || message.key.remoteJid))
 
   let attachment: MessageAttachment = null
   const [_, messageType] = getNotificationType(message) as [string, MessageType]
@@ -72,8 +72,8 @@ export function mapMessage(message: WAMessage): Message {
         || messageType === MessageType.document
         || messageType === MessageType.sticker) {
     const filename = filenameForMessageAttachment(message)
-    const caption = message.message[messageType]['caption']
-    const thumb = message.message[messageType]['jpegThumbnail']
+    const { caption } = message.message[messageType]
+    const thumb = message.message[messageType].jpegThumbnail
     attachment = {
       id: message.key.id,
       type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
@@ -97,7 +97,7 @@ export function mapMessage(message: WAMessage): Message {
     attachments: attachment ? [attachment] : [],
     reactions: [],
     isDelivered: message.key.fromMe ? message.status >= 3 : true,
-    isDynamicMessage: attachment !== null, 
+    isDynamicMessage: attachment !== null,
     seen: message.status >= 4,
     sender: { id: message.key.participant || message.key.remoteJid },
   }
