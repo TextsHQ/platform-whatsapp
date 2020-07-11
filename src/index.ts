@@ -167,17 +167,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
   }
 
-  async searchUsers(typed: string) {
-    const results: Participant[] = []
-    this.contacts.forEach(c => {
+  searchUsers = async (typed: string) => {
+    return this.contacts.map(c => {
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
-        results.push(mapContact(c))
+        if (!isGroupID(c.jid)) return mapContact(c)
       }
-    })
-    return results
+    }).filter(Boolean)
   }
 
-  async loadThread(jid: string) {
+  loadThread = async (jid: string) => {
     const chat: WACompleteChat = {
       jid,
       count: 0,
