@@ -4,6 +4,9 @@ import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WACo
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory } from './mappers'
 
+const MESSAGE_PAGE_SIZE = 20
+const THREAD_PAGE_SIZE = 20
+
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
 
@@ -22,10 +25,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   chatMap: Record<string, WAChat> = {}
 
   meContact?: WAContact
-
-  messagePageSize = 20
-
-  threadPageSize = 20
 
   init = async (session?: any) => {
     try {
@@ -180,7 +179,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.log('requested thread data, page: ' + beforeCursor)
 
     const page = parseInt(beforeCursor || '0', 10)
-    const batchSize = this.threadPageSize
+    const batchSize = THREAD_PAGE_SIZE
     const firstItem = page*batchSize
     const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
 
@@ -224,7 +223,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessages = async (threadID: string, cursor?: string) => {
     this.log (`loading messages of ${threadID} ${cursor}`)
-    const batchSize = this.messagePageSize
+    const batchSize = MESSAGE_PAGE_SIZE
     const messages = cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages
     const oldestCursor = messages[messages.length - 1]?.key
     return {
