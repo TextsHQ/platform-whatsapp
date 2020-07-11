@@ -31,11 +31,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       await fs.mkdir (defaultWorkingDirectory)
       await fs.mkdir (defaultAttachmentsDirectory, {recursive: true})
     } catch { }
-    
+
     this.client.browserDescription = Browsers.ubuntu('Chrome') // set to Chrome on Ubuntu 18.04
     this.restoreSession(session)
     this.registerCallbacks()
-    
+
     if (session) await this.connect()
     else this.connect()
   }
@@ -67,8 +67,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chats = chats
     this.contacts = contacts
     this.contacts.forEach(c => { this.contactMap[c.jid] = c })
-    this.chats.forEach(c => { 
-      this.chatMap[c.jid] = c 
+    this.chats.forEach(c => {
+      this.chatMap[c.jid] = c
       c.messages = c.messages.reverse ()
     })
     this.chats = this.chats.sort ( (a, b) => (+b.t)-(+a.t) )
@@ -112,7 +112,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.loginCallback({ name: 'qr', qr: str })
     }
     this.client.setOnMessageStatusChange(update => {
-      this.evCallback([])
+      this.evCallback([
+        {
+          type: ServerEventType.THREAD_UPDATED,
+          threadID: update.to, // todo: test it works when other person sends message in single thread
+        },
+      ])
     })
     this.client.setOnUnreadMessage(true, message => {
 
