@@ -1,5 +1,5 @@
-import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, WAMessageProto } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType } from '@textshq/platform-sdk'
+import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview } from '@textshq/platform-sdk'
 import { homedir } from 'os'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
@@ -40,13 +40,18 @@ export interface WACompleteChat extends WAChat {
   description?: string
   imgURL: string
 }
-
+export function whatsappID(jid: string) {
+  return jid.replace('@s.whatsapp.net', '@c.us')
+}
+export function isGroupID(jid: string) {
+  return jid.endsWith('@g.us')
+}
 function numberFromJid(jid: string) {
-  return '+' + jid.replace('@s.whatsapp.net', '').replace('@c.us', '')
+  return '+' + whatsappID(jid).replace('@c.us', '')
 }
 
 export function mapContact(contact: WAContact): Participant {
-  if (contact.jid.includes('@g.us')) {
+  if (isGroupID(contact.jid)) {
     throw new Error('a group cannot be a contact')
   }
   return {
@@ -57,49 +62,87 @@ export function mapContact(contact: WAContact): Participant {
 }
 export const defaultWorkingDirectory = homedir() + '/texts-baileys'
 export const defaultAttachmentsDirectory = defaultWorkingDirectory + '/attachments'
-export function filenameForMessageAttachment(message: WAMessage) {
-  return `${defaultAttachmentsDirectory}/attach_${message.key.id}`
+export function filenameForMessageAttachment(messageID: string) {
+  return `${defaultAttachmentsDirectory}/attach_${messageID}`
+}
+function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
+  const response = { attachments: [] as MessageAttachment[], media: false }
+  if (!message) {
+
+  } else if (message.contactMessage || message.contactsArrayMessage) {
+    const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
+    response.attachments = contacts.map(c => ({
+      id: `${id}_${c.displayName}`,
+      type: MessageAttachmentType.UNKNOWN,
+      data: Buffer.from(c.vcard, 'utf-8'),
+      fileName: `${c.displayName}.vcf`,
+    }))
+  } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
+    const messageType = Object.keys(message)[0]
+    const filename = filenameForMessageAttachment(id)
+    const caption = (message.videoMessage || message.imageMessage)?.caption
+    const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
+    response.attachments = [
+      {
+        id,
+        type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
+        isGif: message.videoMessage?.gifPlayback,
+        caption,
+        fileName: filename,
+        mimeType: message[messageType].mimetype,
+        posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+      },
+    ]
+    response.media = true
+  }
+  return response
+}
+function linkedMessage(message: WAMessageContent): string {
+  if (!message) {
+    return null
+  }
+  const m = message.videoMessage || message.audioMessage || message.contactMessage || message.imageMessage || message.extendedTextMessage || message.documentMessage
+  const contextInfo = m?.contextInfo
+  const quoted = contextInfo?.quotedMessage
+  if (!quoted) {
+    return null
+  }
+  return contextInfo.stanzaId
+}
+function messageHeading(message: WAMessage) {
+  return message.broadcast ? 'Broadcast' : message.message?.locationMessage ? '📍 Location' : message.message?.liveLocationMessage ? '📍 Live Location' : null
+}
+function messageText(message: WAMessageContent) {
+  const loc = message?.locationMessage || message?.liveLocationMessage
+  if (loc) {
+    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${loc.address || ''}`
+  }
+  return message?.conversation || message?.extendedTextMessage?.text
 }
 export function mapMessage(message: WAMessage): Message {
-  const sender = (message.key.participant || message.key.remoteJid).replace('@s.whatsapp.net', '@c.us')
-  const backupMessage = PRE_DEFINED_MESSAGES[message.messageStubType]?.replace('{{sender}}', numberFromJid(message.key.participant || message.key.remoteJid))
-
-  let attachment: MessageAttachment = null
-  const [_, messageType] = getNotificationType(message) as [string, MessageType]
-  if (messageType === MessageType.audio
-        || messageType === MessageType.image
-        || messageType === MessageType.video
-        || messageType === MessageType.document
-        || messageType === MessageType.sticker) {
-    const filename = filenameForMessageAttachment(message)
-    const { caption } = message.message[messageType]
-    const thumb = message.message[messageType].jpegThumbnail
-    attachment = {
-      id: message.key.id,
-      type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
-      isGif: message.message?.videoMessage?.gifPlayback,
-      caption,
-      fileName: filename,
-      mimeType: message.message[messageType].mimetype,
-      posterImg: thumb ? Buffer.from(thumb) : null,
-    }
-  }
+  const sender = whatsappID(message.key.participant || message.key.remoteJid)
+  const backupMessage = PRE_DEFINED_MESSAGES[message.messageStubType]
+  const { attachments, media } = messageAttachments(message.message, message.key.id)
+  const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
+  const linked = linkedMessage(message.message)
   return {
     _original: message,
     cursor: JSON.stringify(message.key),
     id: message.key.id,
-    textHeading: message.broadcast ? 'Broadcast' : null,
-    text: message.message?.conversation || message.message?.extendedTextMessage?.text || backupMessage,
-    timestamp: new Date((typeof message.messageTimestamp === 'number' ? message.messageTimestamp : message.messageTimestamp.toNumber()) * 1000),
-    senderID: message.key.remoteJid,
+    textHeading: messageHeading(message),
+    text: messageText(message.message) || backupMessage,
+    timestamp: new Date(timestamp * 1000),
+    senderID: sender,
     isSender: message.key.fromMe,
     isDeleted: message.messageStubType === MESSAGE_STUB_TYPES.REVOKE,
-    attachments: attachment ? [attachment] : [],
+    attachments,
     reactions: [],
     isDelivered: message.key.fromMe ? message.status >= 3 : true,
-    isDynamicMessage: attachment !== null,
+    isDynamicMessage: media,
     seen: message.status >= 4,
-    sender: { id: message.key.participant || message.key.remoteJid },
+    sender: { id: sender },
+    linkedMessageID: linked,
+    parseTemplate: backupMessage !== null,
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {
@@ -107,7 +150,7 @@ export function mapMessages(message: WAMessage[]): Message[] {
 }
 
 export function mapThread(t: WACompleteChat): Thread {
-  const isGroup = t.jid.endsWith('@g.us')
+  const isGroup = isGroupID(t.jid)
   return {
     _original: t,
     id: t.jid,
