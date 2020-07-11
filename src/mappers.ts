@@ -1,10 +1,11 @@
-import { WAContact, WAMessage, getNotificationType, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview } from '@textshq/platform-sdk'
+import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType } from '@textshq/platform-sdk'
 import { homedir } from 'os'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
 const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
+  [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{sender}}\'s security code changed',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
   [MESSAGE_STUB_TYPES.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
@@ -20,18 +21,29 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.CALL_MISSED_VIDEO]: 'Missed video call',
   [MESSAGE_STUB_TYPES.CALL_MISSED_VOICE]: 'Missed voice call',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
 
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: '{{sender}} was added to this group',
+  [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group'
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
   [MessageType.image]: MessageAttachmentType.IMG,
   [MessageType.sticker]: MessageAttachmentType.IMG,
   [MessageType.video]: MessageAttachmentType.VIDEO,
+}
+const MESSAGE_TYPE_MAP = {
+  [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
 
 export interface WACompleteChat extends WAChat {
@@ -65,6 +77,15 @@ export const defaultAttachmentsDirectory = defaultWorkingDirectory + '/attachmen
 export function filenameForMessageAttachment(messageID: string) {
   return `${defaultAttachmentsDirectory}/attach_${messageID}`
 }
+/*function messageAction (message: WAMessage): Action {
+  const actionType = MESSAGE_TYPE_MAP[message.messageStubType]
+  if (!actionType) return null
+  return {
+    type: actionType,
+    title: message.messageStubParameters[0],
+    actorParticipantID: message.key.participant
+  }
+}*/
 function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) {
@@ -119,9 +140,16 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || message?.extendedTextMessage?.text
 }
+function messageStubText (message: WAMessage) {
+  let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
+  if (txt) {
+    message.messageStubParameters.forEach ((p,i) => txt = txt.replace (`{{${i}}}`, p))
+  }
+  return txt
+}
 export function mapMessage(message: WAMessage): Message {
   const sender = whatsappID(message.key.participant || message.key.remoteJid)
-  const backupMessage = PRE_DEFINED_MESSAGES[message.messageStubType]
+  const stubBasedMessage = messageStubText (message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = linkedMessage(message.message)
@@ -130,7 +158,7 @@ export function mapMessage(message: WAMessage): Message {
     cursor: JSON.stringify(message.key),
     id: message.key.id,
     textHeading: messageHeading(message),
-    text: messageText(message.message) || backupMessage,
+    text: messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
     senderID: sender,
     isSender: message.key.fromMe,
@@ -142,7 +170,8 @@ export function mapMessage(message: WAMessage): Message {
     seen: message.status >= 4,
     sender: { id: sender },
     linkedMessageID: linked,
-    parseTemplate: backupMessage !== null,
+    parseTemplate: stubBasedMessage !== null,
+    isAction: stubBasedMessage !== null
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {
@@ -158,7 +187,6 @@ export function mapThread(t: WACompleteChat): Thread {
     description: t.description,
     imgURL: t.imgURL,
     isUnread: (t.count as unknown as number) != 0,
-    // isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages),
     participants: t.participants.map(c => mapContact(c)),

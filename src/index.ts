@@ -80,7 +80,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       c.messages = c.messages.reverse()
     })
     this.chats = this.chats.sort((a, b) => (+b.t) - (+a.t))
-    this.meContact = this.contactMap[user.id] || { jid: user.id, name: user.name }
+    this.meContact = this.contactMap[user.id] || { jid: whatsappID(user.id), name: user.name }
     this.contactMap[whatsappID(user.id)] = this.meContact
     this.log('connected successfully')
 
@@ -183,7 +183,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       count: 0,
       participants: [],
       imgURL: '',
-      t: new Date().getTime().toString(),
+      t: (new Date().getTime()/1000).toString(),
       spam: 'false',
       modify_tag: '',
       messages: [],
@@ -204,14 +204,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chats.splice(0, 0, chat)
     return chat
   }
-
-  async createThread(userIDs: string[], title: string) {
+  createThread = async (userIDs: string[], title: string) => {
     const chat: WACompleteChat = {
       jid: '',
       count: 0,
       participants: [],
       imgURL: '',
-      t: new Date().getTime().toString(),
+      t: (new Date().getTime()/1000).toString(),
       spam: 'false',
       modify_tag: '',
       messages: [],
@@ -272,13 +271,17 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  async searchMessages(typed: string, beforeCursor?: string, threadID?: string) {
-    const page = beforeCursor ? +beforeCursor : 0
-    const response = await this.client.searchMessages(typed, threadID, 10, page)
+  searchMessages = async (typed: string, beforeCursor?: string, threadID?: string) => {
+    if (!typed) return {items: [], hasMore: false, oldestCursor: '0'}
+
+    const page = beforeCursor ? (parseInt(beforeCursor) || 1) : 1
+    const nextPage = (page + 1).toString()
+    this.log (`searching for ${typed} in ${threadID}, page: ${page}`)
+    const response = await this.client.searchMessages(typed, threadID || null, 10, page)
     return {
       items: mapMessages(response.messages),
       hasMore: !response.last,
-      oldestCursor: (page + 1).toString(),
+      oldestCursor: nextPage,
     }
   }
 
@@ -403,7 +406,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadDynamicMessage = async (message: Message) => {
     const m = message._original as WAMessage
-    const filename = filenameForMessageAttachment(m)
+    const filename = filenameForMessageAttachment(m.key.id)
 
     try {
       await fs.access(filename)
