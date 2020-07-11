@@ -71,6 +71,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.chatMap[c.jid] = c 
       c.messages = c.messages.reverse ()
     })
+    this.chats = this.chats.sort ( (a, b) => (+b.t)-(+a.t) )
     this.meContact = this.contactMap[user.id] || { jid: user.id, name: user.name }
 
     this.log('connected successfully')
