@@ -207,7 +207,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return chat
   }
   createThread = async (userIDs: string[], title: string) => {
-    const chat: WACompleteChat = {
+    let chat: WACompleteChat = {
       jid: '',
       count: 0,
       participants: [],
@@ -224,7 +224,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.jid = meta.gid
       chat.participants = [...participants, this.meContact]
     } else if (userIDs.length === 1) {
-      chat.jid = userIDs[0]
+      if (this.chatMap[ whatsappID(userIDs[0]) ]) {
+        chat = this.chatMap[ whatsappID(userIDs[0]) ] as WACompleteChat
+      } else {
+        chat.jid = userIDs[0]
+      }
       chat.participants = [...userIDs.map(id => this.contactMap[id] || { jid: id }), this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else {
@@ -407,6 +411,16 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.client.modifyChat(threadID, ('un' + key) as ChatModification, {stamp: chat[key]})
       delete chat[key]
     }
+  }
+  addParticipant = async (threadID: string, participantID: string) => {
+    if (!isGroupID(threadID)) throw new Error ('cannot add more participants to a single chat')
+    await this.client.groupAdd (threadID, [participantID])
+    return true
+  }
+  removeParticipant = async (threadID: string, participantID: string) => {
+    if (!isGroupID(threadID)) throw new Error ('cannot remove participants from a single chat')
+    await this.client.groupRemove (threadID, [participantID])
+    return true
   }
 
   loadDynamicMessage = async (message: Message) => {

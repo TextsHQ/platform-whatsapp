@@ -1,5 +1,5 @@
 import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType } from '@textshq/platform-sdk'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType, MessagePreview } from '@textshq/platform-sdk'
 import { homedir } from 'os'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
@@ -8,6 +8,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{sender}}\'s security code changed',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
+  [MESSAGE_STUB_TYPES.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
   [MESSAGE_STUB_TYPES.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
   // This chat is with the official business account of "X". Click for more info.
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
@@ -24,9 +25,11 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: '{{sender}} was removed',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
-
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: '{{sender}} was added to this group',
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group'
 }
@@ -101,7 +104,7 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
     const messageType = Object.keys(message)[0]
     const filename = filenameForMessageAttachment(id)
-    const caption = (message.videoMessage || message.imageMessage)?.caption
+    const caption = null//(message.videoMessage || message.imageMessage)?.caption
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     response.attachments = [
       {
@@ -118,7 +121,7 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
   }
   return response
 }
-function linkedMessage(message: WAMessageContent): string {
+function linkedMessage(message: WAMessageContent): MessagePreview {
   if (!message) {
     return null
   }
@@ -128,22 +131,35 @@ function linkedMessage(message: WAMessageContent): string {
   if (!quoted) {
     return null
   }
-  return contextInfo.stanzaId
+  return {
+    senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
+    text: messageText (contextInfo.quotedMessage),
+    id: contextInfo.stanzaId
+  }
 }
 function messageHeading(message: WAMessage) {
-  return message.broadcast ? 'Broadcast' : message.message?.locationMessage ? '📍 Location' : message.message?.liveLocationMessage ? '📍 Live Location' : null
+  if (message.broadcast) return 'Broadcast'
+  const m = message.message
+  if (m) {
+    if (m.locationMessage) return '📍 Location'
+    if (m.liveLocationMessage) return '📍 Live Location'
+    const inner = m[Object.keys(m)[0]]
+    if (inner.contextInfo?.isForwarded) return 'Forwarded'
+  }
 }
 function messageText(message: WAMessageContent) {
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
     return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${loc.address || ''}`
   }
-  return message?.conversation || message?.extendedTextMessage?.text
+  return message?.conversation || message?.extendedTextMessage?.text || (message?.videoMessage || message?.imageMessage)?.caption
 }
 function messageStubText (message: WAMessage) {
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
     message.messageStubParameters.forEach ((p,i) => txt = txt.replace (`{{${i}}}`, p))
+  } else if (message.messageStubType) {
+    txt = Object.keys (MESSAGE_STUB_TYPES).filter (key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
   }
   return txt
 }
@@ -169,7 +185,7 @@ export function mapMessage(message: WAMessage): Message {
     isDynamicMessage: media,
     seen: message.status >= 4,
     sender: { id: sender },
-    linkedMessageID: linked,
+    linkedMessage: linked,
     parseTemplate: stubBasedMessage !== null,
     isAction: stubBasedMessage !== null
   }
