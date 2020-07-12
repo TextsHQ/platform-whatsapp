@@ -1,5 +1,5 @@
 import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType, MessagePreview } from '@textshq/platform-sdk'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType, MessagePreview, ThreadType, MessageLink } from '@textshq/platform-sdk'
 import { homedir } from 'os'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
@@ -10,7 +10,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
   [MESSAGE_STUB_TYPES.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
   [MESSAGE_STUB_TYPES.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
-  // This chat is with the official business account of "X". Click for more info.
+  // This chat is with the official business account of "X". Click for more info. 
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
   // X registered as a business account, but WhatsApp hasn’t verified their name yet.
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
@@ -31,7 +31,9 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: '{{sender}} was added to this group',
-  [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group'
+  [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: '{{sender}} restricted the group\'s sending capabilities',
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: '{{sender}} changed this group\'s settings to allow all participants to edit the group\'s info: {{0}}'
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -61,9 +63,16 @@ export function whatsappID(jid: string) {
 export function isGroupID(jid: string) {
   return jid.endsWith('@g.us')
 }
+export function isBroadcastID(jid: string) {
+  return jid.endsWith('@broadcast')
+}
 function numberFromJid(jid: string) {
   return '+' + whatsappID(jid).replace('@c.us', '')
 }
+function jidType(jid: string): ThreadType {
+  return isGroupID (jid) ? 'group' : isBroadcastID (jid) ? 'broadcast' : 'single'
+}
+
 
 export function mapContact(contact: WAContact): Participant {
   if (isGroupID(contact.jid)) {
@@ -154,6 +163,18 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || message?.extendedTextMessage?.text || (message?.videoMessage || message?.imageMessage)?.caption
 }
+function messageLink(message: WAMessageContent): MessageLink {
+  const mess = message?.extendedTextMessage
+  if (mess && mess.canonicalUrl) {
+    return {
+      url: mess.canonicalUrl,
+      img: new Buffer(mess.jpegThumbnail).toString('base64'),
+      title: mess.title,
+      summary: mess.description
+    }
+  }
+  return null
+}
 function messageStubText (message: WAMessage) {
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
@@ -169,6 +190,7 @@ export function mapMessage(message: WAMessage): Message {
   const { attachments, media } = messageAttachments(message.message, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = linkedMessage(message.message)
+  const mLink = messageLink (message.message)
   return {
     _original: message,
     cursor: JSON.stringify(message.key),
@@ -186,6 +208,7 @@ export function mapMessage(message: WAMessage): Message {
     seen: message.status >= 4,
     sender: { id: sender },
     linkedMessage: linked,
+    link: mLink,
     parseTemplate: stubBasedMessage !== null,
     isAction: stubBasedMessage !== null
   }
@@ -195,7 +218,6 @@ export function mapMessages(message: WAMessage[]): Message[] {
 }
 
 export function mapThread(t: WACompleteChat): Thread {
-  const isGroup = isGroupID(t.jid)
   return {
     _original: t,
     id: t.jid,
@@ -207,7 +229,7 @@ export function mapThread(t: WACompleteChat): Thread {
     messages: mapMessages(t.messages),
     participants: t.participants.map(c => mapContact(c)),
     timestamp: new Date(+t.t * 1000),
-    type: isGroup ? 'group' : 'single',
+    type: jidType (t.jid),
   }
 }
 export function mapThreads(threads: WACompleteChat[]): Thread[] {

@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessage, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID } from './mappers'
 
@@ -14,6 +14,7 @@ const MESSAGE_STATUS_MAP = {
   'unknown (4)': MESSAGE_INFO_STATUS.READ,
   'unknown (5)': MESSAGE_INFO_STATUS.PLAYED
 }
+const DEBUG_MODE = true
 
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
@@ -35,10 +36,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   meContact?: WAContact
 
   init = async (session?: any) => {
-    try {
-      await fs.mkdir(defaultWorkingDirectory)
-      await fs.mkdir(defaultAttachmentsDirectory, { recursive: true })
-    } catch { }
+    if (DEBUG_MODE) {
+      try {
+        await fs.mkdir(defaultWorkingDirectory)
+      } catch { }
+    }
 
     this.client.browserDescription = Browsers.ubuntu('Chrome') // set to Chrome on Ubuntu 18.04
     this.restoreSession(session)
@@ -72,6 +74,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.log('began connect')
     const [user, chats, contacts] = await this.client.connect()
 
+    this.chatMap = {}
+    this.contactMap = {}
+
     this.chats = chats
     this.contacts = contacts
     this.contacts.forEach(c => { this.contactMap[c.jid] = c })
@@ -86,7 +91,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.contacts.forEach (c => c.jid.includes('@g.us') && this.log(c))
 
     if (this.loginCallback) this.loginCallback({ name: 'ready' })
-    // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
+    //if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
   getCurrentUser = async () => {
@@ -120,6 +125,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       const str = keys.join(',')
       this.loginCallback({ name: 'qr', qr: str })
     }
+    this.client.setOnTakenOver (() => {
+      this.log ('take over conflict')
+      this.connCallback ({status: ConnectionStatus.CONFLICT})
+    })
     this.client.setOnMessageStatusChange(update => {
       const chat = this.chatMap[update.to]
       this.log(update)
@@ -425,38 +434,42 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadDynamicMessage = async (message: Message) => {
     const m = message._original as WAMessage
-    const filename = filenameForMessageAttachment(m.key.id)
-
+    const mID = m.key.id
+    const mapped = mapMessage(m)
+    const downloadMedia = async () => mapped.attachments[0].data = await decodeMediaMessageBuffer(m.message)
+    
+    this.log('downloading media: ' + mID)
     try {
-      await fs.access(filename)
-    } catch {
-      this.log('downloading media: ' + filename)
+      await downloadMedia ()
+      this.log('downloaded media: ' + mID)
+    } catch (error) {
+      this.log('downloading media of ' + mID + ' failed, querying latest media')
       try {
-        await decodeMediaMessage(m.message, filename, false)
-        this.log('downloaded media: ' + filename)
+        await this.client.updateMediaMessage (m)
+        await downloadMedia ()
       } catch (error) {
-        this.log('downloading media of ' + filename + ' failed, querying latest media')
-        try {
-          await this.client.updateMediaMessage (m)
-          await decodeMediaMessage(m.message, filename, false)
-        } catch (error) {
-          this.log('error in downloading media of ' + filename + ': ' + error) 
-          throw error
-        }
+        this.log('error in downloading media of ' + mID + ': ' + error) 
+        throw error
       }
     }
-    const mapped = mapMessage(m)
-    mapped.attachments[0].data = await fs.readFile(filename)
     return mapped
   }
-
+  takeoverConflict = async () => {
+    this.log ('taking over again')
+    await this.connect ()
+    this.connCallback ({status: ConnectionStatus.CONNECTED})
+    this.log ('took over')
+  }
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
     return this.client.getProfilePicture(jid).catch(() => null)
   }
 
   async log(txt) {
     const content = new Date().toLocaleString() + '\t' + JSON.stringify(txt) + '\n'
-    const file = defaultWorkingDirectory + '/baileys-log.txt'
-    await fs.appendFile(file, content)
+    console.log (content)
+    if (DEBUG_MODE) {
+      const file = defaultWorkingDirectory + '/baileys-log.txt'
+      await fs.appendFile(file, content)
+    }
   }
 }
