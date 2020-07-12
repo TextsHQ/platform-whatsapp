@@ -1,8 +1,10 @@
-import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
+import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent, MessageInfo } from '@adiwajshing/baileys'
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType, MessagePreview, ThreadType, MessageLink } from '@textshq/platform-sdk'
 import { homedir } from 'os'
+import info from './info'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
+const MESSAGE_STATUS_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
 const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
   [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{sender}}\'s security code changed',
@@ -16,6 +18,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
   // This account was previously a business account but has now registered as a standard account and may no longer belong to the business.
   [MESSAGE_STUB_TYPES.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
+  [MESSAGE_STUB_TYPES.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   // This chat is with the verified business account for "X". Click for more info.
   // [AFTER CLICK] WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account".
   [MESSAGE_STUB_TYPES.VERIFIED_HIGH]: 'This chat is with a verified business account.',
@@ -26,7 +29,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: '{{sender}} was removed',
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number',
+  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
@@ -50,12 +53,15 @@ const MESSAGE_TYPE_MAP = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
-
+export interface WACompleteMessage extends WAMessage {
+  info?: MessageInfo
+}
 export interface WACompleteChat extends WAChat {
   participants: WAContact[]
   title?: string
   description?: string
   imgURL: string
+  creationDate?: Date
 }
 export function whatsappID(jid: string) {
   return jid.replace('@s.whatsapp.net', '@c.us')
@@ -110,23 +116,35 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
       data: Buffer.from(c.vcard, 'utf-8'),
       fileName: `${c.displayName}.vcf`,
     }))
-  } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
-    const messageType = Object.keys(message)[0]
-    const filename = filenameForMessageAttachment(id)
-    const caption = null//(message.videoMessage || message.imageMessage)?.caption
-    const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
-    response.attachments = [
-      {
-        id,
-        type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
-        isGif: message.videoMessage?.gifPlayback,
-        caption,
-        fileName: filename,
-        mimeType: message[messageType].mimetype,
-        posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
-      },
-    ]
-    response.media = true
+  } else {
+    if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
+      const messageType = Object.keys(message)[0]
+      const caption = null//(message.videoMessage || message.imageMessage)?.caption
+      const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
+
+      response.attachments = [
+        {
+          id,
+          type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
+          isGif: message.videoMessage?.gifPlayback,
+          caption,
+          mimeType: message[messageType].mimetype,
+          posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+        },
+      ]
+      response.media = true
+    } else if (message.productMessage?.product?.productImage) {
+      const img = message.productMessage?.product?.productImage
+      response.attachments = [
+        {
+          id,
+          type: MessageAttachmentType.IMG,
+          mimeType: img.mimetype,
+          posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : null,
+        },
+      ]
+      response.media = true
+    }
   }
   return response
 }
@@ -134,7 +152,13 @@ function linkedMessage(message: WAMessageContent): MessagePreview {
   if (!message) {
     return null
   }
-  const m = message.videoMessage || message.audioMessage || message.contactMessage || message.imageMessage || message.extendedTextMessage || message.documentMessage
+  const m = message.videoMessage || 
+            message.audioMessage || 
+            message.contactMessage || 
+            message.imageMessage || 
+            message.extendedTextMessage || 
+            message.documentMessage ||
+            message.productMessage
   const contextInfo = m?.contextInfo
   const quoted = contextInfo?.quotedMessage
   if (!quoted) {
@@ -152,6 +176,7 @@ function messageHeading(message: WAMessage) {
   if (m) {
     if (m.locationMessage) return '📍 Location'
     if (m.liveLocationMessage) return '📍 Live Location'
+    if (m.productMessage?.product) return '📦 Product'
     const inner = m[Object.keys(m)[0]]
     if (inner.contextInfo?.isForwarded) return 'Forwarded'
   }
@@ -160,6 +185,18 @@ function messageText(message: WAMessageContent) {
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
     return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${loc.address || ''}`
+  }
+  const product = message?.productMessage?.product
+  if (product) {
+    const price = typeof product.priceAmount1000 === 'number' ? +product.priceAmount1000 : product.priceAmount1000.low
+    return [
+      product.title, 
+      product.description, 
+      `${product.currencyCode} ${(price/1000)}`,
+      product.productId
+    ]
+    .filter(Boolean)
+    .join ('\n')
   }
   return message?.conversation || message?.extendedTextMessage?.text || (message?.videoMessage || message?.imageMessage)?.caption
 }
@@ -184,7 +221,22 @@ function messageStubText (message: WAMessage) {
   }
   return txt
 }
-export function mapMessage(message: WAMessage): Message {
+function messageReadBy (message: WACompleteMessage): { [id: string]: Date } | boolean {
+  if (message.info) {
+    const dict: { [id: string]: Date } = {}
+    message.info.reads.forEach (info => dict[info.jid] = new Date(parseInt(info.t)*1000))
+    return dict
+  }
+  return message.status >= 4
+}
+function messageStatus (status: number | string) {
+  if (typeof status === 'string') {
+    const key = Object.keys (MESSAGE_STATUS_TYPES).find (key => key === status)
+    return MESSAGE_STATUS_TYPES[key]
+  }
+  return status
+}
+export function mapMessage(message: WACompleteMessage): Message {
   const sender = whatsappID(message.key.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText (message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
@@ -203,9 +255,9 @@ export function mapMessage(message: WAMessage): Message {
     isDeleted: message.messageStubType === MESSAGE_STUB_TYPES.REVOKE,
     attachments,
     reactions: [],
-    isDelivered: message.key.fromMe ? message.status >= 3 : true,
+    isDelivered: message.key.fromMe ? messageStatus(message.status) >= MESSAGE_STATUS_TYPES.SERVER_ACK : true,
     isDynamicMessage: media,
-    seen: message.status >= 4,
+    seen: messageReadBy(message),
     sender: { id: sender },
     linkedMessage: linked,
     link: mLink,
@@ -230,6 +282,7 @@ export function mapThread(t: WACompleteChat): Thread {
     participants: t.participants.map(c => mapContact(c)),
     timestamp: new Date(+t.t * 1000),
     type: jidType (t.jid),
+    createdAt: t.creationDate
   }
 }
 export function mapThreads(threads: WACompleteChat[]): Thread[] {

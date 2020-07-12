@@ -2,7 +2,7 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID } from './mappers'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
@@ -129,13 +129,28 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.log ('take over conflict')
       this.connCallback ({status: ConnectionStatus.CONFLICT})
     })
-    this.client.setOnMessageStatusChange(update => {
-      const chat = this.chatMap[update.to]
+    this.client.setOnMessageStatusChange(async update => {
+      let chat = this.chatMap[update.to] as WACompleteChat
       this.log(update)
       if (!chat) return
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
-          chat.status = MESSAGE_STATUS_MAP[update.type] || chat.status
+          const status = MESSAGE_STATUS_MAP[update.type]
+          if (isGroupID(update.to)) {
+            const cChat = chat as WACompleteMessage
+            
+            if (!cChat.info) cChat.info = {reads: [], deliveries: []}
+            
+            const person = {jid: update.participant, t: (new Date().getTime()/1000).toString()}
+            
+            if (status >= 4) cChat.info.reads.push (person)
+            else if (status >= 3) cChat.info.deliveries.push (person)
+            
+            cChat.status = MESSAGE_INFO_STATUS.SERVER_ACK
+            this.log (cChat)
+          } else {
+            chat.status = status || chat.status
+          }
         }
       })
       this.evCallback([
@@ -147,9 +162,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
+      this.log ('received message: ' + jid)
       let chat = this.chatMap[jid]
-      if (!chat) chat = await this.loadThread(jid)
-
+      if (!chat) {
+        chat = await this.loadThread(jid)
+        this.chatMap[chat.jid] = chat
+        this.chats.splice(0, 0, chat)
+      }
       chat.messages.push(message)
       this.evCallback([
         {
@@ -189,30 +208,31 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   loadThread = async (jid: string) => {
-    const chat: WACompleteChat = {
-      jid,
-      count: 0,
-      participants: [],
-      imgURL: '',
-      t: (new Date().getTime()/1000).toString(),
-      spam: 'false',
-      modify_tag: '',
-      messages: [],
+    let chat: WACompleteChat = this.chatMap [whatsappID(jid)] as WACompleteChat
+    if (!chat) {
+      chat = {
+        jid,
+        count: 0,
+        participants: [],
+        imgURL: '',
+        t: (new Date().getTime()/1000).toString(),
+        spam: 'false',
+        modify_tag: '',
+        messages: [],
+      }
     }
     if (isGroupID(jid)) {
-      const meta = await this.client.groupMetadata(jid)
-      const participants = Object.keys(meta.participants).map(p => this.contactMap[p] || { jid: p })
-      chat.title = meta.subject
-      chat.participants = [...participants, this.meContact]
+      const meta = await this.client.groupCreatorAndParticipants(jid)
+      chat.participants = meta.participants.map(p => this.contactMap[p.id] || { jid: p.id })
+      chat.creationDate = new Date(+meta.creation*1000)
     } else if (jid.includes('@c.us')) {
       chat.participants = [this.contactMap[jid] || { jid }, this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else {
       throw new Error('unsupported JID: ' + jid)
     }
-
-    this.chatMap[chat.jid] = chat
-    this.chats.splice(0, 0, chat)
+    chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify || 'Unknown'
+    
     return chat
   }
   createThread = async (userIDs: string[], title: string) => {
@@ -259,22 +279,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const firstItem = page * batchSize
     const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
 
-    const chatPromises = this.chats.slice(firstItem, lastItem).map(async (chat: any) => {
-      if (isGroupID(chat.jid)) { // is a group
-        try {
-          const metadata = await this.client.groupCreatorAndParticipants(chat.jid)
-          chat.participants = metadata.participants.map(p => this.contactMap[p.id] || { jid: p.id })
-        } catch (err) {
-          chat.participants = []
-          this.log(`error in getting group ${chat.jid}: ${err}`)
-        }
-      } else {
-        chat.participants = [this.contactMap[chat.jid] || { jid: chat.jid }, this.meContact]
-      }
-      chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify || 'Unknown'
-      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
-      return chat as WACompleteChat
-    })
+    const chatPromises = this.chats.slice(firstItem, lastItem).map(async (chat: any) => this.loadThread(chat.jid))
     const chats = await Promise.all(chatPromises)
     this.log('done with getting threads')
     return {
@@ -303,7 +308,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   getMessages = async (threadID: string, cursor?: string) => {
     this.log(`loading messages of ${threadID} ${cursor}`)
     const batchSize = MESSAGE_PAGE_SIZE
-    const messages = cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages
+    const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
+    if (isGroupID(threadID)) {
+      const tasks = messages.map (async m => {
+        if (m.key.fromMe && !m.info) m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
+      }) 
+      await Promise.all (tasks)
+    }
     const oldestCursor = messages[messages.length - 1]?.key
     return {
       items: mapMessages(messages),
