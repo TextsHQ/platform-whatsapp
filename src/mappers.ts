@@ -198,7 +198,16 @@ function messageText(message: WAMessageContent) {
     .filter(Boolean)
     .join ('\n')
   }
-  return message?.conversation || message?.extendedTextMessage?.text || (message?.videoMessage || message?.imageMessage)?.caption
+  const extendedText = message?.extendedTextMessage
+  if (extendedText) {
+    let text = extendedText.text
+    const mentionedJids = extendedText?.contextInfo?.mentionedJid
+    if (mentionedJids) {
+      mentionedJids.forEach (jid => text = text.replace (`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`))
+    }
+    return text
+  }
+  return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
 }
 function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage
@@ -261,8 +270,8 @@ export function mapMessage(message: WACompleteMessage): Message {
     sender: { id: sender },
     linkedMessage: linked,
     link: mLink,
-    parseTemplate: stubBasedMessage !== null,
-    isAction: stubBasedMessage !== null
+    parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
+    isAction: !!stubBasedMessage
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {
