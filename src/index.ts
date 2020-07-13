@@ -114,11 +114,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     //if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
+
+
   getCurrentUser = async () => {
     this.log('requested user data')
-    const user = this.client.userMetaData
-    const pp = await this.safelyGetProfilePicture(user.id)
-    return { id: user.id, displayText: user.name, imgURL: pp }
+    return { id: this.meContact.jid, displayText: this.meContact.name, imgURL: this.meContact.imgURL }
   }
 
   serializeSession = () => this.client.base64EncodedAuthInfo()

@@ -89,7 +89,7 @@ export function mapContact(contact: WACompleteContact): Participant {
   }
   return {
     id: contact.jid,
-    fullName: contact.name || contact.notify || numberFromJid(contact.jid),
+    fullName: contact.name || contact.notify,
     phoneNumber: numberFromJid(contact.jid),
     imgURL: contact.imgURL
   }
