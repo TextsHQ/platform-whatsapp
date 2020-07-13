@@ -213,7 +213,7 @@ function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage
   if (mess && mess.canonicalUrl) {
     return {
-      url: mess.canonicalUrl,
+      url: mess.matchedText,
       img: new Buffer(mess.jpegThumbnail).toString('base64'),
       title: mess.title,
       summary: mess.description

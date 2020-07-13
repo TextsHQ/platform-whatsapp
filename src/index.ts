@@ -23,6 +23,7 @@ const MIMETYPE_MAP = {
   [Mimetype.ogg]: MessageType.audio,
   [Mimetype.pdf]: MessageType.document,
 }
+const URL_REGEX = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
 const DEBUG_MODE = true
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -142,7 +143,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       const str = keys.join(',')
       this.loginCallback({ name: 'qr', qr: str })
     }
-    this.client.setOnDisconnect (kind => {
+    this.client.setOnUnexpectedDisconnect (kind => {
       this.log ('disconnect, kind: ' + kind)
       this.connCallback ({status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED})
     })
@@ -343,7 +344,21 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => this.sendMessage(threadID, text, null, options)
+  sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
+    const content = {text} as WAMessageProto.proto.IExtendedTextMessage
+    if (URL_REGEX.test(text)) {
+      try {
+        const linkPreview = await this.client.urlQuery (text)
+        content.canonicalUrl = linkPreview['canonical-url']
+        content.matchedText = linkPreview['matched-text']
+        content.jpegThumbnail = linkPreview.jpegThumbnail
+        content.description = linkPreview.description
+      } catch (error) {
+        this.log ('failed to get link preview: ' + error)
+      }
+    }
+    return this.sendMessage(threadID, content, null, options)
+  }
 
   sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
     const { base: fileName } = path.parse(filePath)
@@ -353,28 +368,33 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
 
-  sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
+  sendMessage = async (threadID: string, content: WAMessageProto.proto.IExtendedTextMessage | Buffer, mimeType?: string, options?: MessageSendOptions) => {
     this.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
+    
     let chat = this.chatMap[threadID]
     if (!chat) {
-      if (isGroupID(threadID)) {
-        throw new Error(`group ${threadID} not found!`)
-      }
+      if (isGroupID(threadID)) throw new Error(`group ${threadID} not found!`)
       await this.createThread([threadID], null)
       chat = this.chatMap[threadID]
     }
+
     const op: MessageOptions = {}
     let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
       const message = await this.client.loadMessage (threadID, options.quotedMessageID)
       op.quoted = message
     }
+
     if (mimeType) {
       messageType = MIMETYPE_MAP[mimeType] || MessageType.document
       op.mimetype = mimeType as Mimetype
     }
-
-    await this.client.sendMessage(threadID.replace('@c.us', '@s.whatsapp.net'), content, messageType, op)
+    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
+    if ('text' in content) {
+      await this.client.sendGenericMessage (threadID, {extendedTextMessage: content}, op)
+    } else {
+      await this.client.sendMessage(threadID, content as Buffer, messageType, op)
+    }
     const sentMessage = await this.client.loadConversation(threadID, 1)
 
     chat.messages.push(sentMessage[0])
