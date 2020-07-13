@@ -184,7 +184,7 @@ function messageHeading(message: WAMessage) {
 function messageText(message: WAMessageContent) {
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
-    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${loc.address || ''}`
+    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${ message?.locationMessage?.address || '' }`
   }
   const product = message?.productMessage?.product
   if (product) {
@@ -271,7 +271,7 @@ export function mapMessage(message: WACompleteMessage): Message {
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
-    isAction: !!stubBasedMessage
+    isAction: !!stubBasedMessage && message.messageStubType !== MESSAGE_STUB_TYPES.REVOKE // prevent deleted messages from becoming an action
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {

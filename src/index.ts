@@ -1,8 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, ChatModification, Browsers, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
-import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage } from './mappers'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
+import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError } from '@textshq/platform-sdk'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
@@ -41,13 +41,18 @@ export default class WhatsAppAPI implements PlatformAPI {
         await fs.mkdir(defaultWorkingDirectory)
       } catch { }
     }
-
-    this.client.browserDescription = Browsers.ubuntu('Chrome') // set to Chrome on Ubuntu 18.04
+    this.client.browserDescription = Browsers.appropriate('Chrome')
     this.restoreSession(session)
     this.registerCallbacks()
-
-    if (session) await this.connect()
-    else this.connect()
+    
+    if (session) {
+      try {
+        await this.connect()
+      } catch (error) {
+        this.log ('failed connect: ' + error)
+        throw new ReAuthError (error)
+      }
+    } else this.connect ()
   }
 
   restoreSession = (session?: any) => {
@@ -72,14 +77,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connect = async () => {
     this.log('began connect')
+    
     const [user, chats, contacts] = await this.client.connect()
-
+    
     this.chatMap = {}
     this.contactMap = {}
 
     this.chats = chats
     this.contacts = contacts
-    this.contacts.forEach(c => { this.contactMap[c.jid] = c })
+    this.contacts.forEach(c => this.contactMap[whatsappID(c.jid)] = c)
     this.chats.forEach(c => {
       this.chatMap[c.jid] = c
       c.messages = c.messages.reverse()
@@ -87,7 +93,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chats = this.chats.sort((a, b) => (+b.t) - (+a.t))
     this.meContact = this.contactMap[user.id] || { jid: whatsappID(user.id), name: user.name }
     this.contactMap[whatsappID(user.id)] = this.meContact
+    
     this.log('connected successfully')
+    
     this.contacts.forEach (c => c.jid.includes('@g.us') && this.log(c))
 
     if (this.loginCallback) this.loginCallback({ name: 'ready' })
@@ -125,9 +133,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       const str = keys.join(',')
       this.loginCallback({ name: 'qr', qr: str })
     }
-    this.client.setOnTakenOver (() => {
-      this.log ('take over conflict')
-      this.connCallback ({status: ConnectionStatus.CONFLICT})
+    this.client.setOnDisconnect (kind => {
+      this.log ('disconnect, kind: ' + kind)
+      this.connCallback ({status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED})
     })
     this.client.setOnMessageStatusChange(async update => {
       let chat = this.chatMap[update.to] as WACompleteChat
@@ -221,17 +229,20 @@ export default class WhatsAppAPI implements PlatformAPI {
         messages: [],
       }
     }
+
     if (isGroupID(jid)) {
       const meta = await this.client.groupCreatorAndParticipants(jid)
       chat.participants = meta.participants.map(p => this.contactMap[p.id] || { jid: p.id })
       chat.creationDate = new Date(+meta.creation*1000)
-    } else if (jid.includes('@c.us')) {
-      chat.participants = [this.contactMap[jid] || { jid }, this.meContact]
-      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+    } else if (isBroadcastID(jid)) {
+      const meta = await this.client.getBroadcastInfo (jid)
+      chat.participants = meta.recipients.map (item => item.id)
     } else {
-      throw new Error('unsupported JID: ' + jid)
+      chat.participants = [this.contactMap[jid] || { jid }, this.meContact]
     }
-    chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify || 'Unknown'
+
+    chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+    chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify
     
     return chat
   }
@@ -334,7 +345,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
 
   sendMessage = async (threadID: string, content: string | Buffer, mimeType?: string, options?: MessageSendOptions) => {
-    this.log(`sending message to ${threadID}`)
+    this.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
     let chat = this.chatMap[threadID]
     if (!chat) {
       if (isGroupID(threadID)) {
@@ -346,11 +357,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     const op: MessageOptions = {}
     let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
-      const list = await this.client.loadConversation(threadID, 1, { id: threadID, fromMe: false })
-      if (list.length === 0) {
-        throw new Error(`Message ID '${options.quotedMessageID}' does not exist`)
-      }
-      op.quoted = list[0]
+      const message = await this.client.loadMessage (threadID, options.quotedMessageID)
+      op.quoted = message
     }
     if (mimeType) {
       const mimetypeMap = {
