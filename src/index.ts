@@ -7,13 +7,6 @@ import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenam
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
 const MESSAGE_INFO_STATUS = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
-const MESSAGE_STATUS_MAP = {
-  sent: MESSAGE_INFO_STATUS.SERVER_ACK,
-  received: MESSAGE_INFO_STATUS.DELIVERY_ACK,
-  read: MESSAGE_INFO_STATUS.READ,
-  'unknown (4)': MESSAGE_INFO_STATUS.READ,
-  'unknown (5)': MESSAGE_INFO_STATUS.PLAYED,
-}
 const MIMETYPE_MAP = {
   [Mimetype.gif]: MessageType.video,
   [Mimetype.jpeg]: MessageType.image,
@@ -153,7 +146,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!chat) return
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
-          const status = MESSAGE_STATUS_MAP[update.type]
+          const status = update.type
           if (isGroupID(update.to)) {
             const cChat = chat as WACompleteMessage
 
@@ -165,9 +158,8 @@ export default class WhatsAppAPI implements PlatformAPI {
             else if (status >= 3) cChat.info.deliveries.push(person)
 
             cChat.status = MESSAGE_INFO_STATUS.SERVER_ACK
-            this.log(cChat)
           } else {
-            chat.status = status || chat.status
+            chat.status = status
           }
         }
       })
