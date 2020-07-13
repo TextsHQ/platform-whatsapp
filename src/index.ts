@@ -2,7 +2,7 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID } from './mappers'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
@@ -43,7 +43,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   chatMap: Record<string, WAChat> = {}
 
-  meContact?: WAContact
+  meContact?: WACompleteContact
 
   init = async (session?: any) => {
     if (DEBUG_MODE) {
@@ -101,7 +101,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       c.messages = c.messages.reverse()
     })
     this.chats = this.chats.sort((a, b) => (+b.t) - (+a.t))
+    
     this.meContact = this.contactMap[user.id] || { jid: whatsappID(user.id), name: user.name }
+    this.meContact.imgURL = await this.safelyGetProfilePicture (this.meContact.jid)
     this.contactMap[whatsappID(user.id)] = this.meContact
     
     this.log('connected successfully')
@@ -224,7 +226,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     return results
   }
-
+  contactForJid = async (jid: string) => {
+    const contact = this.contacts[whatsappID(jid)] || {jid: jid}
+    if (!contact.imgURL) contact.imgURL = await this.safelyGetProfilePicture(jid)
+    return contact as WACompleteContact
+  }
   loadThread = async (jid: string) => {
     let chat: WACompleteChat = this.chatMap [whatsappID(jid)] as WACompleteChat
     if (!chat) {
@@ -242,16 +248,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (isGroupID(jid)) {
       const meta = await this.client.groupCreatorAndParticipants(jid)
-      chat.participants = meta.participants.map(p => this.contactMap[p.id] || { jid: p.id })
+      chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
       chat.creationDate = new Date(+meta.creation*1000)
+      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else if (isBroadcastID(jid)) {
       const meta = await this.client.getBroadcastListInfo (jid)
-      chat.participants = meta.recipients.map (item => this.contacts[whatsappID(item.id)] || {jid: item.id})
+      chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
     } else {
-      chat.participants = [this.contactMap[jid] || { jid }, this.meContact]
+      chat.participants = [await this.contactForJid(jid), this.meContact]
     }
-
-    chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify
     
     return chat
@@ -270,7 +275,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
-      const participants = Object.keys(meta.participants).map(p => this.contactMap[p] || { jid: p })
+      const tasks = Object.keys(meta.participants).map(p => this.contactForJid(p))
+      const participants = await Promise.all (tasks)
       chat.jid = meta.gid
       chat.participants = [...participants, this.meContact]
     } else if (userIDs.length === 1) {
@@ -279,7 +285,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       } else {
         chat.jid = userIDs[0]
       }
-      chat.participants = [...userIDs.map(id => this.contactMap[id] || { jid: id }), this.meContact]
+      chat.participants = [ await this.contactForJid(userIDs[0]), this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else {
       throw new Error('no users provided')

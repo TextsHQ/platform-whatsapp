@@ -57,11 +57,14 @@ export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo
 }
 export interface WACompleteChat extends WAChat {
-  participants: WAContact[]
+  participants: WACompleteContact[]
   title?: string
   description?: string
   imgURL: string
   creationDate?: Date
+}
+export interface WACompleteContact extends WAContact {
+  imgURL?: string
 }
 export function whatsappID(jid: string) {
   return jid.replace('@s.whatsapp.net', '@c.us')
@@ -80,7 +83,7 @@ function jidType(jid: string): ThreadType {
 }
 
 
-export function mapContact(contact: WAContact): Participant {
+export function mapContact(contact: WACompleteContact): Participant {
   if (isGroupID(contact.jid)) {
     throw new Error('a group cannot be a contact')
   }
@@ -88,6 +91,7 @@ export function mapContact(contact: WAContact): Participant {
     id: contact.jid,
     fullName: contact.name || contact.notify || numberFromJid(contact.jid),
     phoneNumber: numberFromJid(contact.jid),
+    imgURL: contact.imgURL
   }
 }
 export const defaultWorkingDirectory = homedir() + '/texts-baileys'
