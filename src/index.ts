@@ -154,8 +154,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
             const person = { jid: update.participant, t: (new Date().getTime() / 1000).toString() }
 
-            if (status >= 4) cChat.info.reads.push(person)
-            else if (status >= 3) cChat.info.deliveries.push(person)
+            if (status >= MESSAGE_INFO_STATUS.READ) cChat.info.reads.push(person)
+            else if (status >= MESSAGE_INFO_STATUS.DELIVERY_ACK) cChat.info.deliveries.push(person)
 
             cChat.status = MESSAGE_INFO_STATUS.SERVER_ACK
           } else {
@@ -389,11 +389,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
       op.quoted = message
     }
-
-    if (mimeType) {
-      messageType = MIMETYPE_MAP[mimeType] || MessageType.document
-      op.mimetype = mimeType as Mimetype
-    }
+    if (mimeType === Mimetype.webp) messageType = MessageType.sticker
+    else if (mimeType.includes('image/')) messageType = MessageType.image
+    else if (mimeType.includes('video/')) messageType = MessageType.video
+    else if (mimeType.includes('audio/')) messageType = MessageType.audio
+    else messageType = MessageType.document
+    
     threadID = threadID.replace('@c.us', '@s.whatsapp.net')
     if ('text' in content) {
       await this.client.sendGenericMessage(threadID, { extendedTextMessage: content }, op)
