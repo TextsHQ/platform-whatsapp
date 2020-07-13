@@ -237,15 +237,22 @@ export default class WhatsAppAPI implements PlatformAPI {
         messages: [],
       }
     }
-
     if (isGroupID(jid)) {
-      const meta = await this.client.groupCreatorAndParticipants(jid)
-      chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
-      chat.creationDate = new Date(+meta.creation * 1000)
+      try {
+        const meta = await this.client.groupCreatorAndParticipants(jid)
+        chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
+        chat.creationDate = new Date(+meta.creation * 1000)
+      } catch (error) {
+        this.log ('failed to get group info: ' + error)
+      }
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else if (isBroadcastID(jid)) {
-      const meta = await this.client.getBroadcastListInfo(jid)
-      chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
+      try {
+        const meta = await this.client.getBroadcastListInfo(jid)
+        chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
+      } catch (error) { 
+        this.log ('failed to get broadcast info: ' + error)
+      }
     } else {
       chat.participants = [await this.contactForJid(jid), this.meContact]
     }
@@ -253,7 +260,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     return chat
   }
-
   createThread = async (userIDs: string[], title: string) => {
     let chat: WACompleteChat = {
       jid: '',

@@ -44,15 +44,6 @@ const ATTACHMENT_MAP = {
   [MessageType.sticker]: MessageAttachmentType.IMG,
   [MessageType.video]: MessageAttachmentType.VIDEO,
 }
-const MESSAGE_TYPE_MAP = {
-  [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
-}
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo
 }
@@ -223,6 +214,12 @@ function messageLink(message: WAMessageContent): MessageLink {
   return null
 }
 function messageStubText(message: WAMessage) {
+  if (message.messageStubType === MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE) {
+    if (message.messageStubParameters[0] === 'on')
+      return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
+    else
+      return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
+  }
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
     message.messageStubParameters.forEach((p, i) => txt = txt.replace(`{{${i}}}`, whatsappID(p)))
