@@ -14,6 +14,15 @@ const MESSAGE_STATUS_MAP = {
   'unknown (4)': MESSAGE_INFO_STATUS.READ,
   'unknown (5)': MESSAGE_INFO_STATUS.PLAYED
 }
+const MIMETYPE_MAP = {
+  [Mimetype.gif]: MessageType.video,
+  [Mimetype.jpeg]: MessageType.image,
+  [Mimetype.png]: MessageType.image,
+  [Mimetype.mp4]: MessageType.video,
+  [Mimetype.webp]: MessageType.sticker,
+  [Mimetype.ogg]: MessageType.audio,
+  [Mimetype.pdf]: MessageType.document,
+}
 const DEBUG_MODE = true
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -235,8 +244,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.participants = meta.participants.map(p => this.contactMap[p.id] || { jid: p.id })
       chat.creationDate = new Date(+meta.creation*1000)
     } else if (isBroadcastID(jid)) {
-      const meta = await this.client.getBroadcastInfo (jid)
-      chat.participants = meta.recipients.map (item => item.id)
+      const meta = await this.client.getBroadcastListInfo (jid)
+      chat.participants = meta.recipients.map (item => this.contacts[whatsappID(item.id)] || {jid: item.id})
     } else {
       chat.participants = [this.contactMap[jid] || { jid }, this.meContact]
     }
@@ -361,15 +370,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       op.quoted = message
     }
     if (mimeType) {
-      const mimetypeMap = {
-        [Mimetype.gif]: MessageType.video,
-        [Mimetype.jpeg]: MessageType.image,
-        [Mimetype.mp4]: MessageType.video,
-        [Mimetype.webp]: MessageType.sticker,
-        [Mimetype.ogg]: MessageType.audio,
-        [Mimetype.pdf]: MessageType.document,
-      }
-      messageType = mimetypeMap[mimeType] || MessageType.document
+      messageType = MIMETYPE_MAP[mimeType] || MessageType.document
       op.mimetype = mimeType as Mimetype
     }
 

@@ -7,7 +7,7 @@ const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_
 const MESSAGE_STATUS_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
 const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
-  [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{sender}}\'s security code changed',
+  [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
   [MESSAGE_STUB_TYPES.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
@@ -224,7 +224,7 @@ function messageLink(message: WAMessageContent): MessageLink {
 function messageStubText (message: WAMessage) {
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
-    message.messageStubParameters.forEach ((p,i) => txt = txt.replace (`{{${i}}}`, p))
+    message.messageStubParameters.forEach ((p,i) => txt = txt.replace (`{{${i}}}`, whatsappID(p)))
   } else if (message.messageStubType) {
     txt = Object.keys (MESSAGE_STUB_TYPES).filter (key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
   }
