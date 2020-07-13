@@ -12,7 +12,7 @@ const MESSAGE_STATUS_MAP = {
   received: MESSAGE_INFO_STATUS.DELIVERY_ACK,
   read: MESSAGE_INFO_STATUS.READ,
   'unknown (4)': MESSAGE_INFO_STATUS.READ,
-  'unknown (5)': MESSAGE_INFO_STATUS.PLAYED
+  'unknown (5)': MESSAGE_INFO_STATUS.PLAYED,
 }
 const MIMETYPE_MAP = {
   [Mimetype.gif]: MessageType.video,
@@ -23,7 +23,7 @@ const MIMETYPE_MAP = {
   [Mimetype.ogg]: MessageType.audio,
   [Mimetype.pdf]: MessageType.document,
 }
-const URL_REGEX = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi;
+const URL_REGEX = /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi
 const DEBUG_MODE = true
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -54,15 +54,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.restoreSession(session)
     this.registerCallbacks()
-    
+
     if (session) {
       try {
         await this.connect()
       } catch (error) {
-        this.log ('failed connect: ' + error)
-        throw new ReAuthError (error)
+        this.log('failed connect: ' + error)
+        throw new ReAuthError(error)
       }
-    } else this.connect ()
+    } else this.connect()
   }
 
   restoreSession = (session?: any) => {
@@ -87,9 +87,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connect = async () => {
     this.log('began connect')
-    
+
     const [user, chats, contacts] = await this.client.connect()
-    
+
     this.chatMap = {}
     this.contactMap = {}
 
@@ -101,20 +101,18 @@ export default class WhatsAppAPI implements PlatformAPI {
       c.messages = c.messages.reverse()
     })
     this.chats = this.chats.sort((a, b) => (+b.t) - (+a.t))
-    
+
     this.meContact = this.contactMap[user.id] || { jid: whatsappID(user.id), name: user.name }
-    this.meContact.imgURL = await this.safelyGetProfilePicture (this.meContact.jid)
+    this.meContact.imgURL = await this.safelyGetProfilePicture(this.meContact.jid)
     this.contactMap[whatsappID(user.id)] = this.meContact
-    
+
     this.log('connected successfully')
-    
-    this.contacts.forEach (c => c.jid.includes('@g.us') && this.log(c))
+
+    this.contacts.forEach(c => c.jid.includes('@g.us') && this.log(c))
 
     if (this.loginCallback) this.loginCallback({ name: 'ready' })
-    //if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
+    // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
-
-
 
   getCurrentUser = async () => {
     this.log('requested user data')
@@ -145,12 +143,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       const str = keys.join(',')
       this.loginCallback({ name: 'qr', qr: str })
     }
-    this.client.setOnUnexpectedDisconnect (kind => {
-      this.log ('disconnect, kind: ' + kind)
-      this.connCallback ({status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED})
+    this.client.setOnUnexpectedDisconnect(kind => {
+      this.log('disconnect, kind: ' + kind)
+      this.connCallback({ status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED })
     })
     this.client.setOnMessageStatusChange(async update => {
-      let chat = this.chatMap[update.to] as WACompleteChat
+      const chat = this.chatMap[update.to] as WACompleteChat
       this.log(update)
       if (!chat) return
       chat.messages.forEach(chat => {
@@ -158,16 +156,16 @@ export default class WhatsAppAPI implements PlatformAPI {
           const status = MESSAGE_STATUS_MAP[update.type]
           if (isGroupID(update.to)) {
             const cChat = chat as WACompleteMessage
-            
-            if (!cChat.info) cChat.info = {reads: [], deliveries: []}
-            
-            const person = {jid: update.participant, t: (new Date().getTime()/1000).toString()}
-            
-            if (status >= 4) cChat.info.reads.push (person)
-            else if (status >= 3) cChat.info.deliveries.push (person)
-            
+
+            if (!cChat.info) cChat.info = { reads: [], deliveries: [] }
+
+            const person = { jid: update.participant, t: (new Date().getTime() / 1000).toString() }
+
+            if (status >= 4) cChat.info.reads.push(person)
+            else if (status >= 3) cChat.info.deliveries.push(person)
+
             cChat.status = MESSAGE_INFO_STATUS.SERVER_ACK
-            this.log (cChat)
+            this.log(cChat)
           } else {
             chat.status = status || chat.status
           }
@@ -182,7 +180,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
-      this.log ('received message: ' + jid)
+      this.log('received message: ' + jid)
       let chat = this.chatMap[jid]
       if (!chat) {
         chat = await this.loadThread(jid)
@@ -217,29 +215,31 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   searchUsers = async (typed: string) => {
-    this.log ('searching users ' + typed)
+    this.log('searching users ' + typed)
     const results: Participant[] = []
     this.contacts.forEach(c => {
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
-        if (!isGroupID(c.jid)) results.push( mapContact(c) )
+        if (!isGroupID(c.jid)) results.push(mapContact(c))
       }
     })
     return results
   }
+
   contactForJid = async (jid: string) => {
-    const contact = this.contacts[whatsappID(jid)] || {jid: jid}
+    const contact = this.contacts[whatsappID(jid)] || { jid }
     if (!contact.imgURL) contact.imgURL = await this.safelyGetProfilePicture(jid)
     return contact as WACompleteContact
   }
+
   loadThread = async (jid: string) => {
-    let chat: WACompleteChat = this.chatMap [whatsappID(jid)] as WACompleteChat
+    let chat: WACompleteChat = this.chatMap[whatsappID(jid)] as WACompleteChat
     if (!chat) {
       chat = {
         jid,
         count: 0,
         participants: [],
         imgURL: '',
-        t: (new Date().getTime()/1000).toString(),
+        t: (new Date().getTime() / 1000).toString(),
         spam: 'false',
         modify_tag: '',
         messages: [],
@@ -249,25 +249,26 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (isGroupID(jid)) {
       const meta = await this.client.groupCreatorAndParticipants(jid)
       chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
-      chat.creationDate = new Date(+meta.creation*1000)
+      chat.creationDate = new Date(+meta.creation * 1000)
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else if (isBroadcastID(jid)) {
-      const meta = await this.client.getBroadcastListInfo (jid)
+      const meta = await this.client.getBroadcastListInfo(jid)
       chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
     } else {
       chat.participants = [await this.contactForJid(jid), this.meContact]
     }
-    chat.title = this.contactMap [chat.jid]?.name || this.contactMap [chat.jid]?.notify
-    
+    chat.title = this.contactMap[chat.jid]?.name || this.contactMap[chat.jid]?.notify
+
     return chat
   }
+
   createThread = async (userIDs: string[], title: string) => {
     let chat: WACompleteChat = {
       jid: '',
       count: 0,
       participants: [],
       imgURL: '',
-      t: (new Date().getTime()/1000).toString(),
+      t: (new Date().getTime() / 1000).toString(),
       spam: 'false',
       modify_tag: '',
       messages: [],
@@ -276,16 +277,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
       const tasks = Object.keys(meta.participants).map(p => this.contactForJid(p))
-      const participants = await Promise.all (tasks)
+      const participants = await Promise.all(tasks)
       chat.jid = meta.gid
       chat.participants = [...participants, this.meContact]
     } else if (userIDs.length === 1) {
-      if (this.chatMap[ whatsappID(userIDs[0]) ]) {
-        chat = this.chatMap[ whatsappID(userIDs[0]) ] as WACompleteChat
+      if (this.chatMap[whatsappID(userIDs[0])]) {
+        chat = this.chatMap[whatsappID(userIDs[0])] as WACompleteChat
       } else {
         chat.jid = userIDs[0]
       }
-      chat.participants = [ await this.contactForJid(userIDs[0]), this.meContact]
+      chat.participants = [await this.contactForJid(userIDs[0]), this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else {
       throw new Error('no users provided')
@@ -317,13 +318,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   searchMessages = async (typed: string, beforeCursor?: string, threadID?: string) => {
-    if (!typed) return {items: [], hasMore: false, oldestCursor: '0'}
+    if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
 
     const page = beforeCursor ? (parseInt(beforeCursor) || 1) : 1
     const nextPage = (page + 1).toString()
-    
-    this.log (`searching for ${typed} in ${threadID}, page: ${page}`)
-    
+
+    this.log(`searching for ${typed} in ${threadID}, page: ${page}`)
+
     const response = await this.client.searchMessages(typed, threadID || null, 10, page)
     return {
       items: mapMessages(response.messages),
@@ -337,16 +338,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     const batchSize = MESSAGE_PAGE_SIZE
     const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
     if (isGroupID(threadID)) {
-      const tasks = messages.map (async m => {
+      const tasks = messages.map(async m => {
         if (m.key.fromMe && !m.info) {
           try {
             m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
           } catch (error) {
-            m.info = {reads: [], deliveries: []}
+            m.info = { reads: [], deliveries: [] }
           }
         }
-      }) 
-      await Promise.all (tasks)
+      })
+      await Promise.all(tasks)
     }
     const oldestCursor = messages[messages.length - 1]?.key
     return {
@@ -357,16 +358,16 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
-    const content = {text} as WAMessageProto.proto.IExtendedTextMessage
+    const content = { text } as WAMessageProto.proto.IExtendedTextMessage
     if (URL_REGEX.test(text)) {
       try {
-        const linkPreview = await this.client.urlQuery (text)
+        const linkPreview = await this.client.urlQuery(text)
         content.canonicalUrl = linkPreview['canonical-url']
         content.matchedText = linkPreview['matched-text']
         content.jpegThumbnail = linkPreview.jpegThumbnail
         content.description = linkPreview.description
       } catch (error) {
-        this.log ('failed to get link preview: ' + error)
+        this.log('failed to get link preview: ' + error)
       }
     }
     return this.sendMessage(threadID, content, null, options)
@@ -382,7 +383,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendMessage = async (threadID: string, content: WAMessageProto.proto.IExtendedTextMessage | Buffer, mimeType?: string, options?: MessageSendOptions) => {
     this.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
-    
+
     let chat = this.chatMap[threadID]
     if (!chat) {
       if (isGroupID(threadID)) throw new Error(`group ${threadID} not found!`)
@@ -393,7 +394,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const op: MessageOptions = {}
     let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
-      const message = await this.client.loadMessage (threadID, options.quotedMessageID)
+      const message = await this.client.loadMessage(threadID, options.quotedMessageID)
       op.quoted = message
     }
 
@@ -403,7 +404,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     threadID = threadID.replace('@c.us', '@s.whatsapp.net')
     if ('text' in content) {
-      await this.client.sendGenericMessage (threadID, {extendedTextMessage: content}, op)
+      await this.client.sendGenericMessage(threadID, { extendedTextMessage: content }, op)
     } else {
       await this.client.sendMessage(threadID, content as Buffer, messageType, op)
     }
@@ -427,13 +428,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.sendReadReceipt(threadID, null, 'unread')
     this.chatMap[threadID].count = -1
   }
+
   sendReadReceipt = async (threadID: string, messageID: string) => {
     await this.client.sendReadReceipt(threadID, null)
     this.chatMap[threadID].count = 0
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
-    this.log ('send typing: ' + typing)
+    this.log('send typing: ' + typing)
     if (typing) {
       await this.client.updatePresence(threadID, Presence.available)
       await this.client.updatePresence(threadID, Presence.composing)
@@ -441,11 +443,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.client.updatePresence(threadID, Presence.paused)
     }
   }
+
   changeThreadTitle = async (threadID: string, newTitle: string) => {
-    if (!isGroupID(threadID)) throw new Error ('cannot change title of a individual chat')
+    if (!isGroupID(threadID)) throw new Error('cannot change title of a individual chat')
     await this.client.groupUpdateSubject(threadID, newTitle)
     return true
   }
+
   pinThread = (threadID: string, pinned: boolean) =>
     this.modThread(threadID, pinned, 'pin')
 
@@ -469,18 +473,20 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (key === 'archive') chat[key] = value ? 'true' : 'false'
       else chat[key] = resp.stamp
     } else {
-      await this.client.modifyChat(threadID, ('un' + key) as ChatModification, {stamp: chat[key]})
+      await this.client.modifyChat(threadID, ('un' + key) as ChatModification, { stamp: chat[key] })
       delete chat[key]
     }
   }
+
   addParticipant = async (threadID: string, participantID: string) => {
-    if (!isGroupID(threadID)) throw new Error ('cannot add more participants to a single chat')
-    await this.client.groupAdd (threadID, [participantID])
+    if (!isGroupID(threadID)) throw new Error('cannot add more participants to a single chat')
+    await this.client.groupAdd(threadID, [participantID])
     return true
   }
+
   removeParticipant = async (threadID: string, participantID: string) => {
-    if (!isGroupID(threadID)) throw new Error ('cannot remove participants from a single chat')
-    await this.client.groupRemove (threadID, [participantID])
+    if (!isGroupID(threadID)) throw new Error('cannot remove participants from a single chat')
+    await this.client.groupRemove(threadID, [participantID])
     return true
   }
 
@@ -489,36 +495,38 @@ export default class WhatsAppAPI implements PlatformAPI {
     const mID = m.key.id
     const mapped = mapMessage(m)
     const downloadMedia = async () => mapped.attachments[0].data = await decodeMediaMessageBuffer(m.message)
-    
+
     this.log('downloading media: ' + mID)
     try {
-      await downloadMedia ()
+      await downloadMedia()
       this.log('downloaded media: ' + mID)
     } catch (error) {
       this.log('downloading media of ' + mID + ' failed, querying latest media')
       try {
-        await this.client.updateMediaMessage (m)
-        await downloadMedia ()
+        await this.client.updateMediaMessage(m)
+        await downloadMedia()
       } catch (error) {
-        this.log('error in downloading media of ' + mID + ': ' + error) 
+        this.log('error in downloading media of ' + mID + ': ' + error)
         throw error
       }
     }
     return mapped
   }
+
   takeoverConflict = async () => {
-    this.log ('taking over again')
-    await this.connect ()
-    this.connCallback ({status: ConnectionStatus.CONNECTED})
-    this.log ('took over')
+    this.log('taking over again')
+    await this.connect()
+    this.connCallback({ status: ConnectionStatus.CONNECTED })
+    this.log('took over')
   }
+
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
     return this.client.getProfilePicture(jid).catch(() => null)
   }
 
   async log(txt) {
     const content = new Date().toLocaleString() + '\t' + JSON.stringify(txt) + '\n'
-    console.log (content)
+    console.log(content)
     if (DEBUG_MODE) {
       const file = defaultWorkingDirectory + '/baileys-log.txt'
       await fs.appendFile(file, content)

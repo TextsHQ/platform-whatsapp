@@ -12,7 +12,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
   [MESSAGE_STUB_TYPES.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
   [MESSAGE_STUB_TYPES.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
-  // This chat is with the official business account of "X". Click for more info. 
+  // This chat is with the official business account of "X". Click for more info.
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
   // X registered as a business account, but WhatsApp hasn’t verified their name yet.
   [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
@@ -36,7 +36,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: '{{sender}} was added to this group',
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: '{{sender}} restricted the group\'s sending capabilities',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: '{{sender}} changed this group\'s settings to allow all participants to edit the group\'s info: {{0}}'
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: '{{sender}} changed this group\'s settings to allow all participants to edit the group\'s info: {{0}}',
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -79,9 +79,8 @@ function numberFromJid(jid: string) {
   return '+' + whatsappID(jid).replace('@c.us', '')
 }
 function jidType(jid: string): ThreadType {
-  return isGroupID (jid) ? 'group' : isBroadcastID (jid) ? 'broadcast' : 'single'
+  return isGroupID(jid) ? 'group' : isBroadcastID(jid) ? 'broadcast' : 'single'
 }
-
 
 export function mapContact(contact: WACompleteContact): Participant {
   if (isGroupID(contact.jid)) {
@@ -91,7 +90,7 @@ export function mapContact(contact: WACompleteContact): Participant {
     id: contact.jid,
     fullName: contact.name || contact.notify,
     phoneNumber: numberFromJid(contact.jid),
-    imgURL: contact.imgURL
+    imgURL: contact.imgURL,
   }
 }
 export const defaultWorkingDirectory = homedir() + '/texts-baileys'
@@ -99,7 +98,7 @@ export const defaultAttachmentsDirectory = defaultWorkingDirectory + '/attachmen
 export function filenameForMessageAttachment(messageID: string) {
   return `${defaultAttachmentsDirectory}/attach_${messageID}`
 }
-/*function messageAction (message: WAMessage): Action {
+/* function messageAction (message: WAMessage): Action {
   const actionType = MESSAGE_TYPE_MAP[message.messageStubType]
   if (!actionType) return null
   return {
@@ -107,7 +106,7 @@ export function filenameForMessageAttachment(messageID: string) {
     title: message.messageStubParameters[0],
     actorParticipantID: message.key.participant
   }
-}*/
+} */
 function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) {
@@ -120,35 +119,33 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
       data: Buffer.from(c.vcard, 'utf-8'),
       fileName: `${c.displayName}.vcf`,
     }))
-  } else {
-    if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
-      const messageType = Object.keys(message)[0]
-      const caption = null//(message.videoMessage || message.imageMessage)?.caption
-      const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
+  } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
+    const messageType = Object.keys(message)[0]
+    const caption = null// (message.videoMessage || message.imageMessage)?.caption
+    const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
 
-      response.attachments = [
-        {
-          id,
-          type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
-          isGif: message.videoMessage?.gifPlayback,
-          caption,
-          mimeType: message[messageType].mimetype,
-          posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
-        },
-      ]
-      response.media = true
-    } else if (message.productMessage?.product?.productImage) {
-      const img = message.productMessage?.product?.productImage
-      response.attachments = [
-        {
-          id,
-          type: MessageAttachmentType.IMG,
-          mimeType: img.mimetype,
-          posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : null,
-        },
-      ]
-      response.media = true
-    }
+    response.attachments = [
+      {
+        id,
+        type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
+        isGif: message.videoMessage?.gifPlayback,
+        caption,
+        mimeType: message[messageType].mimetype,
+        posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+      },
+    ]
+    response.media = true
+  } else if (message.productMessage?.product?.productImage) {
+    const img = message.productMessage?.product?.productImage
+    response.attachments = [
+      {
+        id,
+        type: MessageAttachmentType.IMG,
+        mimeType: img.mimetype,
+        posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : null,
+      },
+    ]
+    response.media = true
   }
   return response
 }
@@ -156,13 +153,13 @@ function linkedMessage(message: WAMessageContent): MessagePreview {
   if (!message) {
     return null
   }
-  const m = message.videoMessage || 
-            message.audioMessage || 
-            message.contactMessage || 
-            message.imageMessage || 
-            message.extendedTextMessage || 
-            message.documentMessage ||
-            message.productMessage
+  const m = message.videoMessage
+            || message.audioMessage
+            || message.contactMessage
+            || message.imageMessage
+            || message.extendedTextMessage
+            || message.documentMessage
+            || message.productMessage
   const contextInfo = m?.contextInfo
   const quoted = contextInfo?.quotedMessage
   if (!quoted) {
@@ -170,8 +167,8 @@ function linkedMessage(message: WAMessageContent): MessagePreview {
   }
   return {
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
-    text: messageText (contextInfo.quotedMessage),
-    id: contextInfo.stanzaId
+    text: messageText(contextInfo.quotedMessage),
+    id: contextInfo.stanzaId,
   }
 }
 function messageHeading(message: WAMessage) {
@@ -188,26 +185,26 @@ function messageHeading(message: WAMessage) {
 function messageText(message: WAMessageContent) {
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
-    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${ message?.locationMessage?.address || '' }`
+    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${message?.locationMessage?.address || ''}`
   }
   const product = message?.productMessage?.product
   if (product) {
     const price = typeof product.priceAmount1000 === 'number' ? +product.priceAmount1000 : product.priceAmount1000.low
     return [
-      product.title, 
-      product.description, 
-      `${product.currencyCode} ${(price/1000)}`,
-      product.productId
+      product.title,
+      product.description,
+      `${product.currencyCode} ${(price / 1000)}`,
+      product.productId,
     ]
-    .filter(Boolean)
-    .join ('\n')
+      .filter(Boolean)
+      .join('\n')
   }
   const extendedText = message?.extendedTextMessage
   if (extendedText) {
-    let text = extendedText.text
+    let { text } = extendedText
     const mentionedJids = extendedText?.contextInfo?.mentionedJid
     if (mentionedJids) {
-      mentionedJids.forEach (jid => text = text.replace (`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`))
+      mentionedJids.forEach(jid => text = text.replace(`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`))
     }
     return text
   }
@@ -220,42 +217,42 @@ function messageLink(message: WAMessageContent): MessageLink {
       url: mess.matchedText,
       img: new Buffer(mess.jpegThumbnail).toString('base64'),
       title: mess.title,
-      summary: mess.description
+      summary: mess.description,
     }
   }
   return null
 }
-function messageStubText (message: WAMessage) {
+function messageStubText(message: WAMessage) {
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
-    message.messageStubParameters.forEach ((p,i) => txt = txt.replace (`{{${i}}}`, whatsappID(p)))
+    message.messageStubParameters.forEach((p, i) => txt = txt.replace(`{{${i}}}`, whatsappID(p)))
   } else if (message.messageStubType) {
-    txt = Object.keys (MESSAGE_STUB_TYPES).filter (key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
+    txt = Object.keys(MESSAGE_STUB_TYPES).filter(key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
   }
   return txt
 }
-function messageReadBy (message: WACompleteMessage): { [id: string]: Date } | boolean {
+function messageReadBy(message: WACompleteMessage): { [id: string]: Date } | boolean {
   if (message.info) {
     const dict: { [id: string]: Date } = {}
-    message.info.reads.forEach (info => dict[info.jid] = new Date(parseInt(info.t)*1000))
+    message.info.reads.forEach(info => dict[info.jid] = new Date(parseInt(info.t) * 1000))
     return dict
   }
   return message.status >= 4
 }
-function messageStatus (status: number | string) {
+function messageStatus(status: number | string) {
   if (typeof status === 'string') {
-    const key = Object.keys (MESSAGE_STATUS_TYPES).find (key => key === status)
+    const key = Object.keys(MESSAGE_STATUS_TYPES).find(key => key === status)
     return MESSAGE_STATUS_TYPES[key]
   }
   return status
 }
 export function mapMessage(message: WACompleteMessage): Message {
   const sender = whatsappID(message.key.participant || message.key.remoteJid)
-  const stubBasedMessage = messageStubText (message)
+  const stubBasedMessage = messageStubText(message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = linkedMessage(message.message)
-  const mLink = messageLink (message.message)
+  const mLink = messageLink(message.message)
   return {
     _original: message,
     cursor: JSON.stringify(message.key),
@@ -275,7 +272,7 @@ export function mapMessage(message: WACompleteMessage): Message {
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
-    isAction: !!stubBasedMessage && message.messageStubType !== MESSAGE_STUB_TYPES.REVOKE // prevent deleted messages from becoming an action
+    isAction: !!stubBasedMessage && message.messageStubType !== MESSAGE_STUB_TYPES.REVOKE, // prevent deleted messages from becoming an action
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {
@@ -294,8 +291,8 @@ export function mapThread(t: WACompleteChat): Thread {
     messages: mapMessages(t.messages),
     participants: t.participants.map(c => mapContact(c)),
     timestamp: new Date(+t.t * 1000),
-    type: jidType (t.jid),
-    createdAt: t.creationDate
+    type: jidType(t.jid),
+    createdAt: t.creationDate,
   }
 }
 export function mapThreads(threads: WACompleteChat[]): Thread[] {
