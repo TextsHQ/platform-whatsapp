@@ -332,7 +332,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
     if (isGroupID(threadID)) {
       const tasks = messages.map (async m => {
-        if (m.key.fromMe && !m.info) m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
+        if (m.key.fromMe && !m.info) {
+          try {
+            m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
+          } catch (error) {
+            m.info = {reads: [], deliveries: []}
+          }
+        }
       }) 
       await Promise.all (tasks)
     }
