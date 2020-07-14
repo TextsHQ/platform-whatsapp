@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, getNotificationType, WAMessage, WAMessageProto } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage } from '@adiwajshing/baileys'
 import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
@@ -208,12 +208,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   searchUsers = async (typed: string) => {
     this.log('searching users ' + typed)
+    typed = typed.toLowerCase()
     const results: Participant[] = []
-    this.contacts.forEach(c => {
+    for (const i in this.contacts) {
+      const c = this.contacts[i] as WACompleteContact
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
-        if (!isGroupID(c.jid)) results.push(mapContact(c))
+        if (!isGroupID(c.jid)) {
+          if (!c.imgURL) c.imgURL = await this.safelyGetProfilePicture(c.jid)
+          results.push(mapContact(c))
+        }
       }
-    })
+    }
     return results
   }
 
@@ -243,15 +248,15 @@ export default class WhatsAppAPI implements PlatformAPI {
         chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
         chat.creationDate = new Date(+meta.creation * 1000)
       } catch (error) {
-        this.log ('failed to get group info: ' + error)
+        this.log('failed to get group info: ' + error)
       }
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else if (isBroadcastID(jid)) {
       try {
         const meta = await this.client.getBroadcastListInfo(jid)
         chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
-      } catch (error) { 
-        this.log ('failed to get broadcast info: ' + error)
+      } catch (error) {
+        this.log('failed to get broadcast info: ' + error)
       }
     } else {
       chat.participants = [await this.contactForJid(jid), this.meContact]
@@ -260,6 +265,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     return chat
   }
+
   createThread = async (userIDs: string[], title: string) => {
     let chat: WACompleteChat = {
       jid: '',
@@ -356,14 +362,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
-    const content = { text } as WAMessageProto.proto.IExtendedTextMessage
+    let content = { text } as WATextMessage
     if (URL_REGEX.test(text)) {
       try {
-        const linkPreview = await this.client.urlQuery(text)
-        content.canonicalUrl = linkPreview['canonical-url']
-        content.matchedText = linkPreview['matched-text']
-        content.jpegThumbnail = linkPreview.jpegThumbnail
-        content.description = linkPreview.description
+        content = await this.client.generateLinkPreview(text)
       } catch (error) {
         this.log('failed to get link preview: ' + error)
       }
@@ -379,7 +381,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
 
-  sendMessage = async (threadID: string, content: WAMessageProto.proto.IExtendedTextMessage | Buffer, mimeType?: string, options?: MessageSendOptions) => {
+  sendMessage = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, options?: MessageSendOptions) => {
     this.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
 
     let chat = this.chatMap[threadID]
@@ -395,21 +397,18 @@ export default class WhatsAppAPI implements PlatformAPI {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
       op.quoted = message
     }
-    if (mimeType === Mimetype.webp) messageType = MessageType.sticker
-    else if (mimeType.includes('image/')) messageType = MessageType.image
-    else if (mimeType.includes('video/')) messageType = MessageType.video
-    else if (mimeType.includes('audio/')) messageType = MessageType.audio
-    else messageType = MessageType.document
-    
-    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
-    if ('text' in content) {
-      await this.client.sendGenericMessage(threadID, { extendedTextMessage: content }, op)
-    } else {
-      await this.client.sendMessage(threadID, content as Buffer, messageType, op)
+    if (mimeType) {
+      if (mimeType === Mimetype.webp) messageType = MessageType.sticker
+      else if (mimeType.includes('image/')) messageType = MessageType.image
+      else if (mimeType.includes('video/')) messageType = MessageType.video
+      else if (mimeType.includes('audio/')) messageType = MessageType.audio
+      else messageType = MessageType.document
     }
-    const sentMessage = await this.client.loadConversation(threadID, 1)
 
-    chat.messages.push(sentMessage[0])
+    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
+    const response = await this.client.sendMessage(threadID, content, messageType, op)
+    const sentMessage = (await this.client.loadConversation(threadID, 1))[0]
+    chat.messages.push(sentMessage)
     return true
   }
 

@@ -100,9 +100,9 @@ export function filenameForMessageAttachment(messageID: string) {
 } */
 function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
   const response = { attachments: [] as MessageAttachment[], media: false }
-  if (!message) {
+  if (!message) return response
 
-  } else if (message.contactMessage || message.contactsArrayMessage) {
+  if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
     response.attachments = contacts.map(c => ({
       id: `${id}_${c.displayName}`,
@@ -123,6 +123,7 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
         caption,
         mimeType: message[messageType].mimetype,
         posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+        fileName: message.documentMessage?.fileName || 'file',
       },
     ]
     response.media = true
@@ -153,9 +154,8 @@ function linkedMessage(message: WAMessageContent): MessagePreview {
             || message.productMessage
   const contextInfo = m?.contextInfo
   const quoted = contextInfo?.quotedMessage
-  if (!quoted) {
-    return null
-  }
+  if (!quoted) return null
+
   return {
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
     text: messageText(contextInfo.quotedMessage),
@@ -201,24 +201,23 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
 }
+const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => `data:${mimeType};base64,${buff.toString('base64')}`
+
 function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage
-  if (mess && mess.canonicalUrl) {
-    return {
-      url: mess.matchedText,
-      img: new Buffer(mess.jpegThumbnail).toString('base64'),
-      title: mess.title,
-      summary: mess.description,
-    }
+  if (!mess?.matchedText) return null
+
+  return {
+    url: mess.matchedText,
+    img: getDataURIFromBuffer(new Buffer(mess.jpegThumbnail), 'image/jpeg'),
+    title: mess.title,
+    summary: mess.description,
   }
-  return null
 }
 function messageStubText(message: WAMessage) {
   if (message.messageStubType === MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE) {
-    if (message.messageStubParameters[0] === 'on')
-      return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
-    else
-      return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
+    if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
+    return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
   }
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
