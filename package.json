@@ -1,7 +1,6 @@
 {
-  "name": "@texts/platform-whatsapp",
-  "version": "0.1.1",
-  "private": true,
+  "name": "@textshq/platform-whatsapp",
+  "version": "0.2.0",
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
@@ -13,13 +12,12 @@
   "dependencies": {
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@textshq/eslint-config": "^1",
-    "@textshq/platform-sdk": "^0.2.0",
+    "@textshq/platform-sdk": "^0.2.3",
     "qrcode.react": "^1.0.0",
     "react": "^16.13.1"
   },
   "devDependencies": {
     "@types/qrcode.react": "^0.6.3",
-    "@types/react": "^16.9.43",
     "eslint": "^7.4.0",
     "typescript": "^3.9.6"
   }
