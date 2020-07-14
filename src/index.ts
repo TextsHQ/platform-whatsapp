@@ -221,8 +221,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   contactForJid = async (jid: string) => {
-    jid = whatsappID (jid)
-    const contact = this.contactMap[jid] || { jid: jid }
+    jid = whatsappID(jid)
+    const contact = this.contactMap[jid] || { jid }
     if (!contact.imgURL) contact.imgURL = await this.safelyGetProfilePicture(jid)
     return contact
   }
@@ -338,7 +338,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessages = async (threadID: string, cursor?: string) => {
     this.log(`loading messages of ${threadID} ${cursor}`)
-    
+
     const batchSize = MESSAGE_PAGE_SIZE
     const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
     if (isGroupID(threadID)) {

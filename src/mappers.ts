@@ -142,10 +142,9 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
   }
   return response
 }
-function linkedMessage(message: WAMessageContent): MessagePreview {
-  if (!message) {
-    return null
-  }
+function messageQuoted(message: WAMessageContent): MessagePreview {
+  if (!message) return null
+
   const m = message.videoMessage
             || message.audioMessage
             || message.contactMessage
@@ -202,7 +201,7 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
 }
-const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => `data:${mimeType};base64,${buff.toString('base64')}`
+const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => (buff?.length > 0 ? `data:${mimeType};base64,${buff.toString('base64')}` : null)
 
 function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage
@@ -210,7 +209,7 @@ function messageLink(message: WAMessageContent): MessageLink {
 
   return {
     url: mess.matchedText,
-    img: getDataURIFromBuffer(new Buffer(mess.jpegThumbnail), 'image/jpeg'),
+    img: getDataURIFromBuffer(Buffer.from(mess.jpegThumbnail), 'image/jpeg'),
     title: mess.title,
     summary: mess.description,
   }
@@ -248,7 +247,7 @@ export function mapMessage(message: WACompleteMessage): Message {
   const stubBasedMessage = messageStubText(message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
-  const linked = linkedMessage(message.message)
+  const linked = messageQuoted(message.message)
   const mLink = messageLink(message.message)
   return {
     _original: message,
