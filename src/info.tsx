@@ -13,7 +13,7 @@ const info: Platform = {
   ),
   loginMode: 'custom',
   browserLogin: null,
-  supportedReactions: [],
+  supportedReactions: {},
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
   maxGroupTitleLength: 25,
   typingDurationMs: 1000,
