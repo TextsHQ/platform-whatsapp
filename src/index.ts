@@ -303,7 +303,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
-      const tasks = Object.keys(meta.participants).map(p => this.contactForJid(p))
+      const tasks = meta.participants.map(p => this.contactForJid( Object.keys(p)[0] ))
       const participants = await Promise.all(tasks)
       chat.jid = meta.gid
       chat.participants = [...participants, this.meContact]
