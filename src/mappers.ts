@@ -74,9 +74,10 @@ function jidType(jid: string): ThreadType {
 }
 
 export function mapContact(contact: WACompleteContact): Participant {
-  if (isGroupID(contact.jid)) {
-    throw new Error('a group cannot be a contact')
+  if (isGroupID(contact.jid) || isBroadcastID(contact.jid)) {
+    throw new Error('a group or broadcast list cannot be a contact')
   }
+
   return {
     id: contact.jid,
     fullName: contact.name || contact.notify,

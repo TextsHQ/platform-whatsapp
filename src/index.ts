@@ -32,9 +32,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   contacts: WAContact[] = []
 
-  contactMap: Record<string, WAContact> = {}
+  contactMap: {[k: string]: WACompleteContact} = {}
 
-  chatMap: Record<string, WAChat> = {}
+  chatMap: {[k: string]: WAChat} = {}
 
   meContact?: WACompleteContact
 
@@ -95,13 +95,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.chats = this.chats.sort((a, b) => (+b.t) - (+a.t))
 
-    this.meContact = this.contactMap[user.id] || { jid: whatsappID(user.id), name: user.name }
+    this.meContact = { jid: whatsappID(user.id), name: user.name }
     this.meContact.imgURL = await this.safelyGetProfilePicture(this.meContact.jid)
-    this.contactMap[whatsappID(user.id)] = this.meContact
+    this.contactMap[this.meContact.jid] = this.meContact
 
     this.log('connected successfully')
-
-    this.contacts.forEach(c => c.jid.includes('@g.us') && this.log(c))
 
     if (this.loginCallback) this.loginCallback({ name: 'ready' })
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
@@ -223,9 +221,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   contactForJid = async (jid: string) => {
-    const contact = this.contacts[whatsappID(jid)] || { jid }
+    jid = whatsappID (jid)
+    const contact = this.contactMap[jid] || { jid: jid }
     if (!contact.imgURL) contact.imgURL = await this.safelyGetProfilePicture(jid)
-    return contact as WACompleteContact
+    return contact
   }
 
   loadThread = async (jid: string) => {
@@ -339,6 +338,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessages = async (threadID: string, cursor?: string) => {
     this.log(`loading messages of ${threadID} ${cursor}`)
+    
     const batchSize = MESSAGE_PAGE_SIZE
     const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
     if (isGroupID(threadID)) {
