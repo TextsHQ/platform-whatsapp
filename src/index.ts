@@ -1,8 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage } from '@adiwajshing/baileys'
-import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, filenameForMessageAttachment, defaultWorkingDirectory, defaultAttachmentsDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
+import { PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser } from '@textshq/platform-sdk'
+import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, defaultWorkingDirectory, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
@@ -105,9 +105,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
-  getCurrentUser = async () => {
+  getCurrentUser = async (): Promise<CurrentUser> => {
     this.log('requested user data')
-    return { id: this.meContact.jid, displayText: this.meContact.name, imgURL: this.meContact.imgURL }
+    return { 
+      id: this.meContact.jid, 
+      name: this.meContact.name,
+      displayText: numberFromJid(this.meContact.jid),
+      imgURL: this.meContact.imgURL 
+    }
   }
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
@@ -202,6 +207,24 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       ])
     })
+    this.client.registerCallback (['action', null, 'chat'], json => {
+      json = json[2][0]
+      const updateType = json[1].type
+      if (updateType === 'delete') {
+        const jid = json[1].jid
+        
+        delete this.chatMap[jid]
+        const index = this.chats.findIndex (chat => chat.jid === jid)
+        if (index >= 0) delete this.chats[index]
+        
+        this.evCallback([
+          {
+            type: ServerEventType.THREAD_UPDATED,
+            threadID: jid
+          },
+        ])
+      }
+    })
   }
 
   searchUsers = async (typed: string) => {
@@ -229,7 +252,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadThread = async (jid: string) => {
     let chat: WACompleteChat = this.chatMap[whatsappID(jid)] as WACompleteChat
-    if (!chat) {
+    if (chat) {
+      chat.participants = []
+    } else {
       chat = {
         jid,
         count: 0,
@@ -247,7 +272,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
         chat.creationDate = new Date(+meta.creation * 1000)
       } catch (error) {
-        this.log('failed to get group info: ' + error)
+        this.log(`failed to get group info for ${jid}: ${error}`)
       }
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else if (isBroadcastID(jid)) {
@@ -255,13 +280,12 @@ export default class WhatsAppAPI implements PlatformAPI {
         const meta = await this.client.getBroadcastListInfo(jid)
         chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
       } catch (error) {
-        this.log('failed to get broadcast info: ' + error)
+        this.log(`failed to get broadcast info for ${jid}: ${error}`)
       }
     } else {
       chat.participants = [await this.contactForJid(jid), this.meContact]
     }
     chat.title = this.contactMap[chat.jid]?.name || this.contactMap[chat.jid]?.notify
-
     return chat
   }
 

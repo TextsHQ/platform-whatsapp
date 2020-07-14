@@ -37,6 +37,10 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: '{{sender}} restricted the group\'s sending capabilities',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: '{{sender}} changed this group\'s settings to allow all participants to edit the group\'s info: {{0}}',
+  
+  [MESSAGE_STUB_TYPES.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
+  [MESSAGE_STUB_TYPES.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
+  [MESSAGE_STUB_TYPES.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -66,7 +70,7 @@ export function isGroupID(jid: string) {
 export function isBroadcastID(jid: string) {
   return jid.endsWith('@broadcast')
 }
-function numberFromJid(jid: string) {
+export function numberFromJid(jid: string) {
   return '+' + whatsappID(jid).replace('@c.us', '')
 }
 function jidType(jid: string): ThreadType {
