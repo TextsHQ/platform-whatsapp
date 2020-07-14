@@ -13,7 +13,7 @@
   "dependencies": {
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@textshq/eslint-config": "^1",
-    "@textshq/platform-sdk": "^0.1.4",
+    "@textshq/platform-sdk": "^0.2.0",
     "qrcode.react": "^1.0.0",
     "react": "^16.13.1"
   },
