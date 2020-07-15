@@ -1,7 +1,7 @@
 import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
@@ -30,6 +30,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   meContact?: WACompleteContact
 
   init = async (session?: any) => {
+    this.client.logLevel = texts.IS_DEV ? MessageLogLevel.all : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.restoreSession(session)
     this.registerCallbacks()
