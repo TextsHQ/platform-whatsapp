@@ -1,7 +1,5 @@
 import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent, MessageInfo } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, Action, ThreadActionType, MessagePreview, ThreadType, MessageLink } from '@textshq/platform-sdk'
-import { homedir } from 'os'
-import info from './info'
+import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink } from '@textshq/platform-sdk'
 
 const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
 const MESSAGE_STATUS_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
@@ -37,7 +35,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string} = {
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: '{{sender}} restricted the group\'s sending capabilities',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: '{{sender}} changed this group\'s settings to allow all participants to edit the group\'s info: {{0}}',
-  
+
   [MESSAGE_STUB_TYPES.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [MESSAGE_STUB_TYPES.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [MESSAGE_STUB_TYPES.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
@@ -74,7 +72,9 @@ export function numberFromJid(jid: string) {
   return '+' + whatsappID(jid).replace('@c.us', '')
 }
 function jidType(jid: string): ThreadType {
-  return isGroupID(jid) ? 'group' : isBroadcastID(jid) ? 'broadcast' : 'single'
+  if (isGroupID(jid)) return 'group'
+  if (isBroadcastID(jid)) return 'broadcast'
+  return 'single'
 }
 
 export function mapContact(contact: WACompleteContact): Participant {
@@ -88,11 +88,6 @@ export function mapContact(contact: WACompleteContact): Participant {
     phoneNumber: numberFromJid(contact.jid),
     imgURL: contact.imgURL,
   }
-}
-export const defaultWorkingDirectory = homedir() + '/texts-baileys'
-export const defaultAttachmentsDirectory = defaultWorkingDirectory + '/attachments'
-export function filenameForMessageAttachment(messageID: string) {
-  return `${defaultAttachmentsDirectory}/attach_${messageID}`
 }
 /* function messageAction (message: WAMessage): Action {
   const actionType = MESSAGE_TYPE_MAP[message.messageStubType]
@@ -199,7 +194,9 @@ function messageText(message: WAMessageContent) {
     let { text } = extendedText
     const mentionedJids = extendedText?.contextInfo?.mentionedJid
     if (mentionedJids) {
-      mentionedJids.forEach(jid => text = text.replace(`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`))
+      mentionedJids.forEach(jid => {
+        text = text.replace(`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`)
+      })
     }
     return text
   }
@@ -225,7 +222,9 @@ function messageStubText(message: WAMessage) {
   }
   let txt = PRE_DEFINED_MESSAGES[message.messageStubType] || null
   if (txt) {
-    message.messageStubParameters.forEach((p, i) => txt = txt.replace(`{{${i}}}`, whatsappID(p)))
+    message.messageStubParameters.forEach((p, i) => {
+      txt = txt.replace(`{{${i}}}`, whatsappID(p))
+    })
   } else if (message.messageStubType) {
     txt = Object.keys(MESSAGE_STUB_TYPES).filter(key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
   }
@@ -234,14 +233,16 @@ function messageStubText(message: WAMessage) {
 function messageReadBy(message: WACompleteMessage): { [id: string]: Date } | boolean {
   if (message.info) {
     const dict: { [id: string]: Date } = {}
-    message.info.reads.forEach(info => dict[info.jid] = new Date(parseInt(info.t) * 1000))
+    message.info.reads.forEach(info => {
+      dict[info.jid] = new Date(+info.t * 1000)
+    })
     return dict
   }
   return message.status >= 4
 }
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
-    const key = Object.keys(MESSAGE_STATUS_TYPES).find(key => key === status)
+    const key = Object.keys(MESSAGE_STATUS_TYPES).find(k => k === status)
     return MESSAGE_STATUS_TYPES[key]
   }
   return status
@@ -286,7 +287,7 @@ export function mapThread(t: WACompleteChat): Thread {
     title: t.title,
     description: t.description,
     imgURL: t.imgURL,
-    isUnread: (t.count as unknown as number) != 0,
+    isUnread: t.count !== 0,
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages),
     participants: t.participants.map(c => mapContact(c)),
