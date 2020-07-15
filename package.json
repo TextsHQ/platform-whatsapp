@@ -1,6 +1,6 @@
 {
   "name": "@textshq/platform-whatsapp",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "main": "dist/index.js",
   "scripts": {
     "prepare": "npm run build",
@@ -13,10 +13,12 @@
   "dependencies": {
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@textshq/eslint-config": "^1",
-    "@textshq/platform-sdk": "^0.2.5",
     "bluebird": "^3.7.2",
     "qrcode.react": "^1.0.0",
     "react": "^16.13.1"
+  },
+  "peerDependencies": {
+    "@textshq/platform-sdk": ">= 0.2"
   },
   "devDependencies": {
     "@types/qrcode.react": "^0.6.3",
