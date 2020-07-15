@@ -30,7 +30,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   meContact?: WACompleteContact
 
   init = async (session?: any) => {
-    this.client.logLevel = texts.IS_DEV ? MessageLogLevel.all : MessageLogLevel.none
+    this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.restoreSession(session)
     this.registerCallbacks()
