@@ -222,6 +222,14 @@ export default class WhatsAppAPI implements PlatformAPI {
           json[2]
           .forEach (item => chat.messages.filter (m => m.key.id !== item[1].index))
           break
+        case 'archive':
+          this.chatMap[jid].archive = 'true'
+          break
+        case 'unarchive':
+          delete this.chatMap[jid].archive
+          break
+        case 'pin':
+          this.chatMap[jid].pin = json[1].pin
         default:
           break
       }
