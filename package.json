@@ -20,9 +20,9 @@
     "@textshq/platform-sdk": ">= 0.2"
   },
   "devDependencies": {
-    "@types/qrcode.react": "^0.6.3",
     "@textshq/eslint-config": "^1",
-    "@textshq/platform-sdk": "^0.2",
+    "@textshq/platform-sdk": "^0.2.6",
+    "@types/qrcode.react": "^0.6.3",
     "eslint": "^7.4.0",
     "typescript": "^3.9.6"
   }

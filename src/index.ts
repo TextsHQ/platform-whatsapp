@@ -32,6 +32,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   init = async (session?: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
+
     this.restoreSession(session)
     this.registerCallbacks()
 
@@ -134,7 +135,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
-      texts.log(update)
+      
       if (!chat) return
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
@@ -171,7 +172,14 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.chatMap[chat.jid] = chat
         this.chats.splice(0, 0, chat)
       }
+      
+      if (chat.messages.find(m => m.key.id === message.key.id)) {
+        texts.log ('received duplicate message in onUnreadMessage: ' + JSON.stringify(message))
+      }
+
       chat.messages.push(message)
+      chat.messages = chat.messages.slice (0, MESSAGE_PAGE_SIZE)
+      
       this.evCallback([
         {
           type: ServerEventType.THREAD_UPDATED,
@@ -441,7 +449,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendReadReceipt = async (threadID: string, messageID: string) => {
-    await this.client.sendReadReceipt(threadID, null)
+    await this.client.sendReadReceipt(threadID, messageID, 'read')
     this.chatMap[threadID].count = 0
   }
 
