@@ -7,6 +7,7 @@ import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberF
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
+const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
 const MESSAGE_INFO_STATUS = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
 const URL_REGEX = /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
 
@@ -176,10 +177,10 @@ export default class WhatsAppAPI implements PlatformAPI {
           texts.log ('received duplicate message in onUnreadMessage: ' + JSON.stringify(message))
           return
         }
-        this.addMessage(message)
+        await this.addMessage(message)
       }
-      chat.messages = chat.messages.slice (0, MESSAGE_PAGE_SIZE)
-      
+      chat.messages = chat.messages.slice (chat.messages.length-MESSAGE_PAGE_SIZE, chat.messages.length)
+
       this.evCallback([
         {
           type: ServerEventType.THREAD_UPDATED,
@@ -283,7 +284,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       this.chatMap[whatsappID(jid)] = chat
     }
-    if (addedMessage) this.addMessage (addedMessage)
+    if (addedMessage) await this.addMessage (addedMessage)
 
     if (isGroupID(jid)) {
       try {
@@ -562,20 +563,35 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connCallback({ status: ConnectionStatus.CONNECTED })
     texts.log('took over')
   }
-  private addMessage (message: WAMessage) {
+  private async addMessage (message: WAMessage) {
     const chat = this.chatMap[whatsappID(message.key.remoteJid)] as WACompleteChat
     const protocolMessage = message.message?.protocolMessage
     if (protocolMessage) {
       if (protocolMessage.type === WAMessageProto.proto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
         const found = chat.messages.find (m => m.key.id === protocolMessage.key.id)
         if (found) {
-          found.messageStubType = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE.REVOKE
+          found.messageStubType = MESSAGE_STUB_TYPES.REVOKE
           found.message = null
         }
       } else {
         // not implemented
       }
     } else chat.messages.push (message)
+    
+    const jid = whatsappID(message.messageStubParameters[0])
+
+    switch (message.messageStubType) {
+      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD:
+      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE:
+        texts.log (`${jid} was added to ${chat.jid}`)
+        chat.participants.push ( await this.contactForJid (jid) )
+        break
+      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE:
+      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE:
+        texts.log (`${jid} was removed from ${chat.jid}`)
+        chat.participants = chat.participants.filter (p => p.jid !== jid)
+        break
+    }
   }
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
     return this.client.getProfilePicture(jid).catch(() => null)
