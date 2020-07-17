@@ -165,8 +165,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
-      
       texts.log('received message: ' + jid)
+      
+      if (jid === 'status@broadcast') return
       
       let chat = this.chatMap[jid]
       if (!chat) {
