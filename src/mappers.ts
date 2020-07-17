@@ -43,7 +43,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [MESSAGE_STUB_TYPES.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [MESSAGE_STUB_TYPES.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
 
-  [MESSAGE_STUB_TYPES.GENERIC_NOTIFICATION]: '{{0}}'
+  [MESSAGE_STUB_TYPES.GENERIC_NOTIFICATION]: '{{0}}',
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -58,7 +58,7 @@ const MESSAGE_ACTION_MAP = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
- // [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  // [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo
@@ -103,12 +103,12 @@ export function mapContact(contact: WACompleteContact): Participant {
     imgURL: contact.imgURL,
   }
 }
-function messageAction (message: WAMessage): Action {
+function messageAction(message: WAMessage): Action {
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType]
   if (!actionType) return null
   return {
     type: actionType,
-    participantIDs: [ whatsappID(message.messageStubParameters[0] || message.participant) ]
+    participantIDs: [whatsappID(message.messageStubParameters[0] || message.participant)],
   }
 }
 function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
@@ -230,13 +230,15 @@ function messageLink(message: WAMessageContent): MessageLink {
 }
 function messageStubText(message: WAMessage) {
   const mapped = PRE_DEFINED_MESSAGES[message.messageStubType] || null
-  
+
   let txt: string
-  if (typeof mapped === 'function') txt = mapped (message)
+  if (typeof mapped === 'function') txt = mapped(message)
   else txt = mapped
 
   if (txt) {
-    message.messageStubParameters.forEach((p, i) => txt = txt.replace(`{{${i}}}`, whatsappID(p)))
+    message.messageStubParameters.forEach((p, i) => {
+      txt = txt.replace(`{{${i}}}`, whatsappID(p))
+    })
   } else if (message.messageStubType) {
     txt = Object.keys(MESSAGE_STUB_TYPES).filter(key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
   }
@@ -266,7 +268,7 @@ export function mapMessage(message: WACompleteMessage): Message {
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = messageQuoted(message.message)
   const mLink = messageLink(message.message)
-  const action = messageAction (message)
+  const action = messageAction(message)
   return {
     _original: message,
     cursor: JSON.stringify(message.key),
@@ -287,7 +289,7 @@ export function mapMessage(message: WACompleteMessage): Message {
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction: !!stubBasedMessage && message.messageStubType !== MESSAGE_STUB_TYPES.REVOKE, // prevent deleted messages from becoming an action
-    action: action
+    action,
   }
 }
 export function mapMessages(message: WAMessage[]): Message[] {

@@ -1,7 +1,7 @@
 import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, WAContact, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
@@ -18,7 +18,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connCallback: OnConnStateChangeCallback = null
 
-  loginCallback: Function = () => { }
+  loginCallback: Function = () => {}
 
   chats: WAChat[] = []
 
@@ -69,16 +69,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connect = async () => {
     texts.log('began connect')
-    
+
     const [user, chats, contacts] = await this.client.connect()
 
-    this.chatMap = {}
-    this.contactMap = {}
-
     this.chats = chats
-    
+
     this.contacts = contacts
-    contacts.forEach(c => this.contactMap[whatsappID(c.jid)] = c)
+    contacts.forEach(c => {
+      this.contactMap[whatsappID(c.jid)] = c
+    })
     chats.forEach(c => {
       this.chatMap[c.jid] = c
       c.messages = c.messages.reverse()
@@ -91,7 +90,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('connected successfully')
 
-    if (this.loginCallback) this.loginCallback({ name: 'ready' })
+    this.loginCallback({ name: 'ready' })
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
@@ -135,7 +134,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
-      
+
       if (!chat) return
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
@@ -166,21 +165,21 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
       texts.log('received message: ' + jid)
-      
+
       if (jid === 'status@broadcast') return
-      
+
       let chat = this.chatMap[jid]
       if (!chat) {
         chat = await this.loadThread(jid, message)
         this.chats.splice(0, 0, chat)
       } else {
         if (chat.messages.find(m => m.key.id === message.key.id)) {
-          texts.log ('received duplicate message in onUnreadMessage: ' + JSON.stringify(message))
+          texts.log('received duplicate message in onUnreadMessage: ' + JSON.stringify(message))
           return
         }
         await this.addMessage(message)
       }
-      chat.messages = chat.messages.slice (chat.messages.length-MESSAGE_PAGE_SIZE, chat.messages.length)
+      chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
       this.evCallback([
         {
@@ -207,22 +206,21 @@ export default class WhatsAppAPI implements PlatformAPI {
       ])
     })
     this.client.registerCallback(['action', null, 'chat'], json => {
-      console.log ('chat action ' + JSON.stringify(json))
-
+      texts.log('chat action ' + JSON.stringify(json))
       json = json[2][0]
+
       const updateType = json[1].type
       const jid = json[1]?.jid
+      const index = this.chats.findIndex(chat => chat.jid === jid)
+      const chat = this.chatMap[jid]
       switch (updateType) {
         case 'delete':
           delete this.chatMap[jid]
-          
-          const index = this.chats.findIndex(chat => chat.jid === jid)
           if (index >= 0) delete this.chats[index]
           break
         case 'clear':
-          const chat = this.chatMap[jid]
           json[2]
-          .forEach (item => chat.messages.filter (m => m.key.id !== item[1].index))
+            .forEach(item => chat.messages.filter(m => m.key.id !== item[1].index))
           break
         case 'archive':
           this.chatMap[jid].archive = 'true'
@@ -232,7 +230,6 @@ export default class WhatsAppAPI implements PlatformAPI {
           break
         case 'pin':
           this.chatMap[jid].pin = json[1].pin
-        default:
           break
       }
       this.evCallback([
@@ -248,7 +245,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     typed = typed.toLowerCase()
     const results: Participant[] = []
-    
+
     await bluebird.map(this.contacts, async contact => {
       const c = contact as WACompleteContact
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
@@ -285,7 +282,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       this.chatMap[whatsappID(jid)] = chat
     }
-    if (addedMessage) await this.addMessage (addedMessage)
+    if (addedMessage) await this.addMessage(addedMessage)
 
     if (isGroupID(jid)) {
       try {
@@ -564,12 +561,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connCallback({ status: ConnectionStatus.CONNECTED })
     texts.log('took over')
   }
-  private async addMessage (message: WAMessage) {
+
+  private async addMessage(message: WAMessage) {
     const chat = this.chatMap[whatsappID(message.key.remoteJid)] as WACompleteChat
     const protocolMessage = message.message?.protocolMessage
     if (protocolMessage) {
       if (protocolMessage.type === WAMessageProto.proto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
-        const found = chat.messages.find (m => m.key.id === protocolMessage.key.id)
+        const found = chat.messages.find(m => m.key.id === protocolMessage.key.id)
         if (found) {
           found.messageStubType = MESSAGE_STUB_TYPES.REVOKE
           found.message = null
@@ -577,23 +575,24 @@ export default class WhatsAppAPI implements PlatformAPI {
       } else {
         // not implemented
       }
-    } else chat.messages.push (message)
-    
+    } else chat.messages.push(message)
+
     const jid = whatsappID(message.messageStubParameters[0])
 
     switch (message.messageStubType) {
       case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD:
       case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE:
-        texts.log (`${jid} was added to ${chat.jid}`)
-        chat.participants.push ( await this.contactForJid (jid) )
+        texts.log(`${jid} was added to ${chat.jid}`)
+        chat.participants.push(await this.contactForJid(jid))
         break
       case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE:
       case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE:
-        texts.log (`${jid} was removed from ${chat.jid}`)
-        chat.participants = chat.participants.filter (p => p.jid !== jid)
+        texts.log(`${jid} was removed from ${chat.jid}`)
+        chat.participants = chat.participants.filter(p => p.jid !== jid)
         break
     }
   }
+
   protected async safelyGetProfilePicture(jid: string): Promise<string> {
     return this.client.getProfilePicture(jid).catch(() => null)
   }
