@@ -209,17 +209,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       const message: WAMessage = json[2][0][2]
       const jid = whatsappID(message.key.remoteJid)
       const chat = this.chatMap[jid]
-      
-      texts.log ('received updated message for chat: ' + jid)
+
+      texts.log('received updated message for chat: ' + jid)
 
       if (!chat) return
 
-      for (var i in chat.messages) {
-        if (chat.messages[i].key.id === message.key.id) {
-          chat.messages[i] = message
-          this.evCallback([ { type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
-          break
-        }
+      const messageIndex = chat.messages.findIndex(m => m.key.id === message.key.id)
+      if (messageIndex >= 0) {
+        chat.messages[messageIndex] = message
+        this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
       }
     })
     this.client.registerCallback(['action', null, 'chat'], json => {
