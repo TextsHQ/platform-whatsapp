@@ -2,7 +2,7 @@ import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
 const info: Platform = {
-  name: 'whatsapp-baileys-dev',
+  name: 'whatsapp-baileys',
   version: '0.2.0',
   displayName: 'WhatsApp',
   icon: (props: any) => (

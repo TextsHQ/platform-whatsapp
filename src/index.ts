@@ -135,7 +135,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
       if (!chat) return
-      
+
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
           const status = update.type
