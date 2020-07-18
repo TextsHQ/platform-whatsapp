@@ -134,8 +134,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
-
       if (!chat) return
+      
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
           const status = update.type
@@ -213,6 +213,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       const jid = json[1]?.jid
       const index = this.chats.findIndex(chat => chat.jid === jid)
       const chat = this.chatMap[jid]
+
+      if (!chat) return
+
       switch (updateType) {
         case 'delete':
           delete this.chatMap[jid]
@@ -577,19 +580,21 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     } else chat.messages.push(message)
 
-    const jid = whatsappID(message.messageStubParameters[0])
+    if (message.messageStubParameters.length > 0) {
+      const jid = whatsappID(message.messageStubParameters[0])
 
-    switch (message.messageStubType) {
-      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD:
-      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE:
-        texts.log(`${jid} was added to ${chat.jid}`)
-        chat.participants.push(await this.contactForJid(jid))
-        break
-      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE:
-      case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE:
-        texts.log(`${jid} was removed from ${chat.jid}`)
-        chat.participants = chat.participants.filter(p => p.jid !== jid)
-        break
+      switch (message.messageStubType) {
+        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD:
+        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE:
+          texts.log(`${jid} was added to ${chat.jid}`)
+          chat.participants.push(await this.contactForJid(jid))
+          break
+        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE:
+        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE:
+          texts.log(`${jid} was removed from ${chat.jid}`)
+          chat.participants = chat.participants.filter(p => p.jid !== jid)
+          break
+      }
     }
   }
 
