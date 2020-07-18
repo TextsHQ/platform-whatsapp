@@ -205,6 +205,23 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       ])
     })
+    this.client.registerCallback(['action', 'add:update', 'message'], json => {
+      const message: WAMessage = json[2][0][2]
+      const jid = whatsappID(message.key.remoteJid)
+      const chat = this.chatMap[jid]
+      
+      texts.log ('received updated message for chat: ' + jid)
+
+      if (!chat) return
+
+      for (var i in chat.messages) {
+        if (chat.messages[i].key.id === message.key.id) {
+          chat.messages[i] = message
+          this.evCallback([ { type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
+          break
+        }
+      }
+    })
     this.client.registerCallback(['action', null, 'chat'], json => {
       texts.log('chat action ' + JSON.stringify(json))
       json = json[2][0]
@@ -537,6 +554,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     const m = message._original as WAMessage
     const mID = m.key.id
     const mapped = mapMessage(m)
+
+    if (m.message?.videoMessage && !m.message?.videoMessage?.url) return mapped
+
     const downloadMedia = async () => {
       mapped.attachments[0].data = await decodeMediaMessageBuffer(m.message)
     }
