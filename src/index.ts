@@ -171,7 +171,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       let chat = this.chatMap[jid]
       if (!chat) {
         chat = await this.loadThread(jid, message)
-        this.chats.splice(0, 0, chat)
+        this.chats.unshift(chat)
       } else {
         if (chat.messages.find(m => m.key.id === message.key.id)) {
           texts.log('received duplicate message in onUnreadMessage: ' + JSON.stringify(message))
@@ -355,7 +355,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw new Error('no users provided')
     }
     this.chatMap[chat.jid] = chat
-    this.chats.splice(0, 0, chat)
+    this.chats.unshift(chat)
     return mapThread(chat)
   }
 
