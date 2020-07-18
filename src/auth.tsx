@@ -19,7 +19,7 @@ export default class WhatsAppAuth extends Component {
   render() {
     const { qrValue } = this.state as any
     return (
-      <div className="auth imessage-auth">
+      <div className="auth whatsapp-auth">
         <ol>
           <li>Open WhatsApp app on your phone</li>
           <li>Go to Settings or Menu</li>
