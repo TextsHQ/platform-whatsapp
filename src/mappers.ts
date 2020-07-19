@@ -39,6 +39,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
     if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
     return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
   },
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [MESSAGE_STUB_TYPES.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [MESSAGE_STUB_TYPES.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [MESSAGE_STUB_TYPES.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
@@ -52,13 +53,13 @@ const ATTACHMENT_MAP = {
   [MessageType.video]: MessageAttachmentType.VIDEO,
 }
 const MESSAGE_ACTION_MAP = {
-  [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  // [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  //[MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
+  //[MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo

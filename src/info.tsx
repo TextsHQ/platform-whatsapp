@@ -3,7 +3,7 @@ import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
 const info: Platform = {
   name: 'whatsapp-baileys',
-  version: '0.2.0',
+  version: '0.2.1',
   displayName: 'WhatsApp',
   icon: (props: any) => (
     <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" {...props}>
@@ -21,6 +21,7 @@ const info: Platform = {
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_PIN_THREAD,
     Attribute.SUPPORTS_QUOTED_MESSAGES,
+    Attribute.SUPPORTS_GROUP_IMAGE_CHANGE
     // Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,

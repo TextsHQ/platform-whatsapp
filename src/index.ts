@@ -155,12 +155,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
       })
-      this.evCallback([
-        {
-          type: ServerEventType.THREAD_UPDATED,
-          threadID: update.to, // todo: test it works when other person sends message in single thread
-        },
-      ])
+      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: update.to} ])
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
@@ -181,27 +176,20 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
-      this.evCallback([
-        {
-          type: ServerEventType.THREAD_UPDATED,
-          threadID: jid, // todo: test it works when other person sends message in single thread
-        },
-      ])
+      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
     })
     this.client.setOnPresenceUpdate(update => {
       texts.log('presence update: ' + JSON.stringify(update))
       let participantID = update.participant
-      if (!participantID && !isGroupID(update.id)) {
-        participantID = update.id
-      }
-
+      if (!participantID && !isGroupID(update.id)) participantID = update.id
+      
       const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
       this.evCallback([
         {
           type: updateType,
           threadID: update.id,
           participantID,
-          durationMs: 1000,
+          durationMs: null,
         },
       ])
     })
@@ -237,8 +225,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           if (index >= 0) delete this.chats[index]
           break
         case 'clear':
-          json[2]
-            .forEach(item => chat.messages.filter(m => m.key.id !== item[1].index))
+          json[2].forEach(item => chat.messages.filter(m => m.key.id !== item[1].index))
           break
         case 'archive':
           this.chatMap[jid].archive = 'true'
@@ -250,12 +237,16 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.chatMap[jid].pin = json[1].pin
           break
       }
-      this.evCallback([
-        {
-          type: ServerEventType.THREAD_UPDATED,
-          threadID: jid,
-        },
-      ])
+      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
+    })
+    this.client.registerCallback (['Cmd', 'type:picture'], async json => {
+      const jid = whatsappID(json[1].jid || '')
+      const chat = this.chatMap[jid] as WACompleteChat
+      
+      if (!chat) return
+      
+      chat.imgURL = await this.safelyGetProfilePicture (jid)
+      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
     })
   }
 
@@ -304,7 +295,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (isGroupID(jid)) {
       try {
-        const meta = await this.client.groupCreatorAndParticipants(jid)
+        const meta = await this.client.groupMetadataMinimal(jid)
         chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
         chat.creationDate = new Date(+meta.creation * 1000)
       } catch (error) {
@@ -402,17 +393,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     const batchSize = MESSAGE_PAGE_SIZE
     const messages = (cursor ? await this.client.loadConversation(threadID, batchSize, JSON.parse(cursor)) : this.chatMap[threadID].messages) as WACompleteMessage[]
     if (isGroupID(threadID)) {
-      const tasks = messages.map(async m => {
+      await bluebird.map(messages, async m => {
         if (m.key.fromMe && !m.info) {
-          try {
-            m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
-          } catch (error) {
-            m.info = { reads: [], deliveries: [] }
-          }
+          m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
+                          .catch (() => ({ reads: [], deliveries: [] }))
         }
       })
-      await Promise.all(tasks)
     }
+    texts.log (`loading messages: ${JSON.stringify(messages.map (m => m.key.id))}`)
     const oldestCursor = messages[messages.length - 1]?.key
     return {
       items: mapMessages(messages),
@@ -493,7 +481,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
-    texts.log('send typing: ' + typing)
+    texts.log('send typing 2: ' + typing)
     if (typing) {
       await this.client.updatePresence(threadID, Presence.available)
       await this.client.updatePresence(threadID, Presence.composing)
@@ -507,7 +495,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.groupUpdateSubject(threadID, newTitle)
     return true
   }
-
+  changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
+    const chat = this.chatMap [threadID] as WACompleteChat
+    texts.log ('changing profile picture of ' + threadID)
+    if (!chat) new Error (`chat ${threadID} not present`)
+    
+    const response = await this.client.updateProfilePicture (threadID, imageBuffer)
+    chat.imgURL = response.eurl
+  }
   pinThread = (threadID: string, pinned: boolean) =>
     this.modThread(threadID, pinned, 'pin')
 
@@ -520,12 +515,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   protected async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
     texts.log(`modifying thread ${threadID} ${key}: ${value}`)
     const chat = this.chatMap[threadID]
-    if (!chat) {
-      throw new Error('thread not found')
-    }
-    if ((key in chat) === value) {
-      return // already done, nothing to do
-    }
+    
+    if (!chat) throw new Error('thread not found')
+    if ((key in chat) === value) return // already done, nothing to do
+    
     if (value) {
       const resp = await this.client.modifyChat(threadID, key as ChatModification)
       if (key === 'archive') chat[key] = value ? 'true' : 'false'
@@ -545,6 +538,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   removeParticipant = async (threadID: string, participantID: string) => {
     if (!isGroupID(threadID)) throw new Error('cannot remove participants from a single chat')
     await this.client.groupRemove(threadID, [participantID])
+    return true
+  }
+  modifyParticipantRole? = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
+    if (role === 'admin') await this.client.groupMakeAdmin (threadID, [participantID])
+    else if (role === 'regular') await this.client.groupDemoteAdmin (threadID, [participantID])
     return true
   }
 
