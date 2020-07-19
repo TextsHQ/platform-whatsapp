@@ -34,10 +34,13 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: message => `{{${whatsappID(message.participant)}}} added {{sender}} to this group`,
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: '{{sender}} restricted the group\'s sending capabilities',
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: message => {
+    if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
+    else return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
+  },
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: message => {
-    if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
-    return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
+    if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
+    return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [MESSAGE_STUB_TYPES.BROADCAST_CREATE]: '{{sender}} created this broadcast list',

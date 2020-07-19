@@ -594,7 +594,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       } else {
         // not implemented
       }
-    } else chat.messages.push(message)
+    } else if (!chat.messages.find(m => m.key.id === message.key.id)) chat.messages.push(message)
 
     if (message.messageStubParameters.length > 0) {
       const jid = whatsappID(message.messageStubParameters[0])
