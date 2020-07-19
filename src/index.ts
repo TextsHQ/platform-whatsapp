@@ -73,7 +73,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     const [user, chats, contacts] = await this.client.connect()
 
     this.chats = chats
-
     this.contacts = contacts
     contacts.forEach(c => {
       this.contactMap[whatsappID(c.jid)] = c
@@ -351,9 +350,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
-    if (inboxName !== InboxName.NORMAL) {
-      return { items: [], hasMore: false }
-    }
+    if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
+
     texts.log('requested thread data, page: ' + beforeCursor)
 
     const page = parseInt(beforeCursor || '0', 10)
@@ -454,15 +452,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     threadID = threadID.replace('@c.us', '@s.whatsapp.net')
+    
     const response = await this.client.sendMessage(threadID, content, messageType, op)
-    texts.log ('here')
-    const sentMessage = (await this.client.loadConversation(threadID, 1))[0]
+    const sentMessage = response.message//(await this.client.loadConversation(threadID, 1))[0]
     
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
-      texts.log ('its a me')
       sentMessage.status = MESSAGE_INFO_STATUS.READ
     }
-    
     this.addMessage(sentMessage)
     return true
   }
