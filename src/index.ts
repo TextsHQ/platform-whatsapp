@@ -471,12 +471,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    const key = { id: messageID, fromMe: true, remoteJid: this.client.userMetaData.id }
-    if (forEveryone) {
-      await this.client.deleteMessage(threadID, key)
-    } else {
-      await this.client.clearMessage(key)
-    }
+    threadID = threadID.replace ('@c.us', '@s.whatsapp.net')
+    
+    texts.log (`deleting message: ${messageID} in ${threadID}`)
+    
+    const message = await this.client.loadMessage (threadID, messageID)
+    if (forEveryone) await this.client.deleteMessage(threadID, message.key)
+    else await this.client.clearMessage(message.key)
+    
     return true
   }
 
