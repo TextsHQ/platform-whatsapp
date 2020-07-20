@@ -108,7 +108,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('requested user data')
     return {
       id: this.meContact.jid,
-      name: this.meContact.name,
+      fullName: this.meContact.name,
       displayText: numberFromJid(this.meContact.jid),
       imgURL: this.meContact.imgURL,
     }

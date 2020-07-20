@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@textshq/eslint-config": "^1",
-    "@textshq/platform-sdk": "^0.3.2",
+    "@textshq/platform-sdk": "^0.3.4",
     "@types/bluebird": "^3.5.32",
     "@types/qrcode.react": "^0.6.3",
     "eslint": "^7.5.0",
