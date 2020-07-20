@@ -423,7 +423,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log('failed to get link preview: ' + error)
       }
     }
-    return this.sendMessage(threadID, content, null, options)
+    return this.sendMessage(threadID, content, undefined, undefined, options)
   }
 
   sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
@@ -432,9 +432,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
   }
 
-  sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) => this.sendMessage(threadID, fileBuffer, mimeType, options)
+  sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) =>
+    this.sendMessage(threadID, fileBuffer, mimeType, fileName, options)
 
-  sendMessage = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, options?: MessageSendOptions) => {
+  sendMessage = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, fileName?: string, options?: MessageSendOptions) => {
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
 
     let chat = this.chatMap[threadID]
@@ -444,7 +445,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat = this.chatMap[threadID]
     }
 
-    const ops: MessageOptions = {}
+    const ops: MessageOptions = {
+      filename: fileName,
+    }
     let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
