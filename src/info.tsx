@@ -1,6 +1,8 @@
 import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
+import auth from './auth'
+
 const info: Platform = {
   name: 'whatsapp-baileys',
   version: '0.2.2',
@@ -26,6 +28,7 @@ const info: Platform = {
     // Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,
+  auth,
 }
 
 export default info
