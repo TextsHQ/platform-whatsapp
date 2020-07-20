@@ -444,11 +444,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat = this.chatMap[threadID]
     }
 
-    const op: MessageOptions = {}
+    const ops: MessageOptions = {}
     let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
-      op.quoted = message
+      ops.quoted = message
     }
     if (mimeType) {
       if (mimeType === Mimetype.webp) messageType = MessageType.sticker
@@ -457,10 +457,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       else if (mimeType.includes('audio/')) messageType = MessageType.audio
       else messageType = MessageType.document
     }
+    if (messageType === MessageType.document) {
+      ops.mimetype = mimeType as Mimetype
+    }
 
     threadID = threadID.replace('@c.us', '@s.whatsapp.net')
 
-    const response = await this.client.sendMessage(threadID, content, messageType, op)
+    const response = await this.client.sendMessage(threadID, content, messageType, ops)
     const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
 
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
