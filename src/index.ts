@@ -199,7 +199,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           type: updateType,
           threadID: update.id,
           participantID,
-          durationMs: null,
+          durationMs: 3000,
         },
       ])
     })
