@@ -1,7 +1,7 @@
 import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
@@ -41,7 +41,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       try {
         await this.connect()
       } catch (error) {
-        texts.log('failed connect: ' + error)
+        texts.log(`failed connect: ${error}`)
         throw new ReAuthError(error)
       }
     } else this.connect()
@@ -70,7 +70,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   connect = async () => {
     texts.log('began connect')
 
-    const [user, chats, contacts] = await this.client.connect()
+    const [user, chats, contacts] = await this.connectClient()
 
     this.chats = chats
     this.contacts = contacts
@@ -91,6 +91,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.loginCallback({ name: 'ready' })
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
+  }
+
+  protected connectClient = () => {
+    const loop = this.client.connect(null, 20000).catch(err => {
+      if (err.toString().includes('time')) {
+        texts.log('connect timed out, reconnecting...')
+        return loop()
+      }
+      throw err
+    })
+    return loop as Promise<[UserMetaData, WAChat[], WAContact[]]>
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
@@ -154,7 +165,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
       })
-      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: update.to} ])
+      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: update.to }])
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
@@ -175,13 +186,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
-      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
+      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
     })
     this.client.setOnPresenceUpdate(update => {
       texts.log('presence update: ' + JSON.stringify(update))
       let participantID = update.participant
       if (!participantID && !isGroupID(update.id)) participantID = update.id
-      
+
       const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
       this.evCallback([
         {
@@ -236,16 +247,16 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.chatMap[jid].pin = json[1].pin
           break
       }
-      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
+      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
     })
-    this.client.registerCallback (['Cmd', 'type:picture'], async json => {
+    this.client.registerCallback(['Cmd', 'type:picture'], async json => {
       const jid = whatsappID(json[1].jid || '')
       const chat = this.chatMap[jid] as WACompleteChat
-      
+
       if (!chat) return
-      
-      chat.imgURL = await this.safelyGetProfilePicture (jid)
-      this.evCallback([ {type: ServerEventType.THREAD_UPDATED, threadID: jid } ])
+
+      chat.imgURL = await this.safelyGetProfilePicture(jid)
+      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
     })
   }
 
@@ -294,8 +305,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (isGroupID(jid)) {
       try {
-        const meta = await this.client.groupMetadataMinimal(jid)
-        chat.participants = await Promise.all(meta.participants.map(p => this.contactForJid(p.id)))
+        const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
+        chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
         chat.creationDate = new Date(+meta.creation * 1000)
       } catch (error) {
         texts.log(`failed to get group info for ${jid}: ${error}`)
@@ -304,7 +315,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else if (isBroadcastID(jid)) {
       try {
         const meta = await this.client.getBroadcastListInfo(jid)
-        chat.participants = await Promise.all(meta.recipients.map(p => this.contactForJid(p.id)))
+        chat.participants = await bluebird.map(meta.recipients, p => this.contactForJid(p.id))
       } catch (error) {
         texts.log(`failed to get broadcast info for ${jid}: ${error}`)
       }
@@ -329,16 +340,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
-      const tasks = meta.participants.map(p => this.contactForJid(Object.keys(p)[0]))
-      const participants = await Promise.all(tasks)
+      const participants = await bluebird.map(meta.participants, p => this.contactForJid(Object.keys(p)[0]))
       chat.jid = meta.gid
       chat.participants = [...participants, this.meContact]
     } else if (userIDs.length === 1) {
-      if (this.chatMap[whatsappID(userIDs[0])]) {
-        chat = this.chatMap[whatsappID(userIDs[0])] as WACompleteChat
-      } else {
-        chat.jid = userIDs[0]
-      }
+      if (this.chatMap[whatsappID(userIDs[0])]) chat = this.chatMap[whatsappID(userIDs[0])] as WACompleteChat
+      else chat.jid = userIDs[0]
+
       chat.participants = [await this.contactForJid(userIDs[0]), this.meContact]
       chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
     } else {
@@ -359,8 +367,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const firstItem = page * batchSize
     const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
 
-    const chatPromises = this.chats.slice(firstItem, lastItem).map(async (chat: any) => this.loadThread(chat.jid))
-    const chats = await Promise.all(chatPromises)
+    const chats = await bluebird.map(this.chats.slice(firstItem, lastItem), chat => this.loadThread(chat.jid))
     texts.log('done with getting threads')
     return {
       items: mapThreads(chats),
@@ -394,11 +401,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       await bluebird.map(messages, async m => {
         if (m.key.fromMe && !m.info) {
           m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
-                          .catch (() => ({ reads: [], deliveries: [] }))
+            .catch(() => ({ reads: [], deliveries: [] }))
         }
       })
     }
-    texts.log (`loading messages: ${JSON.stringify(messages.map (m => m.key.id))}`)
+    // texts.log (`loading messages: ${JSON.stringify(messages.map (m => m.key.id))}`)
     const oldestCursor = messages[messages.length - 1]?.key
     return {
       items: mapMessages(messages),
@@ -452,10 +459,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     threadID = threadID.replace('@c.us', '@s.whatsapp.net')
-    
+
     const response = await this.client.sendMessage(threadID, content, messageType, op)
-    const sentMessage = response.message//(await this.client.loadConversation(threadID, 1))[0]
-    
+    const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
+
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
       sentMessage.status = MESSAGE_INFO_STATUS.READ
     }
@@ -498,14 +505,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.groupUpdateSubject(threadID, newTitle)
     return true
   }
+
   changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
-    const chat = this.chatMap [threadID] as WACompleteChat
-    texts.log ('changing profile picture of ' + threadID)
-    if (!chat) new Error (`chat ${threadID} not present`)
-    
-    const response = await this.client.updateProfilePicture (threadID, imageBuffer)
+    const chat = this.chatMap[threadID] as WACompleteChat
+    texts.log('changing profile picture of ' + threadID)
+    if (!chat) new Error(`chat ${threadID} not present`)
+
+    const response = await this.client.updateProfilePicture(threadID, imageBuffer)
     chat.imgURL = response.eurl
   }
+
   pinThread = (threadID: string, pinned: boolean) =>
     this.modThread(threadID, pinned, 'pin')
 
@@ -518,10 +527,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   protected async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
     texts.log(`modifying thread ${threadID} ${key}: ${value}`)
     const chat = this.chatMap[threadID]
-    
+
     if (!chat) throw new Error('thread not found')
     if ((key in chat) === value) return // already done, nothing to do
-    
+
     if (value) {
       const resp = await this.client.modifyChat(threadID, key as ChatModification)
       if (key === 'archive') chat[key] = value ? 'true' : 'false'
@@ -543,9 +552,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.groupRemove(threadID, [participantID])
     return true
   }
+
   modifyParticipantRole? = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
-    if (role === 'admin') await this.client.groupMakeAdmin (threadID, [participantID])
-    else if (role === 'regular') await this.client.groupDemoteAdmin (threadID, [participantID])
+    if (role === 'admin') await this.client.groupMakeAdmin(threadID, [participantID])
+    else if (role === 'regular') await this.client.groupDemoteAdmin(threadID, [participantID])
     return true
   }
 

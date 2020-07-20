@@ -36,7 +36,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
-    else return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
+    return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
   },
   [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: message => {
     if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
@@ -61,8 +61,8 @@ const MESSAGE_ACTION_MAP = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  //[MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
-  //[MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  // [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
+  // [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo
