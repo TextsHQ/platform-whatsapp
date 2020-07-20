@@ -2,7 +2,7 @@ import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
 
 const MESSAGE_PAGE_SIZE = 15
@@ -594,15 +594,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connCallback({ status: ConnectionStatus.CONNECTED })
     texts.log('took over')
 
-    oldChats.forEach (chat => {
+    const updates = oldChats.map (chat => {
       const chatNew = this.chatMap[chat.jid]
       const lastMessage = chat.messages.slice (-1)[0]
       const lastMessage2 = chatNew.messages?.slice(-1)[0]
       if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
-        texts.log ('chat updated: ' + chat.jid)
-        this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }])
+        return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
       }
     })
+    this.evCallback (updates.filter (Boolean) as ServerEvent[])
   }
 
   private async addMessage(message: WAMessage) {
