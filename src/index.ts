@@ -553,7 +553,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  modifyParticipantRole? = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
+  changeParticipantRole? = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
     if (role === 'admin') await this.client.groupMakeAdmin(threadID, [participantID])
     else if (role === 'regular') await this.client.groupDemoteAdmin(threadID, [participantID])
     return true
@@ -594,15 +594,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connCallback({ status: ConnectionStatus.CONNECTED })
     texts.log('took over')
 
-    const updates = oldChats.map (chat => {
+    const updates = oldChats.map<ServerEvent>(chat => {
       const chatNew = this.chatMap[chat.jid]
-      const lastMessage = chat.messages.slice (-1)[0]
+      const lastMessage = chat.messages.slice(-1)[0]
       const lastMessage2 = chatNew.messages?.slice(-1)[0]
       if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
         return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
       }
     })
-    this.evCallback (updates.filter (Boolean) as ServerEvent[])
+    this.evCallback(updates.filter(Boolean))
   }
 
   private async addMessage(message: WAMessage) {
