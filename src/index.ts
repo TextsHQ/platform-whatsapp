@@ -94,8 +94,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   protected connectClient = () => {
-    const loop = this.client.connect(null, 20000).catch(err => {
-      if (err.toString().includes('time')) {
+    const loop = this.client.connect(null, 25000).catch(err => {
+      if (err.toString().toLowerCase() === 'timed out') {
         texts.log('connect timed out, reconnecting...')
         return loop()
       }
@@ -589,9 +589,20 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   takeoverConflict = async () => {
     texts.log('taking over again')
+    const oldChats = this.chats
     await this.connect()
     this.connCallback({ status: ConnectionStatus.CONNECTED })
     texts.log('took over')
+
+    oldChats.forEach (chat => {
+      const chatNew = this.chatMap[chat.jid]
+      const lastMessage = chat.messages.slice (-1)[0]
+      const lastMessage2 = chatNew.messages?.slice(-1)[0]
+      if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
+        texts.log ('chat updated: ' + chat.jid)
+        this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }])
+      }
+    })
   }
 
   private async addMessage(message: WAMessage) {
