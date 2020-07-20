@@ -14,9 +14,9 @@ const URL_REGEX = /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
 
-  evCallback: OnServerEventCallback = null
+  evCallback: OnServerEventCallback = () => {}
 
-  connCallback: OnConnStateChangeCallback = null
+  connCallback: OnConnStateChangeCallback = () => {}
 
   loginCallback: Function = () => {}
 
@@ -126,7 +126,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   unsubscribeToEvents = () => {
-    this.evCallback = null
+    this.evCallback = () => {}
   }
 
   onLoginEvent = (onEvent: Function) => {
@@ -472,13 +472,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
     threadID = threadID.replace ('@c.us', '@s.whatsapp.net')
-    
+
     texts.log (`deleting message: ${messageID} in ${threadID}`)
-    
+
     const message = await this.client.loadMessage (threadID, messageID)
     if (forEveryone) await this.client.deleteMessage(threadID, message.key)
     else await this.client.clearMessage(message.key)
-    
+
     return true
   }
 
