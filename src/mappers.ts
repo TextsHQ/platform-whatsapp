@@ -114,7 +114,7 @@ function messageAction(message: WAMessage): Action {
   if (actionType === ThreadActionType.THREAD_TITLE_UPDATED) {
     return {
       type: actionType,
-      title: message.messageStubParameters[0]
+      title: message.messageStubParameters[0],
     }
   }
   return {
@@ -136,7 +136,6 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
     }))
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
     const messageType = Object.keys(message)[0]
-    const caption = null// (message.videoMessage || message.imageMessage)?.caption
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
 
     response.attachments = [
@@ -144,7 +143,6 @@ function messageAttachments(message: WAMessageContent, id: string): {attachments
         id,
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
-        caption,
         mimeType: message[messageType].mimetype,
         posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
         fileName: message.documentMessage?.fileName || 'file',
@@ -287,7 +285,7 @@ export function mapMessage(message: WACompleteMessage): Message {
     textHeading: messageHeading(message),
     text: messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
-    senderID: message.key.fromMe ? sender : null,
+    senderID: message.key.fromMe ? null : sender,
     isSender: message.key.fromMe,
     isDeleted: message.messageStubType === MESSAGE_STUB_TYPES.REVOKE,
     attachments,
@@ -309,7 +307,7 @@ export function mapMessages(message: WAMessage[]): Message[] {
 export function mapThread(t: WACompleteChat): Thread {
   const participants = t.participants.map(c => {
     const participant = mapContact(c)
-    participant.isAdmin = t.admins?.has (participant.id) || false
+    participant.isAdmin = t.admins?.has(participant.id) || false
     return participant
   })
   return {
@@ -321,7 +319,7 @@ export function mapThread(t: WACompleteChat): Thread {
     isUnread: t.count !== 0,
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages),
-    participants: participants,
+    participants,
     timestamp: new Date(+t.t * 1000),
     type: jidType(t.jid),
     createdAt: t.creationDate,

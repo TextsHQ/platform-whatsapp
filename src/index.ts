@@ -99,7 +99,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   protected connectClient = () => {
     const loop = () => {
-      if (!this.isActive) throw new Error ('Disposed')
+      if (!this.isActive) throw new Error('Disposed')
       return this.client.connect(null, 25000).catch(err => {
         if (err.toString().toLowerCase() === 'timed out') {
           texts.log('connect timed out, reconnecting...')
@@ -152,7 +152,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
       if (!chat) return
-      texts.log (`got update: ${JSON.stringify(update)}`)
+      texts.log(`got update: ${JSON.stringify(update)}`)
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
           const status = update.type
@@ -311,7 +311,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (addedMessage) await this.addMessage(addedMessage)
 
     if (isGroupID(jid)) {
-      await this.setGroupChatProperties (chat)
+      await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
       try {
         const meta = await this.client.getBroadcastListInfo(jid)
@@ -341,7 +341,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
       chat.jid = meta.gid
-      await this.setGroupChatProperties (chat)
+      await this.setGroupChatProperties(chat)
     } else if (userIDs.length === 1) {
       if (this.chatMap[whatsappID(userIDs[0])]) chat = this.chatMap[whatsappID(userIDs[0])] as WACompleteChat
       else chat.jid = userIDs[0]
@@ -355,12 +355,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chats.unshift(chat)
     return mapThread(chat)
   }
-  async setGroupChatProperties (chat: WACompleteChat) {
-    const jid = chat.jid
+
+  async setGroupChatProperties(chat: WACompleteChat) {
+    const { jid } = chat
     try {
       const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
       chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
-      chat.admins = new Set(meta.participants.filter (p => p.isAdmin).map (p => whatsappID(p.id)))
+      chat.admins = new Set(meta.participants.filter(p => p.isAdmin).map(p => whatsappID(p.id)))
       chat.creationDate = new Date(+meta.creation * 1000)
     } catch (error) {
       texts.log(`failed to get group info for ${jid}: ${error}`)
@@ -488,11 +489,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    threadID = threadID.replace ('@c.us', '@s.whatsapp.net')
+    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
 
-    texts.log (`deleting message: ${messageID} in ${threadID}`)
+    texts.log(`deleting message: ${messageID} in ${threadID}`)
 
-    const message = await this.client.loadMessage (threadID, messageID)
+    const message = await this.client.loadMessage(threadID, messageID)
     if (forEveryone) await this.client.deleteMessage(threadID, message.key)
     else await this.client.clearMessage(message.key)
 
