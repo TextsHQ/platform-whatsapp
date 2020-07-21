@@ -30,9 +30,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   meContact?: WACompleteContact
 
+  isActive = true
+
   init = async (session?: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
+    this.isActive = true
 
     this.restoreSession(session)
     this.registerCallbacks()
@@ -42,7 +45,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         await this.connect()
       } catch (error) {
         texts.log(`failed connect: ${error}`)
-        throw new ReAuthError(error)
+        if (error.toString() !== 'Disposed') throw new ReAuthError(error)
       }
     } else this.connect()
   }
@@ -60,6 +63,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   dispose = () => {
+    this.isActive = false
     this.client.close()
   }
 
@@ -94,14 +98,17 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   protected connectClient = () => {
-    const loop = this.client.connect(null, 25000).catch(err => {
-      if (err.toString().toLowerCase() === 'timed out') {
-        texts.log('connect timed out, reconnecting...')
-        return loop()
-      }
-      throw err
-    })
-    return loop as Promise<[UserMetaData, WAChat[], WAContact[]]>
+    const loop = () => {
+      if (!this.isActive) throw new Error ('Disposed')
+      return this.client.connect(null, 25000).catch(err => {
+        if (err.toString().toLowerCase() === 'timed out') {
+          texts.log('connect timed out, reconnecting...')
+          return loop()
+        }
+        throw err
+      })
+    }
+    return loop() as Promise<[UserMetaData, WAChat[], WAContact[]]>
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
@@ -145,7 +152,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
       if (!chat) return
-
+      texts.log (`got update: ${JSON.stringify(update)}`)
       chat.messages.forEach(chat => {
         if (update.ids.includes(chat.key.id)) {
           const status = update.type
@@ -304,14 +311,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (addedMessage) await this.addMessage(addedMessage)
 
     if (isGroupID(jid)) {
-      try {
-        const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
-        chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
-        chat.creationDate = new Date(+meta.creation * 1000)
-      } catch (error) {
-        texts.log(`failed to get group info for ${jid}: ${error}`)
-      }
-      chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
+      await this.setGroupChatProperties (chat)
     } else if (isBroadcastID(jid)) {
       try {
         const meta = await this.client.getBroadcastListInfo(jid)
@@ -340,9 +340,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(title, userIDs)
-      const participants = await bluebird.map(meta.participants, p => this.contactForJid(Object.keys(p)[0]))
       chat.jid = meta.gid
-      chat.participants = [...participants, this.meContact]
+      await this.setGroupChatProperties (chat)
     } else if (userIDs.length === 1) {
       if (this.chatMap[whatsappID(userIDs[0])]) chat = this.chatMap[whatsappID(userIDs[0])] as WACompleteChat
       else chat.jid = userIDs[0]
@@ -355,6 +354,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.chatMap[chat.jid] = chat
     this.chats.unshift(chat)
     return mapThread(chat)
+  }
+  async setGroupChatProperties (chat: WACompleteChat) {
+    const jid = chat.jid
+    try {
+      const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
+      chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
+      chat.admins = new Set(meta.participants.filter (p => p.isAdmin).map (p => whatsappID(p.id)))
+      chat.creationDate = new Date(+meta.creation * 1000)
+    } catch (error) {
+      texts.log(`failed to get group info for ${jid}: ${error}`)
+    }
+    chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
   }
 
   getThreads = async (inboxName: InboxName, beforeCursor?: string) => {

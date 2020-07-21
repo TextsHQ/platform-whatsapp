@@ -62,13 +62,15 @@ const MESSAGE_ACTION_MAP = {
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
   // [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
-  // [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  [MESSAGE_STUB_TYPES.GROUP_CHANGE_SUBJECT]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo
 }
 export interface WACompleteChat extends WAChat {
   participants: WACompleteContact[]
+  admins?: Set<string>
   title?: string
   description?: string
   imgURL: string
@@ -99,7 +101,6 @@ export function mapContact(contact: WACompleteContact): Participant {
   if (isGroupID(contact.jid) || isBroadcastID(contact.jid)) {
     throw new Error('a group or broadcast list cannot be a contact')
   }
-
   return {
     id: contact.jid,
     fullName: contact.name || contact.notify,
@@ -110,6 +111,12 @@ export function mapContact(contact: WACompleteContact): Participant {
 function messageAction(message: WAMessage): Action {
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType]
   if (!actionType) return null
+  if (actionType === ThreadActionType.THREAD_TITLE_UPDATED) {
+    return {
+      type: actionType,
+      title: message.messageStubParameters[0]
+    }
+  }
   return {
     type: actionType,
     participantIDs: [whatsappID(message.messageStubParameters[0] || message.participant)],
@@ -280,7 +287,7 @@ export function mapMessage(message: WACompleteMessage): Message {
     textHeading: messageHeading(message),
     text: messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
-    senderID: sender,
+    senderID: message.key.fromMe ? sender : null,
     isSender: message.key.fromMe,
     isDeleted: message.messageStubType === MESSAGE_STUB_TYPES.REVOKE,
     attachments,
@@ -288,7 +295,6 @@ export function mapMessage(message: WACompleteMessage): Message {
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= MESSAGE_STATUS_TYPES.SERVER_ACK : true,
     isDynamicMessage: media,
     seen: messageReadBy(message),
-    sender: { id: sender },
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
@@ -301,6 +307,11 @@ export function mapMessages(message: WAMessage[]): Message[] {
 }
 
 export function mapThread(t: WACompleteChat): Thread {
+  const participants = t.participants.map(c => {
+    const participant = mapContact(c)
+    participant.isAdmin = t.admins?.has (participant.id) || false
+    return participant
+  })
   return {
     _original: t,
     id: t.jid,
@@ -310,7 +321,7 @@ export function mapThread(t: WACompleteChat): Thread {
     isUnread: t.count !== 0,
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages),
-    participants: t.participants.map(c => mapContact(c)),
+    participants: participants,
     timestamp: new Date(+t.t * 1000),
     type: jidType(t.jid),
     createdAt: t.creationDate,
