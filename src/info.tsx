@@ -2,6 +2,7 @@ import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
 import auth from './auth'
+import { mapMessage } from './mappers'
 
 const info: Platform = {
   name: 'whatsapp-baileys',
@@ -28,6 +29,7 @@ const info: Platform = {
     // Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,
+  mapMessage,
   auth,
 }
 

@@ -279,7 +279,7 @@ export function mapMessage(message: WACompleteMessage): Message {
   const mLink = messageLink(message.message)
   const action = messageAction(message)
   return {
-    _original: message,
+    _original: [message],
     cursor: JSON.stringify(message.key),
     id: message.key.id,
     textHeading: messageHeading(message),
