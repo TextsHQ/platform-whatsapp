@@ -3,13 +3,15 @@ import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
-import { mapMessages, mapContact, WACompleteChat, mapThreads, mapThread, numberFromJid, mapMessage, isGroupID, whatsappID, WACompleteMessage, isBroadcastID, WACompleteContact } from './mappers'
+
+import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
+import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
+import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 20
-const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
-const MESSAGE_INFO_STATUS = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
-const URL_REGEX = /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
+
+const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
 
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
@@ -97,7 +99,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
-  protected connectClient = () => {
+  private connectClient = () => {
     const loop = () => {
       if (!this.isActive) throw new Error('Disposed')
       return this.client.connect(null, 25000).catch(err => {
@@ -153,22 +155,22 @@ export default class WhatsAppAPI implements PlatformAPI {
       const chat = this.chatMap[update.to] as WACompleteChat
       if (!chat) return
       texts.log(`got update: ${JSON.stringify(update)}`)
-      chat.messages.forEach(chat => {
-        if (update.ids.includes(chat.key.id)) {
+      chat.messages.forEach(msg => {
+        if (update.ids.includes(msg.key.id)) {
           const status = update.type
           if (isGroupID(update.to)) {
-            const cChat = chat as WACompleteMessage
+            const cChat = msg as WACompleteMessage
 
             if (!cChat.info) cChat.info = { reads: [], deliveries: [] }
 
-            const person = { jid: update.participant, t: (new Date().getTime() / 1000).toString() }
+            const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
 
-            if (status >= MESSAGE_INFO_STATUS.READ) cChat.info.reads.push(person)
-            else if (status >= MESSAGE_INFO_STATUS.DELIVERY_ACK) cChat.info.deliveries.push(person)
+            if (status >= WEB_MESSAGE_INFO_STATUS.READ) cChat.info.reads.push(person)
+            else if (status >= WEB_MESSAGE_INFO_STATUS.DELIVERY_ACK) cChat.info.deliveries.push(person)
 
-            cChat.status = MESSAGE_INFO_STATUS.SERVER_ACK
+            cChat.status = WEB_MESSAGE_INFO_STATUS.SERVER_ACK
           } else {
-            chat.status = status
+            msg.status = status
           }
         }
       })
@@ -284,7 +286,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return results
   }
 
-  contactForJid = async (jid: string) => {
+  private contactForJid = async (jid: string) => {
     jid = whatsappID(jid)
     const contact = this.contactMap[jid] || { jid }
     if (!contact.imgURL) contact.imgURL = await this.safelyGetProfilePicture(jid)
@@ -301,7 +303,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         count: 0,
         participants: [],
         imgURL: '',
-        t: (new Date().getTime() / 1000).toString(),
+        t: (Date.now() / 1000).toString(),
         spam: 'false',
         modify_tag: '',
         messages: [],
@@ -332,7 +334,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       count: 0,
       participants: [],
       imgURL: '',
-      t: (new Date().getTime() / 1000).toString(),
+      t: (Date.now() / 1000).toString(),
       spam: 'false',
       modify_tag: '',
       messages: [],
@@ -428,7 +430,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
     let content = { text } as WATextMessage
-    if (URL_REGEX.test(text)) {
+    if (stringHasLink(text)) {
       try {
         content = await this.client.generateLinkPreview(text)
       } catch (error) {
@@ -476,20 +478,20 @@ export default class WhatsAppAPI implements PlatformAPI {
       ops.mimetype = mimeType as Mimetype
     }
 
-    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
+    threadID = normalizeThreadID(threadID)
 
     const response = await this.client.sendMessage(threadID, content, messageType, ops)
     const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
 
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
-      sentMessage.status = MESSAGE_INFO_STATUS.READ
+      sentMessage.status = WEB_MESSAGE_INFO_STATUS.READ
     }
     this.addMessage(sentMessage)
     return true
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    threadID = threadID.replace('@c.us', '@s.whatsapp.net')
+    threadID = normalizeThreadID(threadID)
 
     texts.log(`deleting message: ${messageID} in ${threadID}`)
 
@@ -544,7 +546,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   archiveThread = (threadID: string, archived: boolean) =>
     this.modThread(threadID, archived, 'archive')
 
-  protected async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
+  private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
     texts.log(`modifying thread ${threadID} ${key}: ${value}`)
     const chat = this.chatMap[threadID]
 
@@ -580,7 +582,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   loadDynamicMessage = async (message: Message) => {
-    const m = message._original as WAMessage
+    const m = message?._original?.[0] as WAMessage
+    if (!m) return message
     const mID = m.key.id
     const mapped = mapMessage(m)
 
@@ -621,6 +624,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
         return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
       }
+      return null
     })
     this.evCallback(updates.filter(Boolean))
   }
@@ -632,10 +636,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (protocolMessage.type === WAMessageProto.proto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
         const found = chat.messages.find(m => m.key.id === protocolMessage.key.id)
         if (found) {
-          found.messageStubType = MESSAGE_STUB_TYPES.REVOKE
+          found.messageStubType = WEB_MESSAGE_INFO_STUBTYPE.REVOKE
           found.message = null
         }
       } else {
+        texts.log('unimplemented', protocolMessage)
         // not implemented
       }
     } else if (!chat.messages.find(m => m.key.id === message.key.id)) chat.messages.push(message)
@@ -644,13 +649,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       const jid = whatsappID(message.messageStubParameters[0])
 
       switch (message.messageStubType) {
-        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD:
-        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE:
+        case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD:
+        case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE:
           texts.log(`${jid} was added to ${chat.jid}`)
           chat.participants.push(await this.contactForJid(jid))
           break
-        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE:
-        case MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE:
+        case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE:
+        case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE:
           texts.log(`${jid} was removed from ${chat.jid}`)
           chat.participants = chat.participants.filter(p => p.jid !== jid)
           break
@@ -658,7 +663,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  protected async safelyGetProfilePicture(jid: string): Promise<string> {
+  private async safelyGetProfilePicture(jid: string): Promise<string> {
     return this.client.getProfilePicture(jid).catch(() => null)
   }
 }

@@ -1,53 +1,55 @@
-import { WAContact, WAMessage, MessageType, WAChat, WAMessageProto, WAMessageContent, MessageInfo } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
 
-const MESSAGE_STUB_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STUBTYPE
-const MESSAGE_STATUS_TYPES = WAMessageProto.proto.WebMessageInfo.WEB_MESSAGE_INFO_STATUS
+import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
+import { whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
+
+const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
-  [MESSAGE_STUB_TYPES.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
-  [MESSAGE_STUB_TYPES.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
+  [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
+  [WEB_MESSAGE_INFO_STUBTYPE.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
-  [MESSAGE_STUB_TYPES.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
-  [MESSAGE_STUB_TYPES.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
   // This chat is with the official business account of "X". Click for more info.
-  [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
   // X registered as a business account, but WhatsApp hasn’t verified their name yet.
-  [MESSAGE_STUB_TYPES.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
   // This account was previously a business account but has now registered as a standard account and may no longer belong to the business.
-  [MESSAGE_STUB_TYPES.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
-  [MESSAGE_STUB_TYPES.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   // This chat is with the verified business account for "X". Click for more info.
   // [AFTER CLICK] WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account".
-  [MESSAGE_STUB_TYPES.VERIFIED_HIGH]: 'This chat is with a verified business account.',
-  [MESSAGE_STUB_TYPES.CALL_MISSED_VIDEO]: 'Missed video call',
-  [MESSAGE_STUB_TYPES.CALL_MISSED_VOICE]: 'Missed voice call',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: message => `{{${whatsappID(message.participant)}}} added {{sender}} to this group`,
-  [MESSAGE_STUB_TYPES.GROUP_CREATE]: '{{sender}} created this group',
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_RESTRICT]: message => {
+  [WEB_MESSAGE_INFO_STUBTYPE.VERIFIED_HIGH]: 'This chat is with a verified business account.',
+  [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_VIDEO]: 'Missed video call',
+  [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_VOICE]: 'Missed voice call',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: message => `{{${whatsappID(message.participant)}}} added {{sender}} to this group`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
     return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
   },
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_ANNOUNCE]: message => {
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ANNOUNCE]: message => {
     if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
     return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
-  [MESSAGE_STUB_TYPES.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
-  [MESSAGE_STUB_TYPES.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
-  [MESSAGE_STUB_TYPES.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
 
-  [MESSAGE_STUB_TYPES.GENERIC_NOTIFICATION]: '{{0}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.GENERIC_NOTIFICATION]: '{{0}}',
 }
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -56,42 +58,17 @@ const ATTACHMENT_MAP = {
   [MessageType.video]: MessageAttachmentType.VIDEO,
 }
 const MESSAGE_ACTION_MAP = {
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  [MESSAGE_STUB_TYPES.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  // [MESSAGE_STUB_TYPES.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
-  [MESSAGE_STUB_TYPES.GROUP_CHANGE_SUBJECT]: ThreadActionType.THREAD_TITLE_UPDATED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
+  // [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: ThreadActionType.THREAD_TITLE_UPDATED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: ThreadActionType.THREAD_TITLE_UPDATED,
 }
-export interface WACompleteMessage extends WAMessage {
-  info?: MessageInfo
-}
-export interface WACompleteChat extends WAChat {
-  participants: WACompleteContact[]
-  admins?: Set<string>
-  title?: string
-  description?: string
-  imgURL: string
-  creationDate?: Date
-}
-export interface WACompleteContact extends WAContact {
-  imgURL?: string
-}
-export function whatsappID(jid: string) {
-  return jid.replace('@s.whatsapp.net', '@c.us')
-}
-export function isGroupID(jid: string) {
-  return jid.endsWith('@g.us')
-}
-export function isBroadcastID(jid: string) {
-  return jid.endsWith('@broadcast')
-}
-export function numberFromJid(jid: string) {
-  return '+' + whatsappID(jid).replace('@c.us', '')
-}
-function jidType(jid: string): ThreadType {
+
+function threadType(jid: string): ThreadType {
   if (isGroupID(jid)) return 'group'
   if (isBroadcastID(jid)) return 'broadcast'
   return 'single'
@@ -122,7 +99,7 @@ function messageAction(message: WAMessage): Action {
     participantIDs: [whatsappID(message.messageStubParameters[0] || message.participant)],
   }
 }
-function messageAttachments(message: WAMessageContent, id: string): {attachments: MessageAttachment[], media: boolean} {
+function messageAttachments(message: WAMessageContent, id: string): { attachments: MessageAttachment[], media: boolean } {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) return response
 
@@ -217,7 +194,7 @@ function messageText(message: WAMessageContent) {
     const mentionedJids = extendedText?.contextInfo?.mentionedJid
     if (mentionedJids) {
       mentionedJids.forEach(jid => {
-        text = text.replace(`@${whatsappID(jid).replace('@c.us', '')}`, `@{{${whatsappID(jid)}}}`)
+        text = text.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`)
       })
     }
     return text
@@ -240,16 +217,14 @@ function messageLink(message: WAMessageContent): MessageLink {
 function messageStubText(message: WAMessage) {
   const mapped = PRE_DEFINED_MESSAGES[message.messageStubType] || null
 
-  let txt: string
-  if (typeof mapped === 'function') txt = mapped(message)
-  else txt = mapped
+  let txt: string = typeof mapped === 'function' ? mapped(message) : mapped
 
   if (txt) {
     message.messageStubParameters.forEach((p, i) => {
       txt = txt.replace(`{{${i}}}`, whatsappID(p))
     })
   } else if (message.messageStubType) {
-    txt = Object.keys(MESSAGE_STUB_TYPES).filter(key => MESSAGE_STUB_TYPES[key] === message.messageStubType)[0]
+    [txt] = Object.keys(WEB_MESSAGE_INFO_STUBTYPE).filter(key => WEB_MESSAGE_INFO_STUBTYPE[key] === message.messageStubType)
   }
   return txt
 }
@@ -265,8 +240,8 @@ function messageReadBy(message: WACompleteMessage): { [id: string]: Date } | boo
 }
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
-    const key = Object.keys(MESSAGE_STATUS_TYPES).find(k => k === status)
-    return MESSAGE_STATUS_TYPES[key]
+    const key = Object.keys(WEB_MESSAGE_INFO_STATUS).find(k => k === status)
+    return WEB_MESSAGE_INFO_STATUS[key]
   }
   return status
 }
@@ -287,16 +262,16 @@ export function mapMessage(message: WACompleteMessage): Message {
     timestamp: new Date(timestamp * 1000),
     senderID: message.key.fromMe ? null : sender,
     isSender: message.key.fromMe,
-    isDeleted: message.messageStubType === MESSAGE_STUB_TYPES.REVOKE,
+    isDeleted: message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     attachments,
     reactions: [],
-    isDelivered: message.key.fromMe ? messageStatus(message.status) >= MESSAGE_STATUS_TYPES.SERVER_ACK : true,
+    isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
     isDynamicMessage: media,
     seen: messageReadBy(message),
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
-    isAction: !!stubBasedMessage && message.messageStubType !== MESSAGE_STUB_TYPES.REVOKE, // prevent deleted messages from becoming an action
+    isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     action,
   }
 }
@@ -321,7 +296,7 @@ export function mapThread(t: WACompleteChat): Thread {
     messages: mapMessages(t.messages),
     participants,
     timestamp: new Date(+t.t * 1000),
-    type: jidType(t.jid),
+    type: threadType(t.jid),
     createdAt: t.creationDate,
   }
 }

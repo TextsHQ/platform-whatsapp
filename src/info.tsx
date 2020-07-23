@@ -29,7 +29,7 @@ const info: Platform = {
     // Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,
-  mapMessage,
+  // mapMessage,
   auth,
 }
 
