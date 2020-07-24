@@ -479,15 +479,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     threadID = normalizeThreadID(threadID)
+    try {
+      const response = await this.client.sendMessage(threadID, content, messageType, ops)
+      const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
 
-    const response = await this.client.sendMessage(threadID, content, messageType, ops)
-    const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
-
-    if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
-      sentMessage.status = WEB_MESSAGE_INFO_STATUS.READ
-    }
-    this.addMessage(sentMessage)
-    return true
+      if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
+        sentMessage.status = WEB_MESSAGE_INFO_STATUS.READ
+      }
+      this.addMessage(sentMessage)
+      return true
+    } catch (error) {
+      texts.log ('error in sending message: ' + JSON.stringify(error))
+      throw error
+    } 
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
