@@ -294,7 +294,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   loadThread = async (jid: string, addedMessage?: WAMessage) => {
-    let chat: WACompleteChat = this.chatMap[whatsappID(jid)] as WACompleteChat
+    let chat = this.chatMap[whatsappID(jid)] as WACompleteChat
     if (chat) {
       chat.participants = []
     } else {
@@ -376,17 +376,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('requested thread data, page: ' + beforeCursor)
 
-    const page = parseInt(beforeCursor || '0', 10)
-    const batchSize = THREAD_PAGE_SIZE
-    const firstItem = page * batchSize
-    const lastItem = Math.min((page + 1) * batchSize, this.chats.length)
+    const startIndex = beforeCursor ? this.chats.findIndex(c => +c.t <= +beforeCursor) : 0
+    const sliced = this.chats.slice(startIndex, startIndex + THREAD_PAGE_SIZE)
+    const chats = await bluebird.map(sliced, chat => this.loadThread(chat.jid))
 
-    const chats = await bluebird.map(this.chats.slice(firstItem, lastItem), chat => this.loadThread(chat.jid))
-    texts.log('done with getting threads')
+    texts.log('done getting threads')
+
+    const items = mapThreads(chats)
     return {
-      items: mapThreads(chats),
-      hasMore: chats.length >= batchSize,
-      oldestCursor: (page + 1).toString(),
+      items,
+      hasMore: chats.length >= THREAD_PAGE_SIZE,
+      oldestCursor: sliced[sliced.length - 1].t,
     }
   }
 
@@ -491,7 +491,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log ('error in sending message: ' + JSON.stringify(error))
       throw error
-    } 
+    }
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
@@ -608,7 +608,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         await downloadMedia()
       } catch (error) {
         texts.log('error in downloading media of ' + mID + ': ' + error)
-        throw error
+        // throw error
       }
     }
     return mapped
