@@ -593,23 +593,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (m.message?.videoMessage && !m.message?.videoMessage?.url) return mapped
 
-    const downloadMedia = async () => {
-      mapped.attachments[0].data = await decodeMediaMessageBuffer(m.message)
-    }
-
     texts.log('downloading media: ' + mID)
     try {
-      await downloadMedia()
+      mapped.attachments[0].data = await this.client.downloadMediaMessage(m)
       texts.log('downloaded media: ' + mID)
     } catch (error) {
-      texts.log('downloading media of ' + mID + ' failed, querying latest media')
-      try {
-        await this.client.updateMediaMessage(m)
-        await downloadMedia()
-      } catch (error) {
-        texts.log('error in downloading media of ' + mID + ': ' + error)
-        // throw error
-      }
+      texts.log('error in downloading media of ' + mID + ': ' + error)
     }
     return mapped
   }
