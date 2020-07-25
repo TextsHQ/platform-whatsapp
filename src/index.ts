@@ -8,7 +8,7 @@ import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './ma
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
-const MESSAGE_PAGE_SIZE = 15
+const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 20
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
