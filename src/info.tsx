@@ -26,6 +26,7 @@ const info: Platform = {
     Attribute.SUPPORTS_QUOTED_MESSAGES,
     Attribute.SUPPORTS_GROUP_IMAGE_CHANGE,
     Attribute.SUPPORTS_GROUP_PARTICIPANT_ROLE_CHANGE,
+    Attribute.SUBSCRIBE_TO_CONN_STATE_CHANGE,
     // Attribute.SUPPORTS_SEARCH,
   ]),
   getUserLink: p => p.id,
