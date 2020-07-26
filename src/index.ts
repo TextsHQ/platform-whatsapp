@@ -355,7 +355,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     this.chatMap[chat.jid] = chat
     this.chats.unshift(chat)
-    return mapThread(chat)
+    return mapThread(chat, this.meContact.jid)
   }
 
   async setGroupChatProperties(chat: WACompleteChat) {
@@ -382,7 +382,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('done getting threads')
 
-    const items = mapThreads(chats)
+    const items = mapThreads(chats, this.meContact.jid)
     return {
       items,
       hasMore: chats.length >= THREAD_PAGE_SIZE,
@@ -400,7 +400,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const response = await this.client.searchMessages(typed, threadID || null, 10, page)
     return {
-      items: mapMessages(response.messages),
+      items: mapMessages(response.messages, this.meContact.jid),
       hasMore: !response.last,
       oldestCursor: nextPage,
     }
@@ -422,7 +422,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     // texts.log (`loading messages: ${JSON.stringify(messages.map (m => m.key.id))}`)
     const oldestCursor = messages[messages.length - 1]?.key
     return {
-      items: mapMessages(messages),
+      items: mapMessages(messages, this.meContact.jid),
       hasMore: messages.length >= batchSize || !cursor,
       oldestCursor: oldestCursor && JSON.stringify(oldestCursor),
     }
@@ -589,7 +589,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const m = message?._original?.[0] as WAMessage
     if (!m) return message
     const mID = m.key.id
-    const mapped = mapMessage(m)
+    const mapped = mapMessage(m, this.meContact.jid)
 
     if (m.message?.videoMessage && !m.message?.videoMessage?.url) return mapped
 

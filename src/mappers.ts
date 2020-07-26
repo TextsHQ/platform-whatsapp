@@ -245,7 +245,8 @@ function messageStatus(status: number | string) {
   }
   return status
 }
-export function mapMessage(message: WACompleteMessage): Message {
+
+export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
   const sender = whatsappID(message.key.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
@@ -254,13 +255,13 @@ export function mapMessage(message: WACompleteMessage): Message {
   const mLink = messageLink(message.message)
   const action = messageAction(message)
   return {
-    _original: [message],
+    _original: [message, currentUserID],
     cursor: JSON.stringify(message.key),
     id: message.key.id,
     textHeading: messageHeading(message),
     text: messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
-    senderID: message.key.fromMe ? null : sender,
+    senderID: message.key.fromMe ? currentUserID : sender,
     isSender: message.key.fromMe,
     isDeleted: message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     attachments,
@@ -275,11 +276,11 @@ export function mapMessage(message: WACompleteMessage): Message {
     action,
   }
 }
-export function mapMessages(message: WAMessage[]): Message[] {
-  return message.map(m => mapMessage(m))
+export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {
+  return message.map(m => mapMessage(m, currentUserID))
 }
 
-export function mapThread(t: WACompleteChat): Thread {
+export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
   const participants = t.participants.map(c => {
     const participant = mapContact(c)
     participant.isAdmin = t.admins?.has(participant.id) || false
@@ -293,13 +294,13 @@ export function mapThread(t: WACompleteChat): Thread {
     imgURL: t.imgURL,
     isUnread: t.count !== 0,
     isReadOnly: t.read_only === 'true',
-    messages: mapMessages(t.messages),
+    messages: mapMessages(t.messages, currentUserID),
     participants,
     timestamp: new Date(+t.t * 1000),
     type: threadType(t.jid),
     createdAt: t.creationDate,
   }
 }
-export function mapThreads(threads: WACompleteChat[]): Thread[] {
-  return threads.map(t => mapThread(t))
+export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
+  return threads.map(t => mapThread(t, currentUserID))
 }
