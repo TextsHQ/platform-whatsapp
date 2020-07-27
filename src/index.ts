@@ -4,7 +4,6 @@ import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 
-import { createTimeout } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
@@ -13,6 +12,19 @@ const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 20
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
+
+const ERROR_CODES = new Set([
+  'ETIMEDOUT',
+  'ECONNRESET',
+  'EADDRINUSE',
+  'ECONNREFUSED',
+  'EPIPE',
+  'ENOTFOUND',
+  'ENETUNREACH',
+  'EAI_AGAIN',
+])
+
+const CONNECT_TIMEOUT_MS = 30_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   client = new WAClient()
@@ -104,10 +116,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   private connectClient = () => {
     const loop = () => {
       if (!this.isActive) throw new Error('Disposed')
-      return this.client.connect(null, 25000).catch(err => {
-        if (err.toString().toLowerCase() === 'timed out' || err.toString().includes('ENOTFOUND')) {
-          texts.log('connect timed out, reconnecting...')
-          return createTimeout(1000).then(loop) // reconnect in a second
+      return this.client.connect(null, CONNECT_TIMEOUT_MS).catch(err => {
+        if (err.message.toLowerCase() === 'timed out' || ERROR_CODES.has(err.code)) {
+          texts.log('connect timed out, reconnecting...', err.code, err.message)
+          return bluebird.delay(1000).then(loop) // reconnect in a second
         }
         throw err
       })
