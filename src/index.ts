@@ -117,7 +117,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loop = () => {
       if (!this.isActive) throw new Error('Disposed')
       return this.client.connect(null, CONNECT_TIMEOUT_MS).catch(err => {
-        if (err.message.toLowerCase() === 'timed out' || ERROR_CODES.has(err.code)) {
+        if (err.message?.toLowerCase() === 'timed out' || ERROR_CODES.has(err.code)) {
           texts.log('connect timed out, reconnecting...', err.code, err.message)
           return bluebird.delay(1000).then(loop) // reconnect in a second
         }
