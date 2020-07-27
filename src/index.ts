@@ -4,10 +4,10 @@ import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 
+import { createTimeout } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
-import { createTimeout } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 20
@@ -40,7 +40,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = false
     this.isActive = true
-    
+
     this.restoreSession(session)
     this.registerCallbacks()
 
@@ -107,7 +107,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       return this.client.connect(null, 25000).catch(err => {
         if (err.toString().toLowerCase() === 'timed out' || err.toString().includes('ENOTFOUND')) {
           texts.log('connect timed out, reconnecting...')
-          return createTimeout (1000).then (loop) // reconnect in a second
+          return createTimeout(1000).then(loop) // reconnect in a second
         }
         throw err
       })
@@ -152,12 +152,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.setOnUnexpectedDisconnect(async kind => {
       texts.log('disconnect, kind: ' + kind)
       if (kind === 'closed' || kind === 'lost') {
-        texts.log ('reconnecting...')
+        texts.log('reconnecting...')
         try {
-          await this.reconnect () 
+          await this.reconnect()
           return
         } catch (error) { // if reconnect, fall through & call diconnect
-          texts.log (`reconnecting error: ${error}`)
+          texts.log(`reconnecting error: ${error}`)
         }
       }
       this.connCallback({ status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED })
@@ -500,7 +500,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.addMessage(sentMessage)
       return true
     } catch (error) {
-      texts.log ('error in sending message: ' + JSON.stringify(error))
+      texts.log('error in sending message: ' + JSON.stringify(error))
       throw error
     }
   }
@@ -616,12 +616,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   takeoverConflict = async () => {
     texts.log('taking over again')
-    await this.reconnect ()
+    await this.reconnect()
     texts.log('took over')
   }
+
   reconnect = async () => {
     const oldChats = this.chats
-    
+
     await this.connect()
     this.connCallback({ status: ConnectionStatus.CONNECTED })
 

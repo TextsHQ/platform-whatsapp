@@ -5,7 +5,12 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
-    "lint": "eslint src --cache"
+    "lint": "eslint src --ext ts,tsx,js,jsx --cache"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint -- --fix || true"
+    }
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -25,6 +30,7 @@
     "@types/bluebird": "^3.5.32",
     "@types/qrcode.react": "^1.0.1",
     "eslint": "^7.5.0",
+    "husky": "^4.2.5",
     "typescript": "^3.9.7"
   }
 }
