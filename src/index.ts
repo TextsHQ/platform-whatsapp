@@ -242,8 +242,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           durationMs: 3000,
           presence: {
             userID: participantID,
-            isActive: update.type == Presence.available,
-            lastActive: update.type == Presence.available ? new Date() : null,
+            isActive: update.type === Presence.available,
+            lastActive: null,
           },
         },
       ])
@@ -530,6 +530,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
+  forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
+    const chat = this.chatMap[whatsappID(threadID)]
+    const message = chat.messages.find(m => m.key.id === messageID)
+    await bluebird.map(threadIDs, threadID => this.client.forwardMessage(whatsappID(threadID), message))
+    return true
+  }
+
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
     threadID = normalizeThreadID(threadID)
 
@@ -641,7 +648,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onThreadSelected = async (threadID: string) => {
     texts.log(`thread selected: ${threadID}`)
-    await this.client.updatePresence (whatsappID(threadID), Presence.available)
+    await this.client.updatePresence(whatsappID(threadID), Presence.available)
     // update presence when clicking through
     if (threadID.includes('@c.us')) {
       await this.client.requestPresenceUpdate(whatsappID(threadID)).catch(err => console.log(`error in presence: ${err}`))
