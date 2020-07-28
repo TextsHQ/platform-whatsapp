@@ -23,6 +23,12 @@ const ERROR_CODES = new Set([
   'ENETUNREACH',
   'EAI_AGAIN',
 ])
+const PRESENCE_MAP = {
+  [Presence.available]: ServerEventType.USER_PRESENCE_UPDATED,
+  [Presence.unavailable]: ServerEventType.USER_PRESENCE_UPDATED,
+  [Presence.composing]: ServerEventType.PARTICIPANT_TYPING,
+  [Presence.paused]: ServerEventType.PARTICIPANT_STOPPED_TYPING,
+}
 
 const CONNECT_TIMEOUT_MS = 30_000
 
@@ -163,16 +169,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     this.client.setOnUnexpectedDisconnect(async kind => {
       texts.log('disconnect, kind: ' + kind)
-      if (kind === 'closed' || kind === 'lost') {
+      this.connCallback({ status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED })
+
+      if (kind === 'closed' || kind === 'lost' || !kind) {
         texts.log('reconnecting...')
         try {
           await this.reconnect()
-          return
         } catch (error) { // if reconnect, fall through & call diconnect
           texts.log(`reconnecting error: ${error}`)
         }
       }
-      this.connCallback({ status: kind === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED })
     })
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chatMap[update.to] as WACompleteChat
@@ -225,13 +231,20 @@ export default class WhatsAppAPI implements PlatformAPI {
       let participantID = update.participant
       if (!participantID && !isGroupID(update.id)) participantID = update.id
 
-      const updateType = update.type === Presence.composing ? ServerEventType.PARTICIPANT_TYPING : ServerEventType.PARTICIPANT_STOPPED_TYPING
+      const updateType = PRESENCE_MAP[update.type]
+      if (!updateType) return
+
       this.evCallback([
         {
           type: updateType,
           threadID: update.id,
           participantID,
           durationMs: 3000,
+          presence: {
+            userID: participantID,
+            isActive: update.type == Presence.available,
+            lastActive: update.type == Presence.available ? new Date() : null,
+          },
         },
       ])
     })
@@ -300,7 +313,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     await bluebird.map(this.contacts, async contact => {
       const c = contact as WACompleteContact
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
-        if (!isGroupID(c.jid)) {
+        if (!isGroupID(c.jid) && !isBroadcastID(c.jid)) {
           if (!c.imgURL) c.imgURL = await this.safelyGetProfilePicture(c.jid)
           results.push(mapContact(c))
         }
@@ -624,6 +637,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('error in downloading media of ' + mID + ': ' + error)
     }
     return mapped
+  }
+
+  onThreadSelected = async (threadID: string) => {
+    texts.log(`thread selected: ${threadID}`)
+    await this.client.updatePresence (whatsappID(threadID), Presence.available)
+    // update presence when clicking through
+    if (threadID.includes('@c.us')) {
+      await this.client.requestPresenceUpdate(whatsappID(threadID)).catch(err => console.log(`error in presence: ${err}`))
+    }
   }
 
   takeoverConflict = async () => {
