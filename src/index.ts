@@ -463,6 +463,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       oldestCursor: oldestCursor && JSON.stringify(oldestCursor),
     }
   }
+
   sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
     let content = { text } as WATextMessage
     if (stringHasLink(text)) {
@@ -530,7 +531,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
-    const message = await this.client.loadMessage (threadID, messageID)
+    const message = await this.client.loadMessage(threadID, messageID)
     await bluebird.map(threadIDs, threadID => this.client.forwardMessage(whatsappID(threadID), message))
     return true
   }
@@ -553,7 +554,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendReadReceipt = async (threadID: string, messageID: string) => {
-    await this.client.sendReadReceipt(threadID, messageID, 'read')
+    await this.client.sendReadReceipt(whatsappID(threadID), messageID, 'read')
     this.chatMap[threadID].count = 0
   }
 

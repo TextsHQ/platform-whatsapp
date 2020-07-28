@@ -118,6 +118,7 @@ function messageAttachments(message: WAMessageContent, id: string): { attachment
     response.attachments = [
       {
         id,
+        size: { width: message[messageType]?.width, height: message[messageType]?.height },
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
