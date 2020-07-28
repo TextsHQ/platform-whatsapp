@@ -533,6 +533,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
     const chat = this.chatMap[whatsappID(threadID)]
     const message = chat.messages.find(m => m.key.id === messageID)
+    if (!message) throw Error("couldn't find message")
     await bluebird.map(threadIDs, threadID => this.client.forwardMessage(whatsappID(threadID), message))
     return true
   }
