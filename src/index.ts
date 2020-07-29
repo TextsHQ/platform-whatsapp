@@ -222,7 +222,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         await this.addMessage(message)
       }
-      if(!message.key.fromMe) chat.count = (chat.count || 0) + 1 // up the unread count
+      if (!message.key.fromMe) chat.count = (chat.count || 0) + 1 // up the unread count
       chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
       this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
@@ -231,7 +231,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('presence update: ' + JSON.stringify(update))
       let participantID = update.participant
       if (!participantID && !isGroupID(update.id)) participantID = update.id
-      participantID = whatsappID (participantID)
+      participantID = whatsappID(participantID)
 
       const updateType = PRESENCE_MAP[update.type]
       if (!updateType) return
@@ -239,13 +239,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       const chat = this.chatMap[participantID] as WACompleteChat
       if (!chat) return
 
-      let lastActive = new Date ()
+      let lastActive = new Date()
       if (update.type === Presence.available) {
         chat.isActive = true
       } else if (chat.isActive && update.type === Presence.unavailable) {
         chat.isActive = false
-      } else if (update['t']) {
-        lastActive = new Date ((+update['t']) * 1000)
+      } else if (update.t) {
+        lastActive = new Date((+update.t) * 1000)
       } else {
         lastActive = null
       }
@@ -259,7 +259,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           presence: {
             userID: participantID,
             isActive: chat.isActive,
-            lastActive: lastActive, 
+            lastActive,
           },
         },
       ])
@@ -422,6 +422,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     chat.imgURL = await this.safelyGetProfilePicture(chat.jid)
   }
+
   getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
@@ -456,20 +457,22 @@ export default class WhatsAppAPI implements PlatformAPI {
       oldestCursor: nextPage,
     }
   }
+
   loadMessages = async (threadID: string, cursor?: WAMessageKey) => {
     let messages: WACompleteMessage[]
-    
+
     if (cursor) messages = await this.client.loadConversation(threadID, MESSAGE_PAGE_SIZE, cursor as any)
     else messages = await this.chatMap[threadID].messages
-    
-    return {messages, oldestCursor: messages[messages.length - 1]?.key}
+
+    return { messages, oldestCursor: messages[messages.length - 1]?.key }
   }
+
   getMessages = async (threadID: string, cursor?: string) => {
     texts.log(`loading messages of ${threadID} -- ${cursor}`)
-    
+
     const mCursor = cursor && JSON.parse(cursor)
-    const {messages, oldestCursor} = await this.loadMessages (threadID, mCursor)
-    
+    const { messages, oldestCursor } = await this.loadMessages(threadID, mCursor)
+
     if (isGroupID(threadID)) {
       await bluebird.map(messages, async m => {
         if (m.key.fromMe && !m.info) {
@@ -555,9 +558,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
     const loaded = await this.client.loadMessage(threadID, messageID)
     await bluebird.map(threadIDs, async threadID => {
-      threadID = threadID.replace ('@c.us', '@s.whatsapp.net')
+      threadID = threadID.replace('@c.us', '@s.whatsapp.net')
       const { message } = await this.client.forwardMessage(threadID, loaded)
-      this.addMessage (message)      
+      this.addMessage(message)
     })
     return true
   }
@@ -583,14 +586,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     threadID = whatsappID(threadID)
     let cursor: any
     while (this.chatMap[threadID].count > 0) {
-      const {messages, oldestCursor} = await this.loadMessages (threadID, cursor)
-      const otherMessages = messages.filter (m => !m.key.fromMe).reverse ()
-      for (let message of otherMessages) {
-        texts.log (`reading ${message.key.id} of ${threadID}`)
+      const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
+      const otherMessages = messages.filter(m => !m.key.fromMe).reverse()
+      for (const message of otherMessages) {
+        texts.log(`reading ${message.key.id} of ${threadID}`)
         await this.client.sendReadReceipt(threadID, message.key.id, 'read')
-        
+
         this.chatMap[threadID].count -= 1
-        if(this.chatMap[threadID].count === 0) break
+        if (this.chatMap[threadID].count === 0) break
       }
       cursor = oldestCursor
     }
@@ -689,7 +692,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     // update presence when clicking through
     if (threadID.includes('@c.us')) {
       await this.client.requestPresenceUpdate(threadID)
-          .catch(err => console.log(`error in presence: ${err}`))
+        .catch(err => console.log(`error in presence: ${err}`))
     }
   }
 
