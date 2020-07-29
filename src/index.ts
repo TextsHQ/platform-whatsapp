@@ -229,6 +229,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnPresenceUpdate(update => {
       texts.log('presence update: ' + JSON.stringify(update))
+      if (isGroupID(update.id) || isBroadcastID(update.id)) return
+      
       let participantID = update.participant
       if (!participantID && !isGroupID(update.id)) participantID = update.id
       participantID = whatsappID(participantID)
@@ -265,11 +267,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       ])
     })
     this.client.registerCallback(['action', 'add:update', 'message'], json => {
+      texts.log('received updated message: ' + JSON.stringify(json))
+
       const message: WAMessage = json[2][0][2]
       const jid = whatsappID(message.key.remoteJid)
       const chat = this.chatMap[jid]
-
-      texts.log('received updated message for chat: ' + jid)
 
       if (!chat) return
 
@@ -600,7 +602,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
-    texts.log('send typing: ' + typing)
+    texts.log('send typing: ' + typing + ' to ' + threadID)
     if (typing) {
       await this.client.updatePresence(threadID, Presence.available)
       await this.client.updatePresence(threadID, Presence.composing)
