@@ -11,6 +11,7 @@ export interface WACompleteChat extends WAChat {
   description?: string
   imgURL: string
   creationDate?: Date
+  isActive?: boolean
 }
 
 export interface WACompleteContact extends WAContact {
