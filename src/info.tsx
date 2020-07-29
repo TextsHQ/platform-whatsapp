@@ -22,6 +22,7 @@ const info: Platform = {
   typingDurationMs: 1000,
   attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
+    Attribute.SUPPORTS_FORWARD,
     Attribute.SUPPORTS_PIN_THREAD,
     Attribute.SUPPORTS_QUOTED_MESSAGES,
     Attribute.SUPPORTS_GROUP_IMAGE_CHANGE,
