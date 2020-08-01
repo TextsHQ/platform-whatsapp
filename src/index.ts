@@ -4,11 +4,11 @@ import { promises as fs } from 'fs'
 import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 import KeyedDB from '@adiwajshing/keyed-db'
+import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
 import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
-import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
@@ -231,10 +231,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (isGroupID(update.id) || isBroadcastID(update.id)) return
 
       let participantID = update.participant
-      
+
       if (!participantID && !isGroupID(update.id)) participantID = update.id
       if (!participantID) return
-      
+
       participantID = whatsappID(participantID)
 
       const updateType = PRESENCE_MAP[update.type]
@@ -329,15 +329,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     typed = typed.toLowerCase()
     const results: Participant[] = []
-    for (let key in this.contacts) {
-      const c = this.contacts[key] 
+    await bluebird.map(Object.keys(this.contacts), key => {
+      const c = this.contacts[key]
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
         if (!isGroupID(c.jid) && !isBroadcastID(c.jid)) {
           if (!c.imgURL) c.imgURL = await this.safelyGetProfilePicture(c.jid)
           results.push(mapContact(c))
         }
       }
-    }
+    })
     return results
   }
 
