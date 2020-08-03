@@ -691,6 +691,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   onThreadSelected = async (threadID: string) => {
+    if (!threadID) return
     texts.log(`thread selected: ${threadID}`)
     await this.client.updatePresence(whatsappID(threadID), Presence.available)
     // update presence when clicking through
