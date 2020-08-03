@@ -6,6 +6,7 @@ import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions,
 import KeyedDB from '@adiwajshing/keyed-db'
 import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
+import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
@@ -102,7 +103,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     contacts.forEach(c => {
       this.contacts[whatsappID(c.jid)] = c
     })
-    this.chats = chats as KeyedDB<WACompleteChat>
+    this.chats = chats as any as KeyedDB<WACompleteChat>
 
     this.meContact = { jid: whatsappID(user.id), name: user.name }
     this.meContact.imgURL = await this.safelyGetProfilePicture(this.meContact.jid)
@@ -329,8 +330,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     typed = typed.toLowerCase()
     const results: Participant[] = []
-    await bluebird.map(Object.keys(this.contacts), async key => {
-      const c = this.contacts[key]
+    await bluebird.map (Object.values(this.contacts), async c => {
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
         if (!isGroupID(c.jid) && !isBroadcastID(c.jid)) {
           if (!c.imgURL) c.imgURL = await this.safelyGetProfilePicture(c.jid)
@@ -417,8 +417,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     try {
       const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
       chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
-      chat.admins = new Set(meta.participants.filter(p => p.isAdmin).map(p => whatsappID(p.id)))
+      chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
       chat.creationDate = new Date(+meta.creation * 1000)
+      
+      if (!chat.read_only) {
+        //texts.log (`restrict: ${!meta['restrict'] || chat.admins.has (this.meContact.jid)}`)
+        chat.read_only = !meta['restrict'] || chat.admins.has (this.meContact.jid) ? 'false' : 'true'
+      }
     } catch (error) {
       texts.log(`failed to get group info for ${jid}: ${error}`)
     }
@@ -743,9 +748,36 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     if (message.messageStubParameters.length > 0) {
-      const jid = whatsappID(message.messageStubParameters[0])
-      if (!jid) return
 
+      switch (message.messageStubType) {
+        case WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ANNOUNCE:
+          texts.log ('group settings changed for ' + chat.jid)
+          if (message.messageStubParameters[0] === 'on') {
+            try {
+              const params = await this.client.groupMetadata (chat.jid)
+              const amAdmin = params.participants.find (item => whatsappID(item.id) === this.meContact.jid && (item.isAdmin || item.isSuperAdmin))
+              if (!amAdmin) chat.read_only = 'true'
+            } catch {
+              // if some error occurred, prolly person is not part of the group anymore
+              chat.read_only = 'true' 
+            }
+          } else {
+            chat.read_only = 'false'
+          }
+          texts.log (`${chat.jid} read_only=${chat.read_only}`)
+          /*this.evCallback ([
+            { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
+          ])*/
+          return
+      }
+
+      const jid = whatsappID(message.messageStubParameters[0])
+      
+      if (!jid) {
+        texts.log (`received message type: ${message.messageStubType} with no stub parameters`)
+        return
+      }
+      
       switch (message.messageStubType) {
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD:
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE:
@@ -756,6 +788,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE:
           texts.log(`${jid} was removed from ${chat.jid}`)
           chat.participants = chat.participants.filter(p => p.jid !== jid)
+          if (jid === this.meContact.jid) chat.read_only = 'true'
           break
       }
     }
