@@ -329,7 +329,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     typed = typed.toLowerCase()
     const results: Participant[] = []
-    await bluebird.map(Object.keys(this.contacts), key => {
+    await bluebird.map(Object.keys(this.contacts), async key => {
       const c = this.contacts[key]
       if (c.name?.toLowerCase().includes(typed) || c.notify?.toLowerCase().includes(typed)) {
         if (!isGroupID(c.jid) && !isBroadcastID(c.jid)) {
