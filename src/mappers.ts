@@ -255,16 +255,17 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const linked = messageQuoted(message.message)
   const mLink = messageLink(message.message)
   const action = messageAction(message)
+  const isDeleted = message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE
   return {
     _original: [message, currentUserID],
     cursor: JSON.stringify(message.key),
     id: message.key.id,
     textHeading: messageHeading(message),
-    text: messageText(message.message) || stubBasedMessage,
+    text: isDeleted ? 'This message has been deleted.' : messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
     senderID: message.key.fromMe ? currentUserID : sender,
     isSender: message.key.fromMe,
-    isDeleted: message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
+    isDeleted,
     attachments,
     reactions: [],
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
