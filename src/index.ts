@@ -727,7 +727,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async addMessage(message: WAMessage) {
     let chat = this.chats.get(whatsappID(message.key.remoteJid)) as WACompleteChat
-    if (!chat) chat = await this.loadThread (message.key.remoteJid)
+    if (!chat) chat = await this.loadThread(message.key.remoteJid)
 
     const protocolMessage = message.message?.protocolMessage
     if (protocolMessage) {
@@ -779,7 +779,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD:
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE:
           texts.log(`${jid} was added to ${chat.jid}`)
-          
+
           chat.participants.push(await this.contactForJid(jid))
           break
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE:
