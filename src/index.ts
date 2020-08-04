@@ -421,7 +421,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (!chat.read_only) {
         // texts.log (`restrict: ${!meta['restrict'] || chat.admins.has (this.meContact.jid)}`)
-        chat.read_only = !meta.restrict || chat.admins.has(this.meContact.jid) ? 'false' : 'true'
+        chat.read_only = (!(meta as any).announce || chat.admins.has(this.meContact.jid)) ? 'false' : 'true'
       }
     } catch (error) {
       texts.log(`failed to get group info for ${jid}: ${error}`)
@@ -726,7 +726,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private async addMessage(message: WAMessage) {
-    const chat = this.chats.get(whatsappID(message.key.remoteJid)) as WACompleteChat
+    let chat = this.chats.get(whatsappID(message.key.remoteJid)) as WACompleteChat
+    if (!chat) chat = await this.loadThread (message.key.remoteJid)
+
     const protocolMessage = message.message?.protocolMessage
     if (protocolMessage) {
       if (protocolMessage.type === WAMessageProto.proto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
@@ -771,16 +773,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
 
       const jid = whatsappID(message.messageStubParameters[0])
-
-      if (!jid) {
-        texts.log(`received message type: ${message.messageStubType} with no stub parameters`)
-        return
-      }
+      if (!chat.participants) chat.participants = []
 
       switch (message.messageStubType) {
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD:
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE:
           texts.log(`${jid} was added to ${chat.jid}`)
+          
           chat.participants.push(await this.contactForJid(jid))
           break
         case WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE:
