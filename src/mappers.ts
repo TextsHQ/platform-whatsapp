@@ -210,7 +210,7 @@ function messageLink(message: WAMessageContent): MessageLink {
 
   return {
     url: mess.matchedText,
-    img: getDataURIFromBuffer(Buffer.from(mess.jpegThumbnail), 'image/jpeg'),
+    img: mess.jpegThumbnail ? getDataURIFromBuffer(Buffer.from(mess.jpegThumbnail), 'image/jpeg') : undefined,
     title: mess.title,
     summary: mess.description,
   }
