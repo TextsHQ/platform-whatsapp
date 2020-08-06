@@ -467,7 +467,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const chat = this.chats.get(threadID)
     if (cursor) messages = await this.client.loadConversation(threadID, MESSAGE_PAGE_SIZE, cursor as any)
     else if (chat) messages = this.chats.get(threadID).messages
-    else texts.log (`warning, chat for ${threadID} not found while loading messages`)
+    else texts.log(`warning, chat for ${threadID} not found while loading messages`)
 
     return { messages, oldestCursor: messages[messages.length - 1]?.key }
   }
@@ -583,14 +583,24 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   markAsUnread = async (threadID: string) => {
+    threadID = whatsappID(threadID)
+    const chat = this.chats.get(threadID)
+    if (!chat) {
+      texts.log (`Warning: the chat ${threadID} does not exist, cannot be unread`)
+      return
+    }
     await this.client.sendReadReceipt(threadID, null, 'unread')
-    this.chats.get(threadID).count = -1
+    chat.count = -1
   }
 
   sendReadReceipt = async (threadID: string) => {
     threadID = whatsappID(threadID)
     const chat = this.chats.get(threadID)
-    
+    if (!chat) {
+      texts.log (`Warning: the chat ${threadID} does not exist, cannot be read`)
+      return
+    }
+
     let cursor: any
     while (chat.count > 0) {
       const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
