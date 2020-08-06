@@ -123,7 +123,7 @@ function messageAttachments(message: WAMessageContent, id: string): { attachment
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
         posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
-        fileName: message.documentMessage?.fileName || 'file',
+        fileName: message.documentMessage?.fileName,
       },
     ]
     response.media = true

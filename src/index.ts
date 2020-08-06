@@ -200,7 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
       })
-      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: update.to }])
+      this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: update.to }])
     })
     this.client.setOnUnreadMessage(true, async message => {
       const jid = whatsappID(message.key.remoteJid)
@@ -223,7 +223,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!message.key.fromMe) chat.count = (chat.count || 0) + 1 // up the unread count
       chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
-      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
+      this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
     })
     this.client.setOnPresenceUpdate(update => {
       texts.log('presence update: ' + JSON.stringify(update))
@@ -279,7 +279,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       const messageIndex = chat.messages.findIndex(m => m.key.id === message.key.id)
       if (messageIndex >= 0) {
         chat.messages[messageIndex] = message
-        this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
       }
     })
     this.client.registerCallback(['action', null, 'chat'], json => {
@@ -311,7 +311,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           break
       }
 
-      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
+      this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
     })
     this.client.registerCallback(['Cmd', 'type:picture'], async json => {
       const jid = whatsappID(json[1].jid || '')
@@ -320,7 +320,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!chat) return
 
       chat.imgURL = await this.safelyGetProfilePicture(jid)
-      this.evCallback([{ type: ServerEventType.THREAD_UPDATED, threadID: jid }])
+      this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
     })
   }
 
@@ -732,7 +732,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         const lastMessage = chat.messages.slice(-1)[0]
         const lastMessage2 = chatNew.messages.slice(-1)[0]
         if (chat.modify_tag !== chatNew.modify_tag || lastMessage.key.id !== lastMessage2?.key.id) {
-          return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
+          return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
         }
       }
     })
@@ -781,7 +781,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
           texts.log(`${chat.jid} read_only=${chat.read_only}`)
           /* this.evCallback ([
-            { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
+            { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
           ]) */
           return
       }
