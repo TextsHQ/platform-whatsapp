@@ -273,7 +273,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     seen: messageReadBy(message),
     linkedMessage: linked,
     link: mLink,
-    parseTemplate: !!stubBasedMessage || !!(message.message.extendedTextMessage?.contextInfo?.mentionedJid),
+    parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     action,
   }
