@@ -586,7 +586,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     threadID = whatsappID(threadID)
     const chat = this.chats.get(threadID)
     if (!chat) {
-      texts.log (`Warning: the chat ${threadID} does not exist, cannot be unread`)
+      texts.log(`Warning: the chat ${threadID} does not exist, cannot be unread`)
       return
     }
     await this.client.sendReadReceipt(threadID, null, 'unread')
@@ -597,7 +597,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     threadID = whatsappID(threadID)
     const chat = this.chats.get(threadID)
     if (!chat) {
-      texts.log (`Warning: the chat ${threadID} does not exist, cannot be read`)
+      texts.log(`Warning: the chat ${threadID} does not exist, cannot be read`)
       return
     }
 
@@ -730,8 +730,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       const chatNew = this.chats.get(chat.jid)
       if (chatNew) {
         const lastMessage = chat.messages.slice(-1)[0]
-        const lastMessage2 = chatNew.messages?.slice(-1)[0]
-        if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
+        const lastMessage2 = chatNew.messages.slice(-1)[0]
+        if (chat.modify_tag !== chatNew.modify_tag || lastMessage.key.id !== lastMessage2?.key.id) {
           return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
         }
       }
