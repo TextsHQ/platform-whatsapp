@@ -202,7 +202,7 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
 }
-const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => (buff?.length > 0 ? `data:${mimeType};base64,${buff.toString('base64')}` : null)
+const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => `data:${mimeType};base64,${buff.toString('base64')}`
 
 function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage

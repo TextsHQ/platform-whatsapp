@@ -2,11 +2,10 @@ import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
 import auth from './auth'
-import { mapMessage } from './mappers'
 
 const info: Platform = {
   name: 'whatsapp-baileys',
-  version: '0.2.2',
+  version: '0.2.3',
   displayName: 'WhatsApp',
   icon: (props: any) => (
     <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" {...props}>

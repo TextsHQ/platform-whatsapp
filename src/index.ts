@@ -178,7 +178,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.client.setOnMessageStatusChange(async update => {
       const chat = this.chats.get(update.to) as WACompleteChat
-
       if (!chat) return
 
       texts.log(`got update: ${JSON.stringify(update)}`)
@@ -463,10 +462,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   loadMessages = async (threadID: string, cursor?: WAMessageKey) => {
-    let messages: WACompleteMessage[]
+    let messages: WACompleteMessage[] = []
 
+    const chat = this.chats.get(threadID)
     if (cursor) messages = await this.client.loadConversation(threadID, MESSAGE_PAGE_SIZE, cursor as any)
-    else messages = this.chats.get(threadID).messages
+    else if (chat) messages = this.chats.get(threadID).messages
+    else texts.log (`warning, chat for ${threadID} not found while loading messages`)
 
     return { messages, oldestCursor: messages[messages.length - 1]?.key }
   }
@@ -588,16 +589,18 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string) => {
     threadID = whatsappID(threadID)
+    const chat = this.chats.get(threadID)
+    
     let cursor: any
-    while (this.chats.get(threadID).count > 0) {
+    while (chat.count > 0) {
       const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
       const otherMessages = messages.filter(m => !m.key.fromMe).reverse()
       for (const message of otherMessages) {
         texts.log(`reading ${message.key.id} of ${threadID}`)
         await this.client.sendReadReceipt(threadID, message.key.id, 'read')
 
-        this.chats.get(threadID).count -= 1
-        if (this.chats.get(threadID).count === 0) break
+        chat.count -= 1
+        if (chat.count === 0) break
       }
       cursor = oldestCursor
     }
@@ -715,12 +718,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const updates = oldChats.map<ServerEvent>(chat => {
       const chatNew = this.chats.get(chat.jid)
-      const lastMessage = chat.messages.slice(-1)[0]
-      const lastMessage2 = chatNew.messages?.slice(-1)[0]
-      if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
-        return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
+      if (chatNew) {
+        const lastMessage = chat.messages.slice(-1)[0]
+        const lastMessage2 = chatNew.messages?.slice(-1)[0]
+        if (chat.modify_tag !== chatNew?.modify_tag || lastMessage.key.id !== lastMessage2.key.id) {
+          return { type: ServerEventType.THREAD_UPDATED, threadID: chat.jid }
+        }
       }
-      return null
     })
     this.evCallback(updates.filter(Boolean))
   }
