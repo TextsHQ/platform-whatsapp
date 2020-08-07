@@ -269,7 +269,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     attachments,
     reactions: [],
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
-    isDynamicMessage: media,
+    isDynamicMessage: media && (!message.message?.videoMessage || !!message.message?.videoMessage?.url),
     seen: messageReadBy(message),
     linkedMessage: linked,
     link: mLink,

@@ -169,6 +169,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (kind === 'closed' || kind === 'lost' || !kind) {
         texts.log('reconnecting...')
+
         try {
           await this.reconnect()
         } catch (error) { // if reconnect, fall through & call diconnect
@@ -322,6 +323,27 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgURL = await this.safelyGetProfilePicture(jid)
       this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
     })
+    this.client.registerCallback(['action', null, 'user'], async json => {
+      const node = json[2][0]
+      texts.log('received user: ' + JSON.stringify(node))
+      if (node) {
+        const user = node[1] as WAContact
+        const jid = whatsappID(user.jid)
+
+        this.contacts[jid] = user
+
+        const chat = this.chats.get(jid)
+        if (chat) {
+          chat.title = user.name || user.notify
+          this.evCallback([
+            { type: ServerEventType.THREAD_PROPS_UPDATED,
+              props: { title: chat.title },
+              threadID: jid,
+            },
+          ])
+        }
+      }
+    })
   }
 
   searchUsers = async (typed: string) => {
@@ -465,6 +487,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     let messages: WACompleteMessage[] = []
 
     const chat = this.chats.get(threadID)
+
     if (cursor) messages = await this.client.loadConversation(threadID, MESSAGE_PAGE_SIZE, cursor as any)
     else if (chat) messages = this.chats.get(threadID).messages
     else texts.log(`warning, chat for ${threadID} not found while loading messages`)
@@ -604,7 +627,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     let cursor: any
     while (chat.count > 0) {
       const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
-      const otherMessages = messages.filter(m => m.key.fromMe).reverse()
+      const otherMessages = messages.filter(m => !m.key.fromMe).reverse()
       for (const message of otherMessages) {
         texts.log(`reading ${message.key.id} of ${threadID}`)
         await this.client.sendReadReceipt(threadID, message.key.id, 'read')
@@ -619,10 +642,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
     texts.log('send typing: ' + typing + ' to ' + threadID)
     if (typing) {
-      await this.client.updatePresence(threadID, Presence.available)
+      // await this.client.updatePresence(threadID, Presence.available)
       await this.client.updatePresence(threadID, Presence.composing)
     } else {
-      await this.client.updatePresence(threadID, Presence.paused)
+      await this.client.updatePresence(threadID, Presence.available)
     }
   }
 
@@ -691,7 +714,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     const mID = m.key.id
     const mapped = mapMessage(m, this.meContact.jid)
 
-    if (m.message?.videoMessage && !m.message?.videoMessage?.url) return mapped
+    if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
+      console.log('video url not present yet for ' + mID)
+      return mapped
+    }
 
     texts.log('downloading media: ' + mID)
     try {
@@ -704,12 +730,16 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   onThreadSelected = async (threadID: string) => {
-    if (!threadID) return
-    texts.log(`thread selected: ${threadID}`)
-    await this.client.updatePresence(whatsappID(threadID), Presence.available)
+    if (!threadID) {
+      texts.log('set unavailable')
+      return
+    }
+    const jid = whatsappID(threadID)
+    texts.log(`thread selected: ${jid}`)
+    await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
-    if (threadID.includes('@c.us')) {
-      await this.client.requestPresenceUpdate(threadID)
+    if (jid.includes('@c.us')) {
+      await this.client.requestPresenceUpdate(jid)
         .catch(err => console.log(`error in presence: ${err}`))
     }
   }
@@ -780,9 +810,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             chat.read_only = 'false'
           }
           texts.log(`${chat.jid} read_only=${chat.read_only}`)
-          /* this.evCallback ([
-            { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
-          ]) */
           return
       }
 
