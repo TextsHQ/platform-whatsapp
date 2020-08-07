@@ -604,7 +604,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     let cursor: any
     while (chat.count > 0) {
       const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
-      const otherMessages = messages.filter(m => !m.key.fromMe).reverse()
+      const otherMessages = messages.filter(m => m.key.fromMe).reverse()
       for (const message of otherMessages) {
         texts.log(`reading ${message.key.id} of ${threadID}`)
         await this.client.sendReadReceipt(threadID, message.key.id, 'read')
