@@ -68,14 +68,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (session) {
       try {
-        await this.connect()
+        await this.connect(!!session)
       } catch (error) {
         texts.log(`failed connect: ${error}`)
         if (error instanceof BaileysError && error.status >= 400) {
           throw new ReAuthError(error.message)
         }
       }
-    } else this.connect()
+    } else this.connect(!!session)
   }
 
   restoreSession = (session?: any) => {
@@ -99,7 +99,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   logout = async () => { await this.client.logout() }
 
-  connect = async () => {
+  connect = async (hasSession: boolean) => {
     texts.log('began connect')
 
     const [user, chats, contacts] = await this.connectClient()
@@ -116,8 +116,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('connected successfully')
 
-    await this.waitForLoginCallback()
-    this.loginCallback({ name: 'ready' })
+    if (!hasSession) {
+      await this.waitForLoginCallback()
+      this.loginCallback({ name: 'ready' })
+    }
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
 
