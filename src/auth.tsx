@@ -2,22 +2,22 @@ import React, { Component } from 'react'
 import QRCode from 'qrcode.react'
 
 export default class WhatsAppAuth extends Component {
+  state: { qrValue: string } = { qrValue: null }
+
   constructor(props) {
     super(props)
-    this.state = { qrValue: null as string }
-    const { api } = this.props as any
+    const { api, login } = this.props as any
     api.onLoginEvent(ev => {
-      console.log(ev)
       if (ev.name === 'qr') {
         this.setState({ qrValue: ev.qr })
       } else if (ev.name === 'ready') {
-        (this.props as any).login()
+        login()
       }
     })
   }
 
   render() {
-    const { qrValue } = this.state as any
+    const { qrValue } = this.state
     return (
       <div className="auth whatsapp-auth">
         <ol>
@@ -28,7 +28,9 @@ export default class WhatsAppAuth extends Component {
           <li>Point your phone to this screen:</li>
         </ol>
         <div className="text-center">
-          {qrValue ? React.createElement(QRCode, { size: 256, value: qrValue, includeMargin: true } as any) : 'Loading QR code...'}
+          {qrValue
+            ? <QRCode size={256} value={qrValue} includeMargin />
+            : 'Loading QR code...'}
         </div>
       </div>
     )

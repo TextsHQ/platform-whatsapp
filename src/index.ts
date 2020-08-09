@@ -41,7 +41,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connCallback: OnConnStateChangeCallback = () => {}
 
-  loginCallback: Function = () => {}
+  loginCallback: Function
 
   chats: KeyedDB<WACompleteChat> = new KeyedDB(waChatUniqueKey as (c: WACompleteChat) => number, c => c.jid)
 
@@ -50,6 +50,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   meContact?: WACompleteContact
 
   isActive = true
+
+  private waitForLoginCallback = async () => {
+    while (!this.loginCallback) {
+      await bluebird.delay(10)
+    }
+  }
 
   init = async (session?: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
@@ -110,6 +116,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('connected successfully')
 
+    await this.waitForLoginCallback()
     this.loginCallback({ name: 'ready' })
     // if (this.connCallback) this.connCallback ({status: ConnectionStatus.CONNECTED})
   }
@@ -159,8 +166,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   registerCallbacks = async () => {
-    this.client.onReadyForPhoneAuthentication = keys => {
+    this.client.onReadyForPhoneAuthentication = async keys => {
       const str = keys.join(',')
+      await this.waitForLoginCallback()
       this.loginCallback({ name: 'qr', qr: str })
     }
     this.client.setOnUnexpectedDisconnect(async kind => {
@@ -715,7 +723,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const mapped = mapMessage(m, this.meContact.jid)
 
     if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
-      console.log('video url not present yet for ' + mID)
+      texts.log('video url not present yet for ' + mID)
       return mapped
     }
 
