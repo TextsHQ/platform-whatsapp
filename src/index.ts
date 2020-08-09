@@ -763,7 +763,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   reconnect = async () => {
     const oldChats = this.chats.all()
 
-    await this.connect()
+    await this.connect(true)
     this.connCallback({ status: ConnectionStatus.CONNECTED })
 
     const updates = oldChats.map<ServerEvent>(chat => {
