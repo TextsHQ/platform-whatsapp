@@ -25,6 +25,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.VERIFIED_HIGH]: 'This chat is with a verified business account.',
   [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_VIDEO]: 'Missed video call',
   [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_VOICE]: 'Missed voice call',
+  [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
+  [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
