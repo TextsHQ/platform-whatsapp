@@ -641,6 +641,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       for (const message of otherMessages) {
         texts.log(`reading ${message.key.id} of ${threadID}`)
         await this.client.sendReadReceipt(threadID, message.key.id, 'read')
+          .catch(err => {
+            texts.log(`error in read receipt: ${JSON.stringify(err)}`)
+            throw err
+          })
 
         chat.count -= 1
         if (chat.count === 0) break
