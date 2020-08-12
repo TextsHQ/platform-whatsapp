@@ -301,11 +301,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!jid) return
 
       const chat = this.chats.get(jid)
-      chat.count = 0
+      const isUnread = read[1]?.type === 'false'
+      chat.count = isUnread ? -1 : 0
       this.evCallback([
         {
           type: ServerEventType.THREAD_PROPS_UPDATED,
-          props: { isUnread: false },
+          props: { isUnread },
           threadID: jid,
         },
       ])
@@ -363,7 +364,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (chat) {
           chat.title = user.name || user.notify
           this.evCallback([
-            { type: ServerEventType.THREAD_PROPS_UPDATED,
+            {
+              type: ServerEventType.THREAD_PROPS_UPDATED,
               props: { title: chat.title },
               threadID: jid,
             },
