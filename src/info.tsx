@@ -23,6 +23,8 @@ const info: Platform = {
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_FORWARD,
     Attribute.SUPPORTS_PIN_THREAD,
+    Attribute.SUPPORTS_MARK_AS_UNREAD,
+    Attribute.SHARES_CONTACTS,
     Attribute.SUPPORTS_QUOTED_MESSAGES,
     Attribute.SUPPORTS_GROUP_IMAGE_CHANGE,
     Attribute.SUPPORTS_GROUP_PARTICIPANT_ROLE_CHANGE,
