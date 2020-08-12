@@ -1,7 +1,7 @@
 import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError } from '@adiwajshing/baileys'
+import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError, WAGroupMetadata } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 import KeyedDB from '@adiwajshing/keyed-db'
 import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
@@ -222,7 +222,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       let chat = this.chats.get(jid)
       if (!chat) {
         chat = await this.loadThread(jid, message)
-        this.chats.delete(chat)
         console.log('chat ' + jid + ' not found, adding...')
       } else {
         if (chat.messages.find(m => m.key.id === message.key.id)) {
@@ -231,7 +230,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         await this.addMessage(message)
       }
-      if (!message.key.fromMe) chat.count = (chat.count || 0) + 1 // up the unread count
+      if (!message.key.fromMe && message.message) chat.count = (chat.count || 0) + 1 // up the unread count
       chat.messages = chat.messages.slice(chat.messages.length - MESSAGE_PAGE_SIZE, chat.messages.length)
 
       this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
@@ -292,6 +291,24 @@ export default class WhatsAppAPI implements PlatformAPI {
         chat.messages[messageIndex] = message
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
       }
+    })
+    this.client.registerCallback(['action', null, 'read'], json => {
+      texts.log('read action from phone: ' + JSON.stringify(json))
+
+      const read = json[2][0]
+      const jid = whatsappID(read[1]?.jid || '')
+
+      if (!jid) return
+
+      const chat = this.chats.get(jid)
+      chat.count = 0
+      this.evCallback([
+        {
+          type: ServerEventType.THREAD_PROPS_UPDATED,
+          props: { isUnread: false },
+          threadID: jid,
+        },
+      ])
     })
     this.client.registerCallback(['action', null, 'chat'], json => {
       texts.log('chat action ' + JSON.stringify(json))
@@ -409,7 +426,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else {
       chat.participants = [await this.contactForJid(jid), this.meContact]
     }
-    chat.title = this.contacts[chat.jid]?.name || this.contacts[chat.jid]?.notify
+    chat.title = this.contacts[chat.jid]?.name || this.contacts[chat.jid]?.notify || chat.title
     return chat
   }
 
@@ -445,10 +462,20 @@ export default class WhatsAppAPI implements PlatformAPI {
   async setGroupChatProperties(chat: WACompleteChat) {
     const { jid } = chat
     try {
-      const meta = await (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
+      const getGroupData = () => (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
+      const meta = await getGroupData()
+        .catch(async err => {
+          if (!chat.read_only) {
+            texts.log('unexpectedly couldn\'t load group, retrying...')
+            await bluebird.delay(2500)
+            return getGroupData()
+          }
+          throw err
+        })
       chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
       chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
       chat.creationDate = new Date(+meta.creation * 1000)
+      chat.title = meta.subject
 
       if (!chat.read_only) {
         // texts.log (`restrict: ${!meta['restrict'] || chat.admins.has (this.meContact.jid)}`)
@@ -634,7 +661,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       return
     }
 
-    let cursor: any
+    while (chat.count > 0) {
+      await this.client.sendReadReceipt(threadID, null, 'read')
+        .catch(err => {
+          texts.log(`error in read receipt: ${JSON.stringify(err)}`)
+          throw err
+        })
+      chat.count -= 1
+    }
+    /* let cursor: any
     while (chat.count > 0) {
       const { messages, oldestCursor } = await this.loadMessages(threadID, cursor)
       const otherMessages = messages.filter(m => !m.key.fromMe).reverse()
@@ -650,7 +685,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (chat.count === 0) break
       }
       cursor = oldestCursor
-    }
+    } */
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
@@ -726,21 +761,26 @@ export default class WhatsAppAPI implements PlatformAPI {
     const m = message?._original?.[0] as WAMessage
     if (!m) return message
     const mID = m.key.id
-    const mapped = mapMessage(m, this.meContact.jid)
 
+    const content: Partial<Message> = {}
     if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
       texts.log('video url not present yet for ' + mID)
-      return mapped
+      return content
     }
 
     texts.log('downloading media: ' + mID)
     try {
-      mapped.attachments[0].data = await this.client.downloadMediaMessage(m)
+      content.attachments = [
+        {
+          ...message.attachments[0],
+          data: await this.client.downloadMediaMessage(m),
+        },
+      ]
       texts.log('downloaded media: ' + mID)
     } catch (error) {
       texts.log('error in downloading media of ' + mID + ': ' + error)
     }
-    return mapped
+    return content
   }
 
   onThreadSelected = async (threadID: string) => {
