@@ -301,8 +301,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!jid) return
 
       const chat = this.chats.get(jid)
+
       const isUnread = read[1]?.type === 'false'
-      chat.count = isUnread ? -1 : 0
+      if (chat) {
+        chat.count = isUnread ? -1 : 0
+      }
+
       this.evCallback([
         {
           type: ServerEventType.THREAD_PROPS_UPDATED,
