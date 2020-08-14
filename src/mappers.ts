@@ -36,7 +36,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: message => `{{${whatsappID(message.participant)}}} added {{sender}} to this group`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: message =>
+    `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(',')} to this group`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
@@ -98,7 +99,7 @@ function messageAction(message: WAMessage): Action {
   }
   return {
     type: actionType,
-    participantIDs: [whatsappID(message.messageStubParameters[0] || message.participant)],
+    participantIDs: message.messageStubParameters ? message.messageStubParameters.map(p => whatsappID(p)) : [message.participant],
   }
 }
 function messageAttachments(message: WAMessageContent, id: string): { attachments: MessageAttachment[], media: boolean } {
