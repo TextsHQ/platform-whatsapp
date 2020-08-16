@@ -4,7 +4,7 @@ export const stringHasLink = (str: string) =>
   URL_REGEX.test(str)
 
 export const whatsappID = (jid: string) =>
-  jid.replace('@s.whatsapp.net', '@c.us')
+  jid.replace('@c.us', '@s.whatsapp.net')
 
 export const isGroupID = (jid: string) =>
   jid.endsWith('@g.us')
@@ -13,10 +13,7 @@ export const isBroadcastID = (jid: string) =>
   jid.endsWith('@broadcast')
 
 export const numberFromJid = (jid: string) =>
-  '+' + whatsappID(jid).replace('@c.us', '')
-
-export const normalizeThreadID = (jid: string) =>
-  jid.replace('@c.us', '@s.whatsapp.net')
+  '+' + whatsappID(jid).replace('@s.whatsapp.net', '')
 
 export const removeServer = (jid: string) =>
   jid.split('@').shift()

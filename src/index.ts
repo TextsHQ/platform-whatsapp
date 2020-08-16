@@ -7,7 +7,7 @@ import KeyedDB from '@adiwajshing/keyed-db'
 import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
 import { mapMessages, mapContact, mapThreads, mapThread, mapMessage } from './mappers'
-import { whatsappID, isGroupID, isBroadcastID, numberFromJid, normalizeThreadID, stringHasLink } from './util'
+import { whatsappID, isGroupID, isBroadcastID, numberFromJid, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -71,6 +71,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         await this.connect(!!session)
       } catch (error) {
         texts.log(`failed connect: ${error}`)
+        console.log(error)
         if (error instanceof BaileysError && error.status >= 400) {
           throw new ReAuthError(error.message)
         }
@@ -611,7 +612,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       ops.mimetype = mimeType || 'application/octet-stream'
     }
 
-    threadID = normalizeThreadID(threadID)
+    threadID = whatsappID(threadID)
     try {
       const sentMessage = await this.client.sendMessage(threadID, content, messageType, ops)
       // const sentMessage = response.// (await this.client.loadConversation(threadID, 1))[0]
@@ -638,7 +639,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    threadID = normalizeThreadID(threadID)
+    threadID = whatsappID(threadID)
 
     texts.log(`deleting message: ${messageID} in ${threadID}`)
 
