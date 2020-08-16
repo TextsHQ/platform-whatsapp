@@ -4,7 +4,7 @@ import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType,
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
 
-const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
+const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',

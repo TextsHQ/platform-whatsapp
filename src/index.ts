@@ -1,7 +1,7 @@
 import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAClient, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError, WAGroupMetadata } from '@adiwajshing/baileys'
+import { WAConnection, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError, WAGroupMetadata } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 import KeyedDB from '@adiwajshing/keyed-db'
 import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
@@ -13,7 +13,7 @@ import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
-const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.proto.WebMessageInfo
+const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
 const ERROR_CODES = new Set([
   'ETIMEDOUT',
@@ -35,7 +35,7 @@ const PRESENCE_MAP = {
 const CONNECT_TIMEOUT_MS = 30_000
 
 export default class WhatsAppAPI implements PlatformAPI {
-  client = new WAClient()
+  client = new WAConnection()
 
   evCallback: OnServerEventCallback = () => {}
 
@@ -613,8 +613,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     threadID = normalizeThreadID(threadID)
     try {
-      const response = await this.client.sendMessage(threadID, content, messageType, ops)
-      const sentMessage = response.message// (await this.client.loadConversation(threadID, 1))[0]
+      const sentMessage = await this.client.sendMessage(threadID, content, messageType, ops)
+      // const sentMessage = response.// (await this.client.loadConversation(threadID, 1))[0]
 
       if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
         sentMessage.status = WEB_MESSAGE_INFO_STATUS.READ
@@ -631,7 +631,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await this.client.loadMessage(threadID, messageID)
     await bluebird.map(threadIDs, async threadID => {
       threadID = threadID.replace('@c.us', '@s.whatsapp.net')
-      const { message } = await this.client.forwardMessage(threadID, loaded)
+      const message = await this.client.forwardMessage(threadID, loaded)
       this.addMessage(message)
     })
     return true
@@ -836,7 +836,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const protocolMessage = message.message?.protocolMessage
     if (protocolMessage) {
-      if (protocolMessage.type === WAMessageProto.proto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
+      if (protocolMessage.type === WAMessageProto.ProtocolMessage.PROTOCOL_MESSAGE_TYPE.REVOKE) {
         const found = chat.messages.find(m => m.key.id === protocolMessage.key.id)
         if (found) {
           found.messageStubType = WEB_MESSAGE_INFO_STUBTYPE.REVOKE
