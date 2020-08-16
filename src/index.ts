@@ -582,6 +582,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.sendMessage(threadID, fileBuffer, mimeType, fileName, options)
 
   sendMessage = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, fileName?: string, options?: MessageSendOptions) => {
+    threadID = whatsappID(threadID)
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
 
     let chat = this.chats.get(threadID)
@@ -599,15 +600,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
       ops.quoted = message
     }
-    if (mimeType) {
+    if (Buffer.isBuffer(content)) {
       if (mimeType === Mimetype.webp) messageType = MessageType.sticker
-      else if (mimeType.includes('image/')) messageType = MessageType.image
-      else if (mimeType.includes('video/')) messageType = MessageType.video
-      else if (mimeType.includes('audio/')) messageType = MessageType.audio
+      else if (mimeType?.includes('image/')) messageType = MessageType.image
+      else if (mimeType?.includes('video/')) messageType = MessageType.video
+      else if (mimeType?.includes('audio/')) messageType = MessageType.audio
       else messageType = MessageType.document
     }
     if (messageType === MessageType.document) {
-      ops.mimetype = mimeType as Mimetype
+      ops.mimetype = mimeType || 'application/octet-stream'
     }
 
     threadID = normalizeThreadID(threadID)
