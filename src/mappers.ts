@@ -30,14 +30,15 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: '{{sender}} left',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: message =>
+    `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: message =>
-    `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(',')} to this group`,
+    `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
