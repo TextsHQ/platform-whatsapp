@@ -142,9 +142,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
     return {
-      id: this.meContact.jid,
+      id: whatsappID(this.meContact.jid),
       fullName: this.meContact.name,
       displayText: numberFromJid(this.meContact.jid),
+      phoneNumber: numberFromJid(this.meContact.jid),
       imgURL: this.meContact.imgURL,
     }
   }

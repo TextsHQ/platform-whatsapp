@@ -83,7 +83,7 @@ export function mapContact(contact: WACompleteContact): Participant {
     throw new Error('a group or broadcast list cannot be a contact')
   }
   return {
-    id: contact.jid,
+    id: whatsappID(contact.jid),
     fullName: contact.name || contact.notify,
     phoneNumber: numberFromJid(contact.jid),
     imgURL: contact.imgURL,
@@ -233,11 +233,11 @@ function messageStubText(message: WAMessage) {
   }
   return txt
 }
-function messageReadBy(message: WACompleteMessage): { [id: string]: Date } | boolean {
+function messageSeen(message: WACompleteMessage): { [id: string]: Date } | boolean {
   if (message.info) {
     const dict: { [id: string]: Date } = {}
     message.info.reads.forEach(info => {
-      dict[info.jid] = new Date(+info.t * 1000)
+      dict[whatsappID(info.jid)] = new Date(+info.t * 1000)
     })
     return dict
   }
@@ -267,14 +267,14 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     textHeading: messageHeading(message),
     text: isDeleted ? 'This message has been deleted.' : messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
-    senderID: message.key.fromMe ? currentUserID : sender,
+    senderID: whatsappID(message.key.fromMe ? currentUserID : sender),
     isSender: message.key.fromMe,
     isDeleted,
     attachments,
     reactions: [],
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
     isDynamicMessage: media && (!message.message?.videoMessage || !!message.message?.videoMessage?.url),
-    seen: messageReadBy(message),
+    seen: messageSeen(message),
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
