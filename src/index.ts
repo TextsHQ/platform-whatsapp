@@ -2,7 +2,7 @@ import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAConnection, MessageType, MessageOptions, Mimetype, Presence, WAChat, Browsers, ChatModification, decodeMediaMessageBuffer, WAMessage, WAMessageProto, WATextMessage, MessageLogLevel, UserMetaData, WAContact, WAMessageKey, BaileysError, WAGroupMetadata } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, MessageContent, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent } from '@textshq/platform-sdk'
 import KeyedDB from '@adiwajshing/keyed-db'
 import { waChatUniqueKey } from '@adiwajshing/baileys/lib/WAConnection/Utils'
 
@@ -562,7 +562,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
+  sendMessage = async (threadID: string, content: MessageContent, options?: MessageSendOptions) => {
+    if (content.fileBuffer) {
+      return this.sendMessageImpl(threadID, content.fileBuffer, content.mimeType, content.fileName, options)
+    }
+    if (content.filePath) {
+      const { base: fileName } = path.parse(content.filePath)
+      const buffer = await fs.readFile(content.filePath)
+      return this.sendMessageImpl(threadID, buffer, content.mimeType, content.fileName || fileName, options)
+    }
+    return this.sendTextMessage(threadID, content.text, options)
+  }
+
+  private sendTextMessage = async (threadID: string, text: string, options?: MessageSendOptions) => {
     let content = { text } as WATextMessage
     if (stringHasLink(text)) {
       try {
@@ -571,19 +583,10 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log('failed to get link preview: ' + error)
       }
     }
-    return this.sendMessage(threadID, content, undefined, undefined, options)
+    return this.sendMessageImpl(threadID, content, undefined, undefined, options)
   }
 
-  sendFileFromFilePath = async (threadID: string, filePath: string, mimeType: string, options?: MessageSendOptions) => {
-    const { base: fileName } = path.parse(filePath)
-    const buffer = await fs.readFile(filePath)
-    return this.sendFileFromBuffer(threadID, buffer, mimeType, fileName)
-  }
-
-  sendFileFromBuffer = async (threadID: string, fileBuffer: Buffer, mimeType: string, fileName?: string, options?: MessageSendOptions) =>
-    this.sendMessage(threadID, fileBuffer, mimeType, fileName, options)
-
-  sendMessage = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, fileName?: string, options?: MessageSendOptions) => {
+  private sendMessageImpl = async (threadID: string, content: WATextMessage | Buffer, mimeType?: string, fileName?: string, options?: MessageSendOptions) => {
     threadID = whatsappID(threadID)
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
 
