@@ -540,7 +540,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (chatNew) {
         const lastMessage = chat.messages.slice(-1)[0]
         const lastMessage2 = chatNew.messages.slice(-1)[0]
-        if (chat.modify_tag !== chatNew.modify_tag || lastMessage.key.id !== lastMessage2?.key.id) {
+        if (chat.modify_tag !== chatNew.modify_tag || lastMessage?.key.id !== lastMessage2?.key.id) {
           return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
         }
       }
