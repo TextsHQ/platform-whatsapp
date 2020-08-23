@@ -4,7 +4,7 @@ import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, WAGroupMetadata, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent } from '@textshq/platform-sdk'
 
-import { mapMessages, mapContact, mapThreads, mapThread } from './mappers'
+import { mapMessages, mapContact, mapThreads, mapThread, mapThreadProps } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
@@ -200,7 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       .on('chat-update', update => {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
         const chat = this.getChat(update.jid)
-        this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThread(chat, this.meContact.jid) }])
+        this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThreadProps(chat) }])
       })
 
     this.client.registerCallback(['action', 'add:update', 'message'], json => {
@@ -222,13 +222,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   searchUsers = async (typed: string) => {
     texts.log('searching users ' + typed)
-    typed = typed.toLowerCase()
+    const typedLower = typed.toLowerCase()
     const results: Participant[] = []
     await bluebird.map(Object.values(this.client.contacts), async (c: WACompleteContact) => {
-      if (!c.name?.toLowerCase().includes(typed)
-          && !c.notify?.toLowerCase().includes(typed)
-          && (isGroupID(c.jid) || isBroadcastID(c.jid))
-      ) return
+      if (isGroupID(c.jid) || isBroadcastID(c.jid)) return
+      if (!c.name?.toLowerCase().includes(typedLower) && !c.notify?.toLowerCase().includes(typedLower)) return
 
       if (!c.imgURL) c.imgURL = await this.client.getProfilePicture(c.jid).catch(() => '')
       results.push(mapContact(c))
@@ -289,7 +287,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
 
     chats.forEach(chat => {
-      !chat.name && texts.log(JSON.stringify(chat))
+      if (!chat.name) texts.log('!chat.name', JSON.stringify(chat))
     })
 
     const items = mapThreads(chats as WACompleteChat[], this.meContact.jid)
@@ -426,12 +424,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string) => {
     threadID = whatsappID(threadID)
-    this.client.sendReadReceipt(threadID)
+    await this.client.sendReadReceipt(threadID)
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
     texts.log('send typing: ' + typing + ' to ' + threadID)
-    typing && await this.client.updatePresence(threadID, Presence.composing)
+    if (typing) await this.client.updatePresence(threadID, Presence.composing)
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {

@@ -308,6 +308,25 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     createdAt: t.creationDate,
   }
 }
+
+export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
+  const participants = t.participants?.map(c => {
+    const participant = mapContact(c)
+    participant.isAdmin = t.admins?.has(participant.id) || false
+    return participant
+  }) || []
+  return {
+    title: t.name,
+    description: t.description,
+    imgURL: t.imgUrl,
+    isUnread: t.count !== 0,
+    isArchived: t.archive === 'true',
+    isReadOnly: t.read_only === 'true',
+    participants,
+    createdAt: t.creationDate,
+  }
+}
+
 export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
   return threads.map(t => mapThread(t, currentUserID))
 }
