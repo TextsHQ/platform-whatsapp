@@ -287,18 +287,19 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
 }
 
 export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
-  const participants = t.participants.map(c => {
+  const participants = t.participants?.map(c => {
     const participant = mapContact(c)
     participant.isAdmin = t.admins?.has(participant.id) || false
     return participant
-  })
+  }) || []
   return {
     _original: t,
     id: t.jid,
-    title: t.title,
+    title: t.name,
     description: t.description,
-    imgURL: t.imgURL,
+    imgURL: t.imgUrl,
     isUnread: t.count !== 0,
+    isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages, currentUserID),
     participants,

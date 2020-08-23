@@ -7,9 +7,7 @@ export interface WACompleteMessage extends WAMessage {
 export interface WACompleteChat extends WAChat {
   participants: WACompleteContact[]
   admins?: Set<string>
-  title?: string
   description?: string
-  imgURL: string
   creationDate?: Date
   isActive?: boolean
 }
