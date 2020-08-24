@@ -131,6 +131,12 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
         this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
+      .on('connecting', () => {
+        if (this.connCallback) this.connCallback({ status: ConnectionStatus.CONNECTING })
+      })
+      .on('open', () => {
+        if (this.connCallback) this.connCallback({ status: ConnectionStatus.CONNECTED })
+      })
       .on('message-new', async message => {
         const jid = whatsappID(message.key.remoteJid)
         texts.log('received message: ' + jid)
