@@ -75,6 +75,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('began connect')
 
     await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
+    this.connCallback({ status: ConnectionStatus.CONNECTED })
 
     this.meContact = {
       jid: whatsappID(this.client.user.id),
@@ -110,7 +111,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
     this.connCallback = onEvent
-    if (this.meContact) this.connCallback({ status: ConnectionStatus.CONNECTED })
   }
 
   unsubscribeToEvents = () => {
@@ -128,7 +128,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.loginCallback({ name: 'qr', qr })
       })
       .on('close', ({ reason, isReconnecting }) => {
-        this.connCallback({ status: reason === 'replaced' ? ConnectionStatus.CONFLICT : ConnectionStatus.DISCONNECTED })
+        if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
+        this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
       .on('message-new', async message => {
         const jid = whatsappID(message.key.remoteJid)
@@ -531,7 +532,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     const oldChats = this.client.chats.all()
 
     await this.connect(true)
-    this.connCallback({ status: ConnectionStatus.CONNECTED })
 
     const updates = oldChats.map<ServerEvent>(chat => {
       const chatNew = this.client.chats.get(chat.jid)
