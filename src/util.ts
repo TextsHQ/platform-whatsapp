@@ -17,3 +17,6 @@ export const numberFromJid = (jid: string) =>
 
 export const removeServer = (jid: string) =>
   jid.split('@').shift()
+
+export const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') =>
+  `data:${mimeType};base64,${buff.toString('base64')}`

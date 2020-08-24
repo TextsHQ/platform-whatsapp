@@ -2,7 +2,7 @@ import { WAMessage, MessageType, WAMessageProto, WAMessageContent } from '@adiwa
 import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
-import { whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
+import { getDataURIFromBuffer, whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
@@ -206,15 +206,14 @@ function messageText(message: WAMessageContent) {
   }
   return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
 }
-const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') => `data:${mimeType};base64,${buff.toString('base64')}`
 
 function messageLink(message: WAMessageContent): MessageLink {
   const mess = message?.extendedTextMessage
   if (!mess?.matchedText) return null
-
+  const jpgThumb = mess.jpegThumbnail && Buffer.from(mess.jpegThumbnail)
   return {
     url: mess.matchedText,
-    img: mess.jpegThumbnail ? getDataURIFromBuffer(Buffer.from(mess.jpegThumbnail), 'image/jpeg') : undefined,
+    img: jpgThumb && jpgThumb.length > 0 ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
     title: mess.title,
     summary: mess.description,
   }
