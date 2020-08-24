@@ -4,7 +4,7 @@ import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, WAGroupMetadata, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent } from '@textshq/platform-sdk'
 
-import { mapMessages, mapContact, mapThreads, mapThread, mapThreadProps } from './mappers'
+import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
@@ -389,7 +389,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
 
-    return true
+    return [mapMessage(sentMessage, this.meContact.jid)]
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
