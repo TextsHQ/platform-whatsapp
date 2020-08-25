@@ -128,6 +128,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.loginCallback({ name: 'qr', qr })
       })
       .on('close', ({ reason, isReconnecting }) => {
+        console.log(`got disconnected: ${reason}`)
         if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
         this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
@@ -208,6 +209,10 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
         const chat = this.getChat(update.jid)
         this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThreadProps(chat) }])
+      })
+      .on('connection-phone-change', ({ connected }) => {
+        texts.log(`phone connected: ${connected}`)
+      // show 'phone disconnected' if connected = false
       })
 
     this.client.registerCallback(['action', 'add:update', 'message'], json => {
@@ -394,8 +399,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
-
-    return [mapMessage(sentMessage, this.meContact.jid)]
+    return [
+      mapMessage(sentMessage, this.meContact.jid),
+    ]
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
@@ -516,7 +522,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log(`thread selected: ${jid}`)
     await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
-    if (jid.includes('@c.us')) {
+    if (!isGroupID(jid) && !isBroadcastID(jid)) {
       await this.client.requestPresenceUpdate(jid)
         .catch(err => console.log(`error in presence: ${err}`))
     }
