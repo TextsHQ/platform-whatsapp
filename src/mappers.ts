@@ -251,7 +251,7 @@ function messageStatus(status: number | string) {
 }
 
 export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
-  const sender = whatsappID(message.key.participant || message.participant || message.key.remoteJid)
+  const sender = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
   const { attachments, media } = messageAttachments(message.message, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
@@ -266,7 +266,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     textHeading: messageHeading(message),
     text: isDeleted ? 'This message has been deleted.' : messageText(message.message) || stubBasedMessage,
     timestamp: new Date(timestamp * 1000),
-    senderID: whatsappID(message.key.fromMe ? currentUserID : sender),
+    senderID: sender,
     isSender: message.key.fromMe,
     isDeleted,
     attachments,
