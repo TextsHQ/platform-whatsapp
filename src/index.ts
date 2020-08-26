@@ -48,7 +48,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         await this.connect(!!session)
       } catch (error) {
         texts.log(`failed connect: ${error}`)
-        console.log(error)
+        console.error(error)
         if (error instanceof BaileysError && error.status >= 400) {
           throw new ReAuthError(error.message)
         }
@@ -128,7 +128,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.loginCallback({ name: 'qr', qr })
       })
       .on('close', ({ reason, isReconnecting }) => {
-        console.log(`got disconnected: ${reason}`)
+        texts.log(`got disconnected: ${reason}`)
         if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
         this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
@@ -137,6 +137,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
       .on('open', () => {
         if (this.connCallback) this.connCallback({ status: ConnectionStatus.CONNECTED })
+      })
+      .on('connection-phone-change', ({ connected }) => {
+        texts.log(`phone connected: ${connected}`)
+        this.connCallback({ status: connected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
       })
       .on('message-new', async message => {
         const jid = whatsappID(message.key.remoteJid)
@@ -209,10 +213,6 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
         const chat = this.getChat(update.jid)
         this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThreadProps(chat) }])
-      })
-      .on('connection-phone-change', ({ connected }) => {
-        texts.log(`phone connected: ${connected}`)
-      // show 'phone disconnected' if connected = false
       })
 
     this.client.registerCallback(['action', 'add:update', 'message'], json => {
@@ -524,7 +524,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     // update presence when clicking through
     if (!isGroupID(jid) && !isBroadcastID(jid)) {
       await this.client.requestPresenceUpdate(jid)
-        .catch(err => console.log(`error in presence: ${err}`))
+        .catch(err => console.error(`error in presence: ${err}`))
     }
   }
 
