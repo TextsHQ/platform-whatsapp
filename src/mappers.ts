@@ -1,5 +1,5 @@
-import { WAMessage, MessageType, WAMessageProto, WAMessageContent } from '@adiwajshing/baileys'
-import { Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
+import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate } from '@adiwajshing/baileys'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 import { getDataURIFromBuffer, whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
@@ -293,7 +293,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
   }) || []
   return {
     _original: t,
-    id: t.jid,
+    id: whatsappID(t.jid),
     title: t.name,
     description: t.description,
     imgURL: t.imgUrl,
@@ -328,4 +328,30 @@ export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
 
 export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
   return threads.map(t => mapThread(t, currentUserID))
+}
+
+export function mapPresenceUpdate(update: PresenceUpdate, chat: WACompleteChat, lastActive: Date): ServerEvent[] {
+  const threadID = whatsappID(update.id)
+  const participantID = update.participant ? whatsappID(update.participant) : threadID
+  if ([Presence.available, Presence.unavailable].includes(update.type)) {
+    return [{
+      type: ServerEventType.USER_PRESENCE_UPDATED,
+      presence: {
+        userID: participantID,
+        isActive: chat.isActive,
+        lastActive,
+      },
+    }, { type: ServerEventType.PARTICIPANT_STOPPED_TYPING, threadID, participantID }]
+  }
+  if ([Presence.composing, Presence.recording].includes(update.type)) {
+    return [{
+      type: ServerEventType.PARTICIPANT_TYPING,
+      threadID,
+      participantID,
+      durationMs: 120_000,
+    }]
+  }
+  if (update.type === Presence.paused) {
+    return [{ type: ServerEventType.PARTICIPANT_STOPPED_TYPING, threadID, participantID }]
+  }
 }

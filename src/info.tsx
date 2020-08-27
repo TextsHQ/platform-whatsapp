@@ -38,7 +38,7 @@ setInterval(poll, 50)
     Attribute.SUPPORTS_GROUP_PARTICIPANT_ROLE_CHANGE,
     Attribute.SUBSCRIBE_TO_CONN_STATE_CHANGE,
     Attribute.SUBSCRIBE_TO_THREAD_SELECTION,
-    // Attribute.SUPPORTS_STOP_TYPING_INDICATOR
+    Attribute.SUPPORTS_STOP_TYPING_INDICATOR,
     // Attribute.SUPPORTS_SEARCH,
   ]),
   // mapMessage,

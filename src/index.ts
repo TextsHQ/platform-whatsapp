@@ -1,22 +1,14 @@
-import path from 'path'
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, WAGroupMetadata, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent } from '@textshq/platform-sdk'
 
-import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps } from './mappers'
+import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, stringHasLink } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
-
-const PRESENCE_MAP = {
-  [Presence.available]: ServerEventType.USER_PRESENCE_UPDATED,
-  [Presence.unavailable]: ServerEventType.USER_PRESENCE_UPDATED,
-  [Presence.composing]: ServerEventType.PARTICIPANT_TYPING,
-  [Presence.paused]: ServerEventType.PARTICIPANT_STOPPED_TYPING,
-}
 
 const CONNECT_TIMEOUT_MS = 30_000
 
@@ -165,43 +157,24 @@ export default class WhatsAppAPI implements PlatformAPI {
             }
           })
         }
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: update.to }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: whatsappID(update.to) }])
       })
       .on('user-presence-update', update => {
         texts.log('presence update: ' + JSON.stringify(update))
-        if (isGroupID(update.id) || isBroadcastID(update.id)) return
+        if (isBroadcastID(update.id)) return
 
-        let participantID = update.participant
-        if (!participantID && !isGroupID(update.id)) participantID = update.id
-        if (!participantID) return
-
-        participantID = whatsappID(participantID)
-
-        const updateType = PRESENCE_MAP[update.type]
-        if (!updateType) return
-
-        const chat = this.getChat(participantID)
+        const chat = this.getChat(whatsappID(update.id))
         if (!chat) return
 
         let lastActive = new Date()
-        if (update.type === Presence.available) chat.isActive = true
-        else if (chat.isActive && update.type === Presence.unavailable) chat.isActive = false
-        else if (update.t) lastActive = new Date((+update.t) * 1000)
-        else lastActive = null
+        if (!isGroupID(update.id)) {
+          if (update.type === Presence.available) chat.isActive = true
+          else if (chat.isActive && update.type === Presence.unavailable) chat.isActive = false
+          else if (update.t) lastActive = new Date((+update.t) * 1000)
+          else lastActive = null
+        }
 
-        this.evCallback([
-          {
-            type: updateType,
-            threadID: update.id,
-            participantID,
-            durationMs: 3000,
-            presence: {
-              userID: participantID,
-              isActive: chat.isActive,
-              lastActive,
-            },
-          },
-        ])
+        this.evCallback(mapPresenceUpdate(update, chat, lastActive))
       })
       .on('chat-update', async update => {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
@@ -436,7 +409,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
     texts.log('send typing: ' + typing + ' to ' + threadID)
-    if (typing) await this.client.updatePresence(threadID, Presence.composing)
+    await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.available)
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {
