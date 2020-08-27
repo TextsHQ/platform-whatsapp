@@ -1,7 +1,7 @@
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { whatsappID, isGroupID, isBroadcastID, numberFromJid, stringHasLink } from './util'
@@ -13,48 +13,31 @@ const THREAD_PAGE_SIZE = 30
 const CONNECT_TIMEOUT_MS = 30_000
 
 export default class WhatsAppAPI implements PlatformAPI {
-  client = new WAConnection()
+  private client = new WAConnection()
 
-  evCallback: OnServerEventCallback = () => {}
+  private evCallback: OnServerEventCallback = () => {}
 
-  connCallback: OnConnStateChangeCallback = () => {}
+  private connCallback: OnConnStateChangeCallback = () => {}
 
-  meContact: WACompleteContact
+  private meContact: WACompleteContact
 
-  isActive = true
+  private phoneConnected: boolean
 
   init = async (session?: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
 
-    this.isActive = true
-
     this.registerCallbacks()
 
     if (!session) return
 
-    this.restoreSession(session)
-
-    try {
-      await this.connect()
-    } catch (error) {
-      texts.log(`failed connect: ${error}`)
-      console.error(error)
-      if (error instanceof BaileysError && error.status === 401) {
-        throw new ReAuthError(error.message)
-      }
-    }
-  }
-
-  restoreSession = (session?: any) => {
-    if (!session) return
-    texts.log('restoring session')
     this.client.loadAuthInfo(session)
+
+    await this.connect()
   }
 
   dispose = () => {
-    this.isActive = false
     this.client.close()
   }
 
@@ -68,13 +51,24 @@ export default class WhatsAppAPI implements PlatformAPI {
     return { type: 'success' }
   }
 
-  logout = async () => { await this.client.logout() }
+  logout = async () => {
+    await this.client.logout()
+  }
 
   private connect = async () => {
     texts.log('began connect')
 
-    await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
-    this.connCallback({ status: ConnectionStatus.CONNECTED })
+    try {
+      await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
+      this.connCallback({ status: ConnectionStatus.CONNECTED })
+    } catch (error) {
+      texts.log('connect failed:', error)
+      console.error('connect failed:', error)
+      if (error instanceof BaileysError) {
+        if (error.status === 401) throw new ReAuthError(error.message)
+        else if (error.message === 'timed out') throw new ConnectionError('Connection timed out')
+      } else throw error
+    }
 
     this.meContact = {
       jid: whatsappID(this.client.user.id),
@@ -88,6 +82,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
+    if (!this.meContact) return
     return {
       id: whatsappID(this.meContact.jid),
       fullName: this.meContact.name,
@@ -107,10 +102,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connCallback = onEvent
   }
 
-  unsubscribeToEvents = () => {
-    this.evCallback = () => {}
-  }
-
   private registerCallbacks = async () => {
     this.client
       .on('close', ({ reason, isReconnecting }) => {
@@ -119,13 +110,14 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
       .on('connecting', () => {
-        if (this.connCallback) this.connCallback({ status: ConnectionStatus.CONNECTING })
+        this.connCallback({ status: ConnectionStatus.CONNECTING })
       })
       .on('open', () => {
-        if (this.connCallback) this.connCallback({ status: ConnectionStatus.CONNECTED })
+        this.connCallback({ status: ConnectionStatus.CONNECTED })
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
+        this.phoneConnected = connected
         this.connCallback({ status: connected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
       })
       .on('message-new', async message => {
