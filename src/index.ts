@@ -66,7 +66,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       console.error('connect failed:', error)
       if (error instanceof BaileysError) {
         if (error.status === 401) throw new ReAuthError(error.message)
-        else if (error.message === 'timed out') throw new ConnectionError('Connection timed out')
+        else if (error.message === 'timed out') throw new ConnectionError('Connection timed out. Make sure your phone is connected to the internet')
       } else throw error
     }
 
