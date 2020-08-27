@@ -29,7 +29,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loginCallback: Function
 
-  meContact?: WACompleteContact
+  meContact: WACompleteContact
 
   isActive = true
 
