@@ -1,6 +1,6 @@
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, WAGroupMetadata, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
@@ -329,7 +329,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     } else content = { text: mContent.text } as WATextMessage
 
-    threadID = whatsappID(threadID)
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
 
     let chat = this.getChat(threadID)
@@ -361,9 +360,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       ops.mimetype = mimeType || 'application/octet-stream'
     }
 
-    threadID = whatsappID(threadID)
     const sentMessage = await this.client.sendMessage(threadID, content, messageType, ops)
-    if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
+    if (threadID === whatsappID(this.meContact.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
@@ -373,16 +371,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
     const loaded = await this.client.loadMessage(threadID, messageID)
-    await bluebird.map(threadIDs, async threadID => {
-      threadID = threadID.replace('@c.us', '@s.whatsapp.net')
-      await this.client.forwardMessage(threadID, loaded)
-    })
+    await bluebird.map(threadIDs, tid => this.client.forwardMessage(whatsappID(tid), loaded))
     return true
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    threadID = whatsappID(threadID)
-
     texts.log(`deleting message: ${messageID} in ${threadID}`)
 
     const message = await this.client.loadMessage(threadID, messageID)
@@ -393,7 +386,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   markAsUnread = async (threadID: string) => {
-    threadID = whatsappID(threadID)
     const chat = this.getChat(threadID)
     if (!chat) {
       texts.log(`Warning: the chat ${threadID} does not exist, cannot be unread`)
@@ -403,13 +395,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendReadReceipt = async (threadID: string) => {
-    threadID = whatsappID(threadID)
     await this.client.sendReadReceipt(threadID)
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
-    texts.log('send typing: ' + typing + ' to ' + threadID)
-    await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.available)
+    texts.log('send typing:', typing, 'to', threadID, typing)
+    await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.paused)
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {
@@ -485,7 +476,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('set unavailable')
       return
     }
-    const jid = whatsappID(threadID)
+    const jid = threadID
     texts.log(`thread selected: ${jid}`)
     await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through

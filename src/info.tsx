@@ -27,7 +27,6 @@ setInterval(poll, 50)
   supportedReactions: {},
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
   maxGroupTitleLength: 25,
-  typingDurationMs: 10000,
   attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_FORWARD,
