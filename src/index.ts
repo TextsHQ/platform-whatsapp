@@ -27,8 +27,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   connCallback: OnConnStateChangeCallback = () => {}
 
-  loginCallback: Function
-
   meContact: WACompleteContact
 
   isActive = true
@@ -40,20 +38,21 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.isActive = true
 
-    this.restoreSession(session)
     this.registerCallbacks()
 
-    if (session) {
-      try {
-        await this.connect(!!session)
-      } catch (error) {
-        texts.log(`failed connect: ${error}`)
-        console.error(error)
-        if (error instanceof BaileysError && error.status >= 400) {
-          throw new ReAuthError(error.message)
-        }
+    if (!session) return
+
+    this.restoreSession(session)
+
+    try {
+      await this.connect()
+    } catch (error) {
+      texts.log(`failed connect: ${error}`)
+      console.error(error)
+      if (error instanceof BaileysError && error.status >= 400) {
+        throw new ReAuthError(error.message)
       }
-    } else this.connect(!!session)
+    }
   }
 
   restoreSession = (session?: any) => {
@@ -67,11 +66,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.close()
   }
 
-  login = async (): Promise<LoginResult> => ({ type: 'success' })
+  login = async ({ jsCodeResult }): Promise<LoginResult> => {
+    texts.log('jsCodeResult', jsCodeResult)
+    if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
+    const ls = JSON.parse(jsCodeResult)
+    if (!('WASecretBundle' in ls)) return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
+    this.client.loadAuthInfo(ls)
+    await this.connect()
+    return { type: 'success' }
+  }
 
   logout = async () => { await this.client.logout() }
 
-  connect = async (hasSession: boolean) => {
+  private connect = async () => {
     texts.log('began connect')
 
     await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
@@ -85,11 +92,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.contacts[this.meContact.jid] = this.meContact
 
     texts.log('connected successfully')
-
-    if (!hasSession) {
-      await this.waitForLoginCallback()
-      this.loginCallback({ name: 'ready' })
-    }
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
@@ -117,16 +119,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.evCallback = () => {}
   }
 
-  onLoginEvent = (onEvent: Function) => {
-    this.loginCallback = onEvent
-  }
-
-  registerCallbacks = async () => {
+  private registerCallbacks = async () => {
     this.client
-      .on('qr', async qr => {
-        await this.waitForLoginCallback()
-        this.loginCallback({ name: 'qr', qr })
-      })
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
         if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
@@ -534,16 +528,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('took over')
   }
 
-  private waitForLoginCallback = async () => {
-    while (!this.loginCallback) {
-      await bluebird.delay(10)
-    }
-  }
-
   private reconnect = async () => {
     const oldChats = this.client.chats.all()
 
-    await this.connect(true)
+    await this.connect()
 
     const updates = oldChats.map<ServerEvent>(chat => {
       const chatNew = this.client.chats.get(chat.jid)

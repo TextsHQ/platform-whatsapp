@@ -19,7 +19,6 @@
     "@adiwajshing/baileys": "github:adiwajshing/baileys",
     "@adiwajshing/keyed-db": "github:adiwajshing/keyed-db",
     "bluebird": "^3.7.2",
-    "qrcode.react": "^1.0.0",
     "react": "^16.13.1"
   },
   "peerDependencies": {
@@ -29,7 +28,6 @@
     "@textshq/eslint-config": "github:textshq/eslint-config",
     "@textshq/platform-sdk": "github:textshq/platform-sdk",
     "@types/bluebird": "^3.5.32",
-    "@types/qrcode.react": "^1.0.1",
     "eslint": "^7.7.0",
     "husky": "^4.2.5",
     "typescript": "^4.0.2"
