@@ -49,7 +49,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log(`failed connect: ${error}`)
       console.error(error)
-      if (error instanceof BaileysError && error.status >= 400) {
+      if (error instanceof BaileysError && error.status === 401) {
         throw new ReAuthError(error.message)
       }
     }
