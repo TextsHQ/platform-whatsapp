@@ -84,7 +84,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('requested user data')
     if (!this.meContact) return
     return {
-      id: whatsappID(this.meContact.jid),
+      id: this.meContact.jid,
       fullName: this.meContact.name,
       displayText: numberFromJid(this.meContact.jid),
       phoneNumber: numberFromJid(this.meContact.jid),
@@ -254,7 +254,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('requested thread data, page: ' + beforeCursor)
 
-    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, parseInt(beforeCursor))
+    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor)
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
 
     chats.forEach(chat => {
@@ -266,7 +266,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return {
       items,
       hasMore: chats.length >= THREAD_PAGE_SIZE,
-      oldestCursor: cursor.toString(),
+      oldestCursor: cursor ? String(cursor) : undefined,
     }
   }
 
