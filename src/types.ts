@@ -13,5 +13,5 @@ export interface WACompleteChat extends WAChat {
 }
 
 export interface WACompleteContact extends WAContact {
-  imgURL?: string
+  imgUrl?: string
 }

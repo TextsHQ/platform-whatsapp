@@ -1,8 +1,8 @@
-import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate, whatsappID, isGroupID } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
-import { getDataURIFromBuffer, whatsappID, isGroupID, isBroadcastID, numberFromJid, removeServer } from './util'
+import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from './util'
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
@@ -86,7 +86,7 @@ export function mapContact(contact: WACompleteContact): Participant {
     id: whatsappID(contact.jid),
     fullName: contact.name || contact.notify,
     phoneNumber: numberFromJid(contact.jid),
-    imgURL: contact.imgURL,
+    imgURL: contact.imgUrl,
   }
 }
 function messageAction(message: WAMessage): Action {
