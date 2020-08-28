@@ -245,10 +245,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor)
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
 
-    chats.forEach(chat => {
-      if (!chat.name) texts.log('!chat.name', JSON.stringify(chat))
-    })
-
     const items = mapThreads(chats as WACompleteChat[], this.meContact().jid)
 
     return {
