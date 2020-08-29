@@ -10,7 +10,7 @@ import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
-const CONNECT_TIMEOUT_MS = null// 45_000
+const CONNECT_TIMEOUT_MS = 30_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client = new WAConnection()
