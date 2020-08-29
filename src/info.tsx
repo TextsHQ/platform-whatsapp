@@ -1,6 +1,8 @@
 import React from 'react'
 import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
 
+import { mapMessage } from './mappers'
+
 const info: Platform = {
   name: 'whatsapp-baileys',
   version: '0.2.4',
@@ -40,7 +42,7 @@ setInterval(poll, 50)
     Attribute.SUPPORTS_STOP_TYPING_INDICATOR,
     // Attribute.SUPPORTS_SEARCH,
   ]),
-  // mapMessage,
+  mapMessage,
 }
 
 export default info
