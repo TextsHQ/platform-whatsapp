@@ -10,7 +10,7 @@ import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
-const CONNECT_TIMEOUT_MS = 30_000
+const CONNECT_TIMEOUT_MS = null// 45_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client = new WAConnection()
@@ -120,6 +120,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         const jid = whatsappID(message.key.remoteJid)
         texts.log('received message: ' + jid)
         if (jid === 'status@broadcast') return
+
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
       })
       .on('message-status-update', async update => {
@@ -250,7 +251,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return {
       items,
       hasMore: chats.length >= THREAD_PAGE_SIZE,
-      oldestCursor: cursor ? String(cursor) : undefined,
+      oldestCursor: cursor?.toString(),
     }
   }
 
@@ -488,8 +489,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
     texts.log(`modifying thread ${threadID} ${key}: ${value}`)
+
+    threadID = whatsappID(threadID)
     const chat = this.client.chats.get(threadID)
-    if (!chat) throw new Error('thread not found')
+    if (!chat) throw new Error(`thread '${threadID}' not found`)
 
     if ((key in chat) === value) return // already done, nothing to do
     const mod = (value ? key : ('un' + key)) as ChatModification
