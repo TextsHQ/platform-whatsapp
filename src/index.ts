@@ -1,6 +1,6 @@
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, WAChat } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
@@ -20,6 +20,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private connCallback: OnConnStateChangeCallback = () => {}
 
   loginCallback: Function
+
+  hadFirstConnect = false
 
   contacts: { [k: string]: WACompleteContact } = {}
 
@@ -63,7 +65,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.connCallback({ status: ConnectionStatus.CONNECTED })
     } catch (error) {
       texts.log('connect failed:', error)
-      console.error('connect failed:', error)
       if (error instanceof BaileysError) {
         if (error.status === 401) throw new ReAuthError(error.message)
         else if (error.message === 'timed out') throw new ConnectionError('Connection timed out. Make sure your phone is connected to the internet')
@@ -72,6 +73,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.contacts[this.client.user.jid] = this.client.user
 
+    this.hadFirstConnect = true
     texts.log('connected successfully')
   }
 
@@ -100,9 +102,18 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
+    // track old chats for when a reconnect occurs,
+    // we can check if new chats or messages were added
+    let oldChats: {[k: string]: WAChat} = {}
+
     this.client
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
+
+        // record old chats
+        oldChats = {}
+        this.client.chats.all().forEach(c => oldChats[c.jid] = c)
+
         if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
         this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
@@ -111,6 +122,27 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
       .on('open', () => {
         this.connCallback({ status: ConnectionStatus.CONNECTED })
+
+        // if this is a reconnect, update the chats
+        if (this.hadFirstConnect) {
+          const updates = Object.values(oldChats).map<ServerEvent>(chat => {
+            const chatNew = this.client.chats.get(chat.jid)
+            if (chatNew) {
+              const lastMessage = chat.messages.slice(-1)[0]
+              const lastMessage2 = chatNew.messages.slice(-1)[0]
+              if (chat.modify_tag !== chatNew.modify_tag || lastMessage?.key.id !== lastMessage2?.key.id) {
+                return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
+              }
+            }
+          })
+          const newChats = this.client.chats.all()
+            .filter(c => !oldChats[c.jid])
+            .map<ServerEvent>(c => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: c.jid }))
+          updates.push(...newChats)
+
+          texts.log(`got ${updates.length} updated/new chats while disconnected`)
+          this.evCallback(updates.filter(Boolean))
+        }
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
@@ -223,6 +255,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       messages: [],
       name,
     }
+
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(name, userIDs)
       chat.jid = meta.gid
@@ -232,7 +265,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.jid = whatsappID(userIDs[0])
       chat.participants = [await this.contactForJid(userIDs[0]), this.meContact()]
       chat.imgUrl = chat.participants[0].imgUrl
-      this.client.chats.insert(chat)
     } else throw new Error('no users provided')
 
     return mapThread(chat, this.meContact().jid)
@@ -245,6 +277,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor)
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
+    chats = chats.filter(c => c.jid !== STORIES_JID)
 
     const items = mapThreads(chats as WACompleteChat[], this.meContact().jid)
 
@@ -303,17 +336,11 @@ export default class WhatsAppAPI implements PlatformAPI {
         content = await this.client.generateLinkPreview(mContent.text)
       } catch (error) {
         texts.log('failed to get link preview: ' + error)
+        content = { text: mContent.text } as WATextMessage
       }
     } else content = { text: mContent.text } as WATextMessage
 
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
-
-    let chat = this.getChat(threadID)
-    if (!chat) {
-      if (isGroupID(threadID)) throw new Error(`group ${threadID} not found!`)
-      await this.createThread([threadID], null)
-      chat = this.getChat(threadID)
-    }
 
     const ops: MessageOptions = {
       filename: mContent.fileName,
@@ -465,26 +492,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   takeoverConflict = async () => {
     texts.log('taking over again')
-    await this.reconnect()
-    texts.log('took over')
-  }
-
-  private reconnect = async () => {
-    const oldChats = this.client.chats.all()
-
     await this.connect()
-
-    const updates = oldChats.map<ServerEvent>(chat => {
-      const chatNew = this.client.chats.get(chat.jid)
-      if (chatNew) {
-        const lastMessage = chat.messages.slice(-1)[0]
-        const lastMessage2 = chatNew.messages.slice(-1)[0]
-        if (chat.modify_tag !== chatNew.modify_tag || lastMessage?.key.id !== lastMessage2?.key.id) {
-          return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
-        }
-      }
-    })
-    this.evCallback(updates.filter(Boolean))
+    texts.log('took over')
   }
 
   private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
@@ -525,7 +534,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
       chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
       chat.creationDate = new Date(+meta.creation * 1000)
-      chat.name = meta.subject
+      chat.name = meta.subject || chat.name
 
       if (!chat.read_only) {
         // texts.log (`restrict: ${!meta['restrict'] || chat.admins.has (this.meContact.jid)}`)
