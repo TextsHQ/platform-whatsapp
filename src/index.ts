@@ -25,12 +25,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   hadFirstConnect = false
 
-  contacts: { [k: string]: WACompleteContact } = {}
-
   init = async (session?: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
+    this.client.connectOptions.maxRetries = 5
+    this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
 
     this.registerCallbacks()
 
@@ -72,7 +72,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('began connect')
 
     try {
-      await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
+      await this.client.connect()
       this.setConnStatus({ status: ConnectionStatus.CONNECTED })
     } catch (error) {
       texts.log('connect failed:', error)
@@ -82,7 +82,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       } else throw error
     }
 
-    this.contacts[this.client.user.jid] = this.client.user
+    this.client.contacts[this.client.user.jid] = this.client.user
 
     this.hadFirstConnect = true
     texts.log('connected successfully')
@@ -90,7 +90,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
-    const meContact = this.meContact()
+    const meContact = this.meContact() as WACompleteContact
     return {
       id: meContact.jid,
       fullName: meContact.name,
@@ -100,7 +100,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  meContact = () => this.contacts[this.client.user.jid]
+  meContact = () => this.client.contacts[this.client.user.jid]
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
 
@@ -218,16 +218,13 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (!this.getChat(jid)) return
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
       })
-      .on('contacts-received', contacts => {
-        this.contacts = { ...this.contacts, ...contacts }
-      })
   }
 
   searchUsers = async (typed: string) => {
     texts.log('searching users ' + typed)
     const typedLower = typed.toLowerCase()
     const results: Participant[] = []
-    await bluebird.map(Object.values(this.contacts), async (c: WACompleteContact) => {
+    await bluebird.map(Object.values(this.client.contacts), async (c: WACompleteContact) => {
       if (isGroupID(c.jid) || isBroadcastID(c.jid)) return
       if (!c.name?.toLowerCase().includes(typedLower) && !c.notify?.toLowerCase().includes(typedLower)) return
 
@@ -521,7 +518,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private contactForJid = async (jid: string) => {
     jid = whatsappID(jid)
-    const contact = (this.contacts[jid] || { jid }) as WACompleteContact
+    const contact = (this.client.contacts[jid] || { jid }) as WACompleteContact
     if (!contact.imgUrl) contact.imgUrl = await this.client.getProfilePicture(jid).catch(() => '')
     return contact
   }
