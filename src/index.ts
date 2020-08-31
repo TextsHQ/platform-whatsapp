@@ -25,11 +25,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   hadFirstConnect = false
 
-  init = async (session?: any) => {
+  init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
-    this.client.connectOptions.maxRetries = 5
+    this.client.connectOptions.maxRetries = Infinity
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
 
     this.registerCallbacks()
