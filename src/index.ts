@@ -41,11 +41,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.connect()
   }
 
+  private connStatusTimeout: NodeJS.Timeout = null
+
   dispose = () => {
     this.client.close()
+    clearTimeout(this.connStatusTimeout)
   }
-
-  private connStatusTimeout: NodeJS.Timeout = null
 
   private setConnStatus = (state: ConnectionState) => {
     clearTimeout(this.connStatusTimeout)
