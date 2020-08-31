@@ -1,7 +1,7 @@
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, WAChat } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { isBroadcastID, numberFromJid, stringHasLink } from './util'
@@ -11,6 +11,8 @@ const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
 const CONNECT_TIMEOUT_MS = 30_000
+
+const DELAY_CONN_STATUS_CHANGE = 5_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client = new WAConnection()
@@ -43,6 +45,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.close()
   }
 
+  private connStatusTimeout: NodeJS.Timeout = null
+
+  private setConnStatus = (state: ConnectionState) => {
+    clearTimeout(this.connStatusTimeout)
+    this.connStatusTimeout = setTimeout(() => {
+      this.connCallback(state)
+    }, [ConnectionStatus.CONNECTED].includes(state.status) ? 0 : DELAY_CONN_STATUS_CHANGE)
+  }
+
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
     texts.log('jsCodeResult', jsCodeResult)
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
@@ -62,7 +73,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     try {
       await this.client.connect({ timeoutMs: CONNECT_TIMEOUT_MS })
-      this.connCallback({ status: ConnectionStatus.CONNECTED })
+      this.setConnStatus({ status: ConnectionStatus.CONNECTED })
     } catch (error) {
       texts.log('connect failed:', error)
       if (error instanceof BaileysError) {
@@ -114,14 +125,14 @@ export default class WhatsAppAPI implements PlatformAPI {
         oldChats = {}
         this.client.chats.all().forEach(c => oldChats[c.jid] = c)
 
-        if (reason === 'replaced') return this.connCallback({ status: ConnectionStatus.CONFLICT })
-        this.connCallback({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
+        if (reason === 'replaced') return this.setConnStatus({ status: ConnectionStatus.CONFLICT })
+        this.setConnStatus({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
       .on('connecting', () => {
-        this.connCallback({ status: ConnectionStatus.CONNECTING })
+        this.setConnStatus({ status: ConnectionStatus.CONNECTING })
       })
       .on('open', () => {
-        this.connCallback({ status: ConnectionStatus.CONNECTED })
+        this.setConnStatus({ status: ConnectionStatus.CONNECTED })
 
         // if this is a reconnect, update the chats
         if (this.hadFirstConnect) {
@@ -146,7 +157,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
-        this.connCallback({ status: connected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
+        this.setConnStatus({ status: connected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
       })
       .on('message-new', async message => {
         const jid = whatsappID(message.key.remoteJid)
