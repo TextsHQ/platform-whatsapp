@@ -48,11 +48,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     clearTimeout(this.connStatusTimeout)
   }
 
-  private setConnStatus = (state: ConnectionState) => {
+  private setConnStatus = (state: ConnectionState, immediate = false) => {
     clearTimeout(this.connStatusTimeout)
-    this.connStatusTimeout = setTimeout(() => {
-      this.connCallback(state)
-    }, [ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status) ? 0 : DELAY_CONN_STATUS_CHANGE)
+    const delay = ([ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status) || immediate) ? 0 : DELAY_CONN_STATUS_CHANGE
+    this.connStatusTimeout = setTimeout(() => this.connCallback(state), delay)
   }
 
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
@@ -501,6 +500,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   takeoverConflict = async () => {
     texts.log('taking over again')
+    this.setConnStatus({ status: ConnectionStatus.CONNECTING }, true)
     await this.connect()
     texts.log('took over')
   }
