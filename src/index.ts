@@ -51,7 +51,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     clearTimeout(this.connStatusTimeout)
     this.connStatusTimeout = setTimeout(() => {
       this.connCallback(state)
-    }, [ConnectionStatus.CONNECTED].includes(state.status) ? 0 : DELAY_CONN_STATUS_CHANGE)
+    }, [ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status) ? 0 : DELAY_CONN_STATUS_CHANGE)
   }
 
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
