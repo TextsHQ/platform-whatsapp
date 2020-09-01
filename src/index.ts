@@ -142,19 +142,22 @@ export default class WhatsAppAPI implements PlatformAPI {
           const updates = Object.values(oldChats).map<ServerEvent>(chat => {
             const chatNew = this.client.chats.get(chat.jid)
             if (chatNew) {
-              const lastMessage = chat.messages.slice(-1)[0]
-              const lastMessage2 = chatNew.messages.slice(-1)[0]
-              if (chat.modify_tag !== chatNew.modify_tag || lastMessage?.key.id !== lastMessage2?.key.id) {
+              if (chat.modify_tag !== chatNew.modify_tag || chat.t !== chatNew.t) {
+                console.log(`${chat.modify_tag}, ${chatNew.modify_tag}`)
                 return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
               }
             }
           })
+            .filter(Boolean)
+
+          texts.log(`got ${updates.length} updated chats while disconnected`)
           const newChats = this.client.chats.all()
             .filter(c => !oldChats[c.jid])
             .map<ServerEvent>(c => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: c.jid }))
+
+          texts.log(`got ${newChats.length} new chats while disconnected`)
           updates.push(...newChats)
 
-          texts.log(`got ${updates.length} updated/new chats while disconnected`)
           this.evCallback(updates.filter(Boolean))
         }
       })
