@@ -1,6 +1,6 @@
 import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, WAChat } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, WAChat, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
@@ -77,9 +77,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       if (error instanceof BaileysError) {
-        if (error.status === 401) throw new ReAuthError(error.message)
+        if (UNAUTHORIZED_CODES.includes(error.status)) throw new ReAuthError(error.message)
         else if (error.message === 'timed out') throw new ConnectionError('Connection timed out. Make sure your phone is connected to the internet')
-      } else throw error
+      }
+      throw error
     }
 
     this.client.contacts[this.client.user.jid] = this.client.user
@@ -91,6 +92,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
     const meContact = this.meContact() as WACompleteContact
+    if (!meContact) throw new Error(`unexpectedly called when state is ${this.client.state}`)
+
     return {
       id: meContact.jid,
       fullName: meContact.name,
@@ -100,7 +103,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  meContact = () => this.client.contacts[this.client.user.jid]
+  meContact = () => this.client.user
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
 
@@ -398,16 +401,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   markAsUnread = async (threadID: string) => {
-    const chat = this.getChat(threadID)
-    if (!chat) {
-      texts.log(`Warning: the chat ${threadID} does not exist, cannot be unread`)
-      return
-    }
-    await this.client.sendReadReceipt(threadID, null, -2)
+    await this.client.chatRead(threadID, 'unread')
   }
 
   sendReadReceipt = async (threadID: string) => {
-    await this.client.sendReadReceipt(threadID)
+    await this.client.chatRead(threadID, 'read')
   }
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {

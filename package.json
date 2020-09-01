@@ -28,7 +28,7 @@
     "@textshq/eslint-config": "github:textshq/eslint-config",
     "@textshq/platform-sdk": "github:textshq/platform-sdk",
     "@types/bluebird": "^3.5.32",
-    "eslint": "^7.7.0",
+    "eslint": "^7.8.0",
     "husky": "^4.2.5",
     "typescript": "^4.0.2"
   }
