@@ -16,17 +16,16 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "dependencies": {
-    "@adiwajshing/baileys": "github:adiwajshing/baileys",
-    "@adiwajshing/keyed-db": "github:adiwajshing/keyed-db",
+    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys",
     "bluebird": "^3.7.2",
     "react": "^16.13.1"
   },
   "peerDependencies": {
-    "@textshq/platform-sdk": "github:textshq/platform-sdk"
+    "@textshq/platform-sdk": "git+https://github.com/textshq/platform-sdk"
   },
   "devDependencies": {
-    "@textshq/eslint-config": "github:textshq/eslint-config",
-    "@textshq/platform-sdk": "github:textshq/platform-sdk",
+    "@textshq/eslint-config": "git+https://github.com/textshq/eslint-config",
+    "@textshq/platform-sdk": "git+https://github.com/textshq/platform-sdk",
     "@types/bluebird": "^3.5.32",
     "eslint": "^7.8.0",
     "husky": "^4.2.5",

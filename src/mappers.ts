@@ -297,7 +297,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     title: t.name,
     description: t.description,
     imgURL: t.imgUrl,
-    isUnread: t.count !== 0,
+    isUnread: !!t.count,
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
     messages: mapMessages(t.messages, currentUserID),
