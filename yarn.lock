@@ -2,9 +2,9 @@
 # yarn lockfile v1
 
 
-"@adiwajshing/baileys@git+https://github.com/adiwajshing/baileys":
+"@adiwajshing/baileys@https://github.com/adiwajshing/baileys":
   version "3.0.0"
-  resolved "git+https://github.com/adiwajshing/baileys#95a243fbc6b2a7cc1d3f54b27f242028129d7915"
+  resolved "https://github.com/adiwajshing/baileys#f12551ba181e2bd2433fd7f0cb60b272f8b03412"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.2"
     curve25519-js "^0.0.4"
@@ -485,9 +485,9 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
-"@textshq/eslint-config@git+https://github.com/textshq/eslint-config":
+"@textshq/eslint-config@https://github.com/textshq/eslint-config":
   version "1.0.4"
-  resolved "git+https://github.com/textshq/eslint-config#1b33863c14866a6979f4359f8b6b0842b859ce2a"
+  resolved "https://github.com/textshq/eslint-config#19a96ccb8973db36ce49947b6afebd09af5d3df1"
   dependencies:
     "@typescript-eslint/eslint-plugin" "^3"
     babel-eslint "^10"
@@ -499,9 +499,9 @@
     eslint-plugin-react "^7"
     eslint-plugin-react-hooks "^4"
 
-"@textshq/platform-sdk@git+https://github.com/textshq/platform-sdk":
+"@textshq/platform-sdk@https://github.com/textshq/platform-sdk":
   version "0.4.4"
-  resolved "git+https://github.com/textshq/platform-sdk#011e3ffa247939b8a6eba451659d2746209c7c76"
+  resolved "https://github.com/textshq/platform-sdk#7706ef654850c224994446c3c107e99f566e8b10"
   dependencies:
     "@types/node" "^14.0.23"
     "@types/react" "^16.9.43"
