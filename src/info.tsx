@@ -20,11 +20,11 @@ const info: Platform = {
     windowHeight: 550,
     runJSOnClose: 'JSON.stringify(localStorage)',
     runJSOnLaunch: `
-              function poll() {
-              if (localStorage.getItem('WASecretBundle')) setTimeout(() => window.close(), 100)
-              }
-              setInterval(poll, 50)
-              `,
+      function poll() {
+      if (localStorage.getItem('WASecretBundle')) setTimeout(() => window.close(), 100)
+      }
+      setInterval(poll, 50)
+    `,
   },
   supportedReactions: {},
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,

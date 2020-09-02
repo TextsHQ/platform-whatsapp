@@ -501,7 +501,7 @@
 
 "@textshq/platform-sdk@git+https://github.com/textshq/platform-sdk":
   version "0.4.4"
-  resolved "git+https://github.com/textshq/platform-sdk#9f81577f372f11aebe4ba5eb1f1b327109141dd1"
+  resolved "git+https://github.com/textshq/platform-sdk#011e3ffa247939b8a6eba451659d2746209c7c76"
   dependencies:
     "@types/node" "^14.0.23"
     "@types/react" "^16.9.43"

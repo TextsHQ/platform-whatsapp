@@ -3,29 +3,30 @@
   "version": "0.2.5",
   "main": "dist/index.js",
   "scripts": {
-    "prepare": "npm run build",
+    "prepare": "tsc",
+    "postinstall": "tsc",
     "build": "tsc",
     "lint": "eslint src --ext ts,tsx,js,jsx --cache"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run lint -- --fix || true; git add ."
+      "pre-commit": "yarn lint --fix || true; git add ."
     }
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   },
   "dependencies": {
-    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys",
+    "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys",
     "bluebird": "^3.7.2",
     "react": "^16.13.1"
   },
   "peerDependencies": {
-    "@textshq/platform-sdk": "git+https://github.com/textshq/platform-sdk"
+    "@textshq/platform-sdk": "https://github.com/textshq/platform-sdk"
   },
   "devDependencies": {
-    "@textshq/eslint-config": "git+https://github.com/textshq/eslint-config",
-    "@textshq/platform-sdk": "git+https://github.com/textshq/platform-sdk",
+    "@textshq/eslint-config": "https://github.com/textshq/eslint-config",
+    "@textshq/platform-sdk": "https://github.com/textshq/platform-sdk",
     "@types/bluebird": "^3.5.32",
     "eslint": "^7.8.0",
     "husky": "^4.2.5",

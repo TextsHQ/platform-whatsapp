@@ -12,7 +12,7 @@ const THREAD_PAGE_SIZE = 30
 
 const CONNECT_TIMEOUT_MS = 30_000
 
-const DELAY_CONN_STATUS_CHANGE = 5_000
+const DELAY_CONN_STATUS_CHANGE = 10_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client = new WAConnection()
@@ -43,6 +43,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connStatusTimeout: NodeJS.Timeout = null
 
+  private lastConnStatus: ConnectionStatus = null
+
   dispose = () => {
     this.client.close()
     clearTimeout(this.connStatusTimeout)
@@ -50,8 +52,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private setConnStatus = (state: ConnectionState, immediate = false) => {
     clearTimeout(this.connStatusTimeout)
-    const delay = ([ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status) || immediate) ? 0 : DELAY_CONN_STATUS_CHANGE
-    this.connStatusTimeout = setTimeout(() => this.connCallback(state), delay)
+    const delay = (
+      immediate
+      || [ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status)
+      || [ConnectionStatus.DISCONNECTED, ConnectionStatus.CONFLICT].includes(this.lastConnStatus)
+    ) ? 0 : DELAY_CONN_STATUS_CHANGE
+    this.connStatusTimeout = setTimeout(() => {
+      this.lastConnStatus = state.status
+      this.connCallback(state)
+    }, delay)
   }
 
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
@@ -426,7 +435,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('changing profile picture of ' + threadID)
 
     const chat = this.getChat(threadID)
-    if (!chat) new Error(`chat ${threadID} not present`)
+    if (!chat) new Error('chat not present')
 
     await this.client.updateProfilePicture(threadID, imageBuffer)
   }
@@ -501,7 +510,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   takeoverConflict = async () => {
     texts.log('taking over again')
-    this.setConnStatus({ status: ConnectionStatus.CONNECTING }, true)
+    this.setConnStatus({ status: ConnectionStatus.CONNECTING })
     await this.connect()
     texts.log('took over')
   }
