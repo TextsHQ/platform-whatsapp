@@ -214,6 +214,10 @@ function messageLink(message: WAMessageContent): MessageLink {
   return {
     url: mess.matchedText,
     img: jpgThumb && jpgThumb.length > 0 ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
+    imgSize: {
+      width: 90,
+      height: 90,
+    },
     title: mess.title,
     summary: mess.description,
   }

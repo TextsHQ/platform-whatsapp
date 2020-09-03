@@ -501,7 +501,7 @@
 
 "@textshq/platform-sdk@https://github.com/textshq/platform-sdk":
   version "0.4.4"
-  resolved "https://github.com/textshq/platform-sdk#7706ef654850c224994446c3c107e99f566e8b10"
+  resolved "https://github.com/textshq/platform-sdk#84541af6603ec1281e9fb7da322129fb2d3327da"
   dependencies:
     "@types/node" "^14.0.23"
     "@types/react" "^16.9.43"
@@ -543,9 +543,9 @@
   integrity sha512-kwbcs0jySLxzLsa2nWUAGOd/s21WU1jebrEdtzhsj1D4Yps1EOuyI1Qcu+FD56dL7NRNIJtDDjcqIG22NwkgLw==
 
 "@types/node@^14.0.23":
-  version "14.6.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.6.2.tgz#264b44c5a28dfa80198fc2f7b6d3c8a054b9491f"
-  integrity sha512-onlIwbaeqvZyniGPfdw/TEhKIh79pz66L1q06WUQqJLnAb6wbjvOtepLYTGHTqzdXgBYIE3ZdmqHDGsRsbBz7A==
+  version "14.6.3"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.6.3.tgz#cc4f979548ca4d8e7b90bc0180052ab99ee64224"
+  integrity sha512-pC/hkcREG6YfDfui1FBmj8e20jFU5Exjw4NYDm8kEdrW+mOh0T1Zve8DWKnS7ZIZvgncrctcNCXF4Q2I+loyww==
 
 "@types/parse-json@^4.0.0":
   version "4.0.0"
