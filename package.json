@@ -21,12 +21,9 @@
     "bluebird": "^3.7.2",
     "react": "^16.13.1"
   },
-  "peerDependencies": {
-    "@textshq/platform-sdk": "https://github.com/textshq/platform-sdk"
-  },
   "devDependencies": {
-    "@textshq/eslint-config": "https://github.com/textshq/eslint-config",
-    "@textshq/platform-sdk": "https://github.com/textshq/platform-sdk",
+    "@textshq/eslint-config": "link:../eslint-config",
+    "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.32",
     "eslint": "^7.8.0",
     "husky": "^4.2.5",

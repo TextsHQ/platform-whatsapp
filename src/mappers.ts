@@ -283,6 +283,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     action,
+    shouldNotify: !message.message ? false : undefined,
   }
 }
 export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {

@@ -3,8 +3,8 @@
 
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys":
-  version "3.0.0"
-  resolved "https://github.com/adiwajshing/baileys#f12551ba181e2bd2433fd7f0cb60b272f8b03412"
+  version "3.0.1"
+  resolved "https://github.com/adiwajshing/baileys#3d5b37fc445f2e6950874e08e300b52e854d87c6"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.2"
     curve25519-js "^0.0.4"
@@ -485,27 +485,13 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
-"@textshq/eslint-config@https://github.com/textshq/eslint-config":
-  version "1.0.4"
-  resolved "https://github.com/textshq/eslint-config#19a96ccb8973db36ce49947b6afebd09af5d3df1"
-  dependencies:
-    "@typescript-eslint/eslint-plugin" "^3"
-    babel-eslint "^10"
-    eslint-config-airbnb-typescript "^9"
-    eslint-config-react-app "^5"
-    eslint-plugin-flowtype "^5"
-    eslint-plugin-import "^2"
-    eslint-plugin-jsx-a11y "^6"
-    eslint-plugin-react "^7"
-    eslint-plugin-react-hooks "^4"
+"@textshq/eslint-config@link:../eslint-config":
+  version "0.0.0"
+  uid ""
 
-"@textshq/platform-sdk@https://github.com/textshq/platform-sdk":
-  version "0.4.4"
-  resolved "https://github.com/textshq/platform-sdk#84541af6603ec1281e9fb7da322129fb2d3327da"
-  dependencies:
-    "@types/node" "^14.0.23"
-    "@types/react" "^16.9.43"
-    "@types/tough-cookie" "^4"
+"@textshq/platform-sdk@link:../platform-sdk":
+  version "0.0.0"
+  uid ""
 
 "@types/bluebird@^3.5.32":
   version "3.5.32"
@@ -538,9 +524,9 @@
   integrity sha512-5tXH6Bx/kNGd3MgffdmP4dy2Z+G4eaXw0SE81Tq3BNadtnMR5/ySMzX4SLEzHJzSmPNn4HIdpQsBvXMUykr58w==
 
 "@types/node@^13.7.0":
-  version "13.13.15"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-13.13.15.tgz#fe1cc3aa465a3ea6858b793fd380b66c39919766"
-  integrity sha512-kwbcs0jySLxzLsa2nWUAGOd/s21WU1jebrEdtzhsj1D4Yps1EOuyI1Qcu+FD56dL7NRNIJtDDjcqIG22NwkgLw==
+  version "13.13.16"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-13.13.16.tgz#66f2177047b61131eaac18c47eb25d6f1317070a"
+  integrity sha512-dJ9vXxJ8MEwzNn4GkoAGauejhXoKuJyYKegsA6Af25ZpEDXomeVXt5HUWUNVHk5UN7+U0f6ghC6otwt+7PdSDg==
 
 "@types/node@^14.0.23":
   version "14.6.3"
@@ -1597,9 +1583,9 @@ jsesc@^2.5.1:
   integrity sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==
 
 json-parse-even-better-errors@^2.3.0:
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.0.tgz#371873c5ffa44304a6ba12419bcfa95f404ae081"
-  integrity sha512-o3aP+RsWDJZayj1SbHNQAI8x0v3T3SKiGoZlNYfbUP1S3omJQ6i9CnqADqkSPaOAxwua4/1YWx5CM7oiChJt2Q==
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz#7c47805a94319928e05777405dc12e1f7a4ee02d"
+  integrity sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==
 
 json-schema-traverse@^0.4.1:
   version "0.4.1"
