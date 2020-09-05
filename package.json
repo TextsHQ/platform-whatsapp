@@ -18,8 +18,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys",
-    "bluebird": "^3.7.2",
-    "react": "^16.13.1"
+    "bluebird": "^3.7.2"
   },
   "devDependencies": {
     "@textshq/eslint-config": "link:../eslint-config",

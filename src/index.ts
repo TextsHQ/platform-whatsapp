@@ -23,14 +23,18 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loginCallback: Function
 
-  hadFirstConnect = false
-
   init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxRetries = Infinity
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
+    // prevent logging of phone numbers
+    this.client['assertChatGet'] = (jid) => {
+      const chat = this.client.chats.get (jid)
+      if (!chat) throw new Error (`chat not found`)
+      return chat
+    }
 
     this.registerCallbacks()
 
@@ -66,10 +70,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
     texts.log('jsCodeResult', jsCodeResult)
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
+    
     const ls = JSON.parse(jsCodeResult)
     if (!('WASecretBundle' in ls)) return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
+    
     this.client.loadAuthInfo(ls)
     await this.connect()
+    
     return { type: 'success' }
   }
 
@@ -93,8 +100,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client.contacts[this.client.user.jid] = this.client.user
-
-    this.hadFirstConnect = true
     texts.log('connected successfully')
   }
 
@@ -125,17 +130,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
-    // track old chats for when a reconnect occurs,
-    // we can check if new chats or messages were added
-    let oldChats: {[k: string]: WAChat} = {}
-
     this.client
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
-
-        // record old chats
-        oldChats = {}
-        this.client.chats.all().forEach(c => oldChats[c.jid] = c)
 
         if (reason === 'replaced') return this.setConnStatus({ status: ConnectionStatus.CONFLICT })
         this.setConnStatus({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
@@ -143,32 +140,18 @@ export default class WhatsAppAPI implements PlatformAPI {
       .on('connecting', () => {
         this.setConnStatus({ status: ConnectionStatus.CONNECTING })
       })
-      .on('open', () => {
+      .on('open', ({ updatedChats }) => {
         this.setConnStatus({ status: ConnectionStatus.CONNECTED })
 
         // if this is a reconnect, update the chats
-        if (this.hadFirstConnect) {
-          const updates = Object.values(oldChats).map<ServerEvent>(chat => {
-            const chatNew = this.client.chats.get(chat.jid)
-            if (chatNew) {
-              if (chat.modify_tag !== chatNew.modify_tag || chat.t !== chatNew.t) {
-                console.log(`${chat.modify_tag}, ${chatNew.modify_tag}`)
-                return { type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }
-              }
-            }
-          })
-            .filter(Boolean)
+        if (updatedChats) {
+          const updates = Object.keys(updatedChats)
+          .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID }))
 
-          texts.log(`got ${updates.length} updated chats while disconnected`)
-          const newChats = this.client.chats.all()
-            .filter(c => !oldChats[c.jid])
-            .map<ServerEvent>(c => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: c.jid }))
-
-          texts.log(`got ${newChats.length} new chats while disconnected`)
-          updates.push(...newChats)
-
-          this.evCallback(updates.filter(Boolean))
+          texts.log(`got ${updates.length} new chats while disconnected`)
+          this.evCallback(updates)
         }
+        
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
