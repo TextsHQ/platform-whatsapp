@@ -55,6 +55,11 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 
   [WEB_MESSAGE_INFO_STUBTYPE.GENERIC_NOTIFICATION]: '{{0}}',
 }
+const NOTIFYING_STUB_TYPES = new Set (
+  [
+    WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD
+  ] 
+)
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
   [MessageType.image]: MessageAttachmentType.IMG,
@@ -283,7 +288,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     action,
-    shouldNotify: !message.message ? false : undefined,
+    shouldNotify: !!message.message || (NOTIFYING_STUB_TYPES.has (message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID)),
   }
 }
 export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {
