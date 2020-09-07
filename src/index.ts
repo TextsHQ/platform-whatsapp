@@ -10,7 +10,7 @@ import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
-const CONNECT_TIMEOUT_MS = 30_000
+const CONNECT_TIMEOUT_MS = 25_000
 
 const DELAY_CONN_STATUS_CHANGE = 10_000
 
@@ -29,6 +29,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxRetries = Infinity
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
+    
     // prevent logging of phone numbers
     this.client['assertChatGet'] = (jid) => {
       const chat = this.client.chats.get (jid)
@@ -68,8 +69,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
-    await delay (3000) // wait for a bit, the browser connection should dispose completely
-
     texts.log('jsCodeResult', jsCodeResult)
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
     

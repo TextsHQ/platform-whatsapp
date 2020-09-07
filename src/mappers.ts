@@ -270,7 +270,6 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const isDeleted = message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE
   return {
     _original: [message, currentUserID],
-    cursor: JSON.stringify(message.key),
     id: message.key.id,
     textHeading: messageHeading(message),
     text: isDeleted ? 'This message has been deleted.' : messageText(message.message) || stubBasedMessage,
@@ -310,8 +309,15 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     isUnread: !!t.count,
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
-    messages: mapMessages(t.messages, currentUserID),
-    participants,
+    messages: t.messages && {
+      items: mapMessages(t.messages, currentUserID),
+      hasMore: true,
+      oldestCursor: JSON.stringify(t.messages[0]?.key),
+    },
+    participants: {
+      items: participants,
+      hasMore: false
+    },
     timestamp: new Date(+t.t * 1000),
     type: threadType(t.jid),
     createdAt: t.creationDate,
@@ -319,21 +325,13 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
 }
 
 export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
-  const participants = t.participants?.map(c => {
-    const participant = mapContact(c)
-    participant.isAdmin = t.admins?.has(participant.id) || false
-    return participant
-  }) || []
-  return {
-    title: t.name,
-    description: t.description,
-    imgURL: t.imgUrl,
-    isUnread: t.count !== 0,
-    isArchived: t.archive === 'true',
-    isReadOnly: t.read_only === 'true',
-    participants,
-    createdAt: t.creationDate,
-  }
+  const thread = mapThread (t, null)
+  delete thread.id 
+  delete thread._original
+  delete thread.timestamp
+  delete thread.type
+   
+  return thread
 }
 
 export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
