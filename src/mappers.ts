@@ -55,10 +55,10 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 
   [WEB_MESSAGE_INFO_STUBTYPE.GENERIC_NOTIFICATION]: '{{0}}',
 }
-const NOTIFYING_STUB_TYPES = new Set (
+const NOTIFYING_STUB_TYPES = new Set(
   [
     WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD
-  ] 
+  ]
 )
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -309,8 +309,8 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     isUnread: !!t.count,
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
-    messages: t.messages && {
-      items: mapMessages(t.messages, currentUserID),
+    messages: {
+      items: t.messages ? mapMessages(t.messages, currentUserID) : [],
       hasMore: true,
       oldestCursor: JSON.stringify(t.messages[0]?.key),
     },
@@ -325,12 +325,12 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
 }
 
 export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
-  const thread = mapThread (t, null)
-  delete thread.id 
+  const thread = mapThread(t, null)
+  delete thread.id
   delete thread._original
   delete thread.timestamp
   delete thread.type
-   
+
   return thread
 }
 
