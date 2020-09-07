@@ -11,8 +11,7 @@ const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
 
 const CONNECT_TIMEOUT_MS = 25_000
-
-const DELAY_CONN_STATUS_CHANGE = 10_000
+const DELAY_CONN_STATUS_CHANGE = 15_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client = new WAConnection()
@@ -29,7 +28,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxRetries = Infinity
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
-    
+
     // prevent logging of phone numbers
     this.client['assertChatGet'] = (jid) => {
       const chat = this.client.chats.get (jid)
@@ -71,13 +70,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
     texts.log('jsCodeResult', jsCodeResult)
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
-    
+
     const ls = JSON.parse(jsCodeResult)
     if (!('WASecretBundle' in ls)) return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
-    
+
     this.client.loadAuthInfo(ls)
     await this.connect()
-    
+
     return { type: 'success' }
   }
 
@@ -152,7 +151,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           texts.log(`got ${updates.length} new chats while disconnected`)
           this.evCallback(updates)
         }
-        
+
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
