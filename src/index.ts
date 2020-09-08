@@ -1,4 +1,4 @@
-import bluebird, { delay } from 'bluebird'
+import bluebird from 'bluebird'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, WAChat, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
@@ -105,8 +105,16 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
-    const meContact = this.meContact() as WACompleteContact
-    if (!meContact) throw new Error(`unexpectedly called when state is ${this.client.state}`)
+    let meContact = this.meContact() as WACompleteContact
+    if (!meContact) console.log(`unexpectedly called when state is ${this.client.state}`)
+    let attemptsRemaining = 20
+    while (!meContact?.jid) {
+      await bluebird.delay(50)
+      meContact = this.meContact() as WACompleteContact
+      if (--attemptsRemaining === 0 && !meContact.jid) {
+        throw new Error('unable to get me contact')
+      }
+    }
 
     return {
       id: meContact.jid,
