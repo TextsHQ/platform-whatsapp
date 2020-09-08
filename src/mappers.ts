@@ -287,6 +287,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
     action,
+    isErrored: message.key.fromMe && message.status === 0,
     shouldNotify: !!message.message || (NOTIFYING_STUB_TYPES.has (message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID)),
   }
 }
