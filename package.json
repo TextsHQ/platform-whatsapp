@@ -13,9 +13,6 @@
       "pre-commit": "yarn lint --fix || true; git add ."
     }
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys",
     "bluebird": "^3.7.2"
@@ -24,8 +21,8 @@
     "@textshq/eslint-config": "link:../eslint-config",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.32",
-    "eslint": "^7.8.0",
-    "husky": "^4.2.5",
+    "eslint": "^7.8.1",
+    "husky": "^4.3.0",
     "typescript": "^4.0.2"
   }
 }
