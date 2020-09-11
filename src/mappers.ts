@@ -243,8 +243,6 @@ function messageStubText(message: WAMessage) {
     message.messageStubParameters.forEach((p, i) => {
       txt = txt.replace(`{{${i}}}`, whatsappID(p))
     })
-  } else if (message.messageStubType) {
-    [txt] = Object.keys(WEB_MESSAGE_INFO_STUBTYPE).filter(key => WEB_MESSAGE_INFO_STUBTYPE[key] === message.messageStubType)
   }
   return txt
 }
