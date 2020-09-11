@@ -174,8 +174,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
       .on('message-status-update', async update => {
         texts.log(`got update: ${JSON.stringify(update)}`)
-
-        const chat = this.getChat(update.to)
+        const chat = this.getChat(whatsappID (update.to))
         if (!chat) return
 
         if (isGroupID(chat.jid)) {
@@ -195,7 +194,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             }
           })
         }
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: whatsappID(update.to) }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }])
       })
       .on('user-presence-update', update => {
         texts.log('presence update: ' + JSON.stringify(update))
