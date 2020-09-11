@@ -6,6 +6,11 @@ import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
+const participantAdded = message =>
+  message.participant
+    ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
+    : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`
+
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
@@ -37,8 +42,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: message =>
-    `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: participantAdded,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
@@ -174,6 +179,7 @@ function messageHeading(message: WAMessage) {
   if (message.broadcast) return 'Broadcast'
   const m = message.message
   if (m) {
+    if (m.groupInviteMessage) return `${m.groupInviteMessage.caption} ${m.groupInviteMessage.groupName} | View in app`
     if (m.locationMessage) return '📍 Location'
     if (m.liveLocationMessage) return '📍 Live Location'
     if (m.productMessage?.product) return '📦 Product'
@@ -181,6 +187,7 @@ function messageHeading(message: WAMessage) {
     if (inner.contextInfo?.isForwarded) return 'Forwarded'
   }
 }
+
 function messageText(message: WAMessageContent) {
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
@@ -209,7 +216,7 @@ function messageText(message: WAMessageContent) {
     }
     return text
   }
-  return message?.conversation || (message?.videoMessage || message?.imageMessage)?.caption
+  return message?.conversation ?? (message?.videoMessage || message?.imageMessage)?.caption
 }
 
 function messageLink(message: WAMessageContent): MessageLink {
@@ -268,11 +275,12 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const mLink = messageLink(message.message)
   const action = messageAction(message)
   const isDeleted = message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE
+  const isAction = !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE
   return {
     _original: [message, currentUserID],
     id: message.key.id,
     textHeading: messageHeading(message),
-    text: isDeleted ? 'This message has been deleted.' : messageText(message.message) || stubBasedMessage,
+    text: isDeleted ? 'This message has been deleted.' : (messageText(message.message) ?? stubBasedMessage),
     timestamp: new Date(timestamp * 1000),
     senderID: sender,
     isSender: message.key.fromMe,
@@ -285,9 +293,9 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     linkedMessage: linked,
     link: mLink,
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
-    isAction: !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE,
+    isAction,
     action,
-    isErrored: message.key.fromMe && message.status === 0,
+    isErrored: !isAction && (message.key.fromMe && message.status === 0),
     shouldNotify: !!message.message || (NOTIFYING_STUB_TYPES.has (message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID)),
   }
 }
