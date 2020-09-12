@@ -216,7 +216,7 @@ function messageText(message: WAMessageContent) {
     }
     return text
   }
-  return message?.conversation ?? (message?.videoMessage || message?.imageMessage || message?.groupInviteMessage)?.caption
+  return (message?.videoMessage || message?.imageMessage || message?.groupInviteMessage)?.caption || message?.conversation
 }
 
 function messageLink(message: WAMessageContent): MessageLink {

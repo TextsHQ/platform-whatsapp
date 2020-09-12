@@ -1,5 +1,6 @@
-import { Platform, MessageDeletionMode, Attribute } from '@textshq/platform-sdk'
+import { Platform, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
+import { removeServer } from './util'
 import { mapMessage } from './mappers'
 
 const info: Platform = {
@@ -41,6 +42,15 @@ const info: Platform = {
     // Attribute.SUPPORTS_SEARCH,
   ]),
   mapMessage,
+  extra: {
+    getUnknownParticipant(participantID: string): Participant {
+      if (!participantID.endsWith('s.whatsapp.net')) return
+      return {
+        id: participantID,
+        phoneNumber: removeServer(participantID),
+      }
+    },
+  },
 }
 
 export default info
