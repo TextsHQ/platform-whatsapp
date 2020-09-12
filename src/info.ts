@@ -47,7 +47,7 @@ const info: Platform = {
       if (!participantID.endsWith('s.whatsapp.net')) return
       return {
         id: participantID,
-        phoneNumber: removeServer(participantID),
+        phoneNumber: '+' + removeServer(participantID),
       }
     },
   },
