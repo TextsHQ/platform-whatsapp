@@ -179,7 +179,7 @@ function messageHeading(message: WAMessage) {
   if (message.broadcast) return 'Broadcast'
   const m = message.message
   if (m) {
-    if (m.groupInviteMessage) return `${m.groupInviteMessage.caption} ${m.groupInviteMessage.groupName} | View in app`
+    if (m.groupInviteMessage) return `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
     if (m.locationMessage) return '📍 Location'
     if (m.liveLocationMessage) return '📍 Live Location'
     if (m.productMessage?.product) return '📦 Product'
@@ -216,7 +216,7 @@ function messageText(message: WAMessageContent) {
     }
     return text
   }
-  return message?.conversation ?? (message?.videoMessage || message?.imageMessage)?.caption
+  return message?.conversation ?? (message?.videoMessage || message?.imageMessage || message?.groupInviteMessage)?.caption
 }
 
 function messageLink(message: WAMessageContent): MessageLink {
