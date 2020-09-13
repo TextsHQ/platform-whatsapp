@@ -7,9 +7,9 @@ import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
 const participantAdded = message =>
-  message.participant
+  (message.participant
     ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
-    : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`
+    : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
@@ -62,8 +62,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 }
 const NOTIFYING_STUB_TYPES = new Set(
   [
-    WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD
-  ]
+    WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD,
+  ],
 )
 const ATTACHMENT_MAP = {
   [MessageType.audio]: MessageAttachmentType.AUDIO,
@@ -294,7 +294,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     isAction,
     action,
     isErrored: !isAction && message.key.fromMe && message.status === 0,
-    shouldNotify: !!message.message || (NOTIFYING_STUB_TYPES.has (message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID)),
+    shouldNotify: !!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID)),
   }
 }
 export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {
@@ -323,7 +323,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     },
     participants: {
       items: participants,
-      hasMore: false
+      hasMore: false,
     },
     timestamp: new Date(+t.t * 1000),
     type: threadType(t.jid),

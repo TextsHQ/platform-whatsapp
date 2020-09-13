@@ -3,7 +3,6 @@
   "version": "0.2.5",
   "main": "dist/index.js",
   "scripts": {
-    "prepare": "yarn tsc",
     "postinstall": "yarn tsc || true",
     "build": "yarn tsc",
     "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache"
@@ -18,7 +17,7 @@
     "bluebird": "^3.7.2"
   },
   "devDependencies": {
-    "@textshq/eslint-config": "link:../eslint-config",
+    "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.32",
     "eslint": "^7.8.1",

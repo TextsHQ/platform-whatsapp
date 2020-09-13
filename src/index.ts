@@ -30,9 +30,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
 
     // prevent logging of phone numbers
-    this.client['assertChatGet'] = (jid) => {
-      const chat = this.client.chats.get (jid)
-      if (!chat) throw new Error (`chat not found`)
+    this.client.assertChatGet = jid => {
+      const chat = this.client.chats.get(jid)
+      if (!chat) throw new Error('chat not found')
       return chat
     }
 
@@ -154,12 +154,11 @@ export default class WhatsAppAPI implements PlatformAPI {
         // if this is a reconnect, update the chats
         if (updatedChats) {
           const updates = Object.keys(updatedChats)
-          .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID }))
+            .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID }))
 
           texts.log(`got ${updates.length} new chats while disconnected`)
           this.evCallback(updates)
         }
-
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
@@ -174,7 +173,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
       .on('message-status-update', async update => {
         texts.log(`got update: ${JSON.stringify(update)}`)
-        const chat = this.getChat(whatsappID (update.to))
+        const chat = this.getChat(whatsappID(update.to))
         if (!chat) return
 
         if (isGroupID(chat.jid)) {
