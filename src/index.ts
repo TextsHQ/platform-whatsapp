@@ -215,6 +215,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       .on('chat-update', async update => {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
         const chat = await this.loadThread(update.jid)
+        if (!chat) return
         this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThreadProps(chat) }])
       })
       .on('message-update', (message: WACompleteMessage) => {

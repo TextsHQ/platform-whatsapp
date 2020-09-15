@@ -337,7 +337,6 @@ export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
   delete thread._original
   delete thread.timestamp
   delete thread.type
-
   return thread
 }
 
