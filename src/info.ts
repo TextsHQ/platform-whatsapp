@@ -44,6 +44,7 @@ const info: Platform = {
   mapMessage,
   extra: {
     getUnknownParticipant(participantID: string): Participant {
+      if (!participantID) return
       if (!participantID.endsWith('s.whatsapp.net')) return
       return {
         id: participantID,
