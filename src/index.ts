@@ -28,6 +28,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
+    this.client.connectOptions.maxIdleTimeMs = 6 * 1000
+    this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
 
