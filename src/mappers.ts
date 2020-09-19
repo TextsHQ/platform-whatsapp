@@ -356,17 +356,18 @@ export function mapPresenceUpdate(update: PresenceUpdate, chat: WACompleteChat, 
         isActive: chat.isActive,
         lastActive,
       },
-    }, { type: ServerEventType.PARTICIPANT_STOPPED_TYPING, threadID, participantID }]
+    }, { type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
   }
   if ([Presence.composing, Presence.recording].includes(update.type)) {
     return [{
       type: ServerEventType.PARTICIPANT_TYPING,
+      typing: true,
       threadID,
       participantID,
       durationMs: 120_000,
     }]
   }
   if (update.type === Presence.paused) {
-    return [{ type: ServerEventType.PARTICIPANT_STOPPED_TYPING, threadID, participantID }]
+    return [{ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
   }
 }

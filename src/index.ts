@@ -161,7 +161,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         // if this is a reconnect, update the chats
         if (updatedChats) {
           const updates = Object.keys(updatedChats)
-            .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID }))
+            .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID }))
 
           texts.log(`got ${updates.length} new chats while disconnected`)
           this.evCallback(updates)
@@ -176,7 +176,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log('received message: ' + jid)
         if (jid === 'status@broadcast') return
 
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid }])
       })
       .on('message-status-update', async update => {
         texts.log(`got update: ${JSON.stringify(update)}`)
@@ -200,7 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             }
           })
         }
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: chat.jid }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('user-presence-update', update => {
         texts.log('presence update: ' + JSON.stringify(update))
@@ -223,12 +223,18 @@ export default class WhatsAppAPI implements PlatformAPI {
         texts.log(`received chat update: ${JSON.stringify(update)}`)
         const chat = await this.loadThread(update.jid)
         if (!chat) return
-        this.evCallback([{ type: ServerEventType.THREAD_PROPS_UPDATED, threadID: update.jid, props: mapThreadProps(chat) }])
+        this.evCallback([{
+          type: ServerEventType.STATE_SYNC,
+          objectName: 'thread',
+          objectID: [update.jid],
+          mutationType: 'updated',
+          data: mapThreadProps(chat),
+        }])
       })
       .on('message-update', (message: WACompleteMessage) => {
         const jid = whatsappID(message.key.remoteJid)
         if (!this.getChat(jid)) return
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_UPDATED, threadID: jid }])
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid }])
       })
   }
 
