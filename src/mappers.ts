@@ -94,8 +94,9 @@ export function mapContact(contact: WACompleteContact): Participant {
   }
   return {
     id: whatsappID(contact.jid),
-    fullName: contact.name || contact.notify,
+    fullName: contact.name || contact.notify || contact.vname,
     phoneNumber: numberFromJid(contact.jid),
+    isVerified: contact.verify === '2',
     imgURL: contact.imgUrl,
   }
 }
