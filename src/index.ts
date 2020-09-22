@@ -6,7 +6,7 @@ import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, Message
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, Participant, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
-import { isBroadcastID, numberFromJid, stringHasLink } from './util'
+import { isBroadcastID, numberFromJid } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -350,13 +350,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     let content: WATextMessage | Buffer
     if (mContent.fileBuffer || mContent.filePath) {
       content = mContent.fileBuffer || await fs.readFile(mContent.filePath)
-    } else if (stringHasLink(mContent.text)) {
-      try {
-        content = await this.client.generateLinkPreview(mContent.text)
-      } catch (error) {
-        texts.log('failed to get link preview: ' + error)
-        content = { text: mContent.text } as WATextMessage
-      }
     } else content = { text: mContent.text } as WATextMessage
 
     texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
@@ -382,6 +375,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (messageType === MessageType.document) {
       ops.mimetype = mimeType || 'application/octet-stream'
     }
+    if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, content, messageType, ops)
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {

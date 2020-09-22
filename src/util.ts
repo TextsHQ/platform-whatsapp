@@ -1,10 +1,5 @@
 import { whatsappID } from '@adiwajshing/baileys'
 
-const URL_REGEX = /[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)?/gi
-
-export const stringHasLink = (str: string) =>
-  URL_REGEX.test(str)
-
 export const isBroadcastID = (jid: string) =>
   jid.endsWith('@broadcast')
 
