@@ -17,12 +17,17 @@ const info: Platform = {
     loginURL: 'https://web.whatsapp.com',
     windowWidth: 800,
     windowHeight: 550,
-    runJSOnClose: 'JSON.stringify(localStorage)',
+    runJSOnClose: 'storageString',
     runJSOnLaunch: `
+      let storageString = ""
       function poll() {
-      if (localStorage.getItem('WASecretBundle')) setTimeout(() => window.close(), 100)
+        if (localStorage.getItem('WASecretBundle')) {
+          storageString = JSON.stringify(localStorage)
+          setTimeout(() => window.close(), 100)
+          clearInterval(interval)
+        }
       }
-      setInterval(poll, 50)
+      const interval = setInterval(poll, 50)
     `,
   },
   supportedReactions: {},

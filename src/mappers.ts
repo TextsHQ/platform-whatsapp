@@ -1,5 +1,5 @@
 import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate, whatsappID, isGroupID } from '@adiwajshing/baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action } from '@textshq/platform-sdk'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action, UNKNOWN_DATE } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from './util'
@@ -247,15 +247,16 @@ function messageStubText(message: WAMessage) {
   }
   return txt
 }
-function messageSeen(message: WACompleteMessage): { [id: string]: Date } | boolean {
+function messageSeen(message: WACompleteMessage): { [id: string]: Date } {
+  const dict: { [id: string]: Date } = {}
   if (message.info) {
-    const dict: { [id: string]: Date } = {}
     message.info.reads.forEach(info => {
       dict[whatsappID(info.jid)] = new Date(+info.t * 1000)
     })
-    return dict
+  } else if (message.status >= 4) {
+    dict[whatsappID(message.key.remoteJid)] = UNKNOWN_DATE
   }
-  return message.status >= 4
+  return dict
 }
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {

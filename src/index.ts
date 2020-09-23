@@ -77,11 +77,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
 
     const ls = JSON.parse(jsCodeResult)
-    if (!('WASecretBundle' in ls)) return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
+    if (!ls || !('WASecretBundle' in ls)) return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
 
     this.client.loadAuthInfo(ls)
     await this.connect()
-
     return { type: 'success' }
   }
 
@@ -296,7 +295,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor)
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
-    chats = chats.filter(c => c.jid !== STORIES_JID)
+    chats = chats.filter(c => c.jid !== STORIES_JID && !!c)
 
     const items = mapThreads(chats as WACompleteChat[], this.meContact.jid)
 
