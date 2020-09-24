@@ -22,8 +22,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
-  private firstConnectDone = false
-
   init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
@@ -81,10 +79,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.client.loadAuthInfo(ls)
     await this.connect()
-    if (!firstConnectDone) {
-      this.firstConnectDone = true
-      this.client.connectOptions.maxRetries = Infinity
-    }
+
+    this.client.connectOptions.maxRetries = Infinity
     return { type: 'success' }
   }
 
