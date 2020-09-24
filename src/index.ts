@@ -22,13 +22,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
-  loginCallback: Function
+  private firstConnectDone = false
 
   init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
-    this.client.connectOptions.maxIdleTimeMs = 6 * 1000
+    this.client.connectOptions.maxIdleTimeMs = 20 * 1000
     this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
     this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
@@ -81,6 +81,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.client.loadAuthInfo(ls)
     await this.connect()
+    if (!firstConnectDone) {
+      this.firstConnectDone = true
+      this.client.connectOptions.maxRetries = Infinity
+    }
     return { type: 'success' }
   }
 
