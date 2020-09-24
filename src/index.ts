@@ -22,12 +22,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
-  private firstConnectDone = false
+  private connStatusTimeout: NodeJS.Timeout = null
+
+  private lastConnStatus: ConnectionStatus = null
 
   init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
+    this.client.connectOptions.phoneResponseTime = 12 * 1000
     this.client.connectOptions.maxIdleTimeMs = 20 * 1000
     this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
@@ -49,10 +52,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     await this.connect()
   }
-
-  private connStatusTimeout: NodeJS.Timeout = null
-
-  private lastConnStatus: ConnectionStatus = null
 
   dispose = () => {
     this.client.close()
@@ -81,10 +80,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.client.loadAuthInfo(ls)
     await this.connect()
-    if (!firstConnectDone) {
-      this.firstConnectDone = true
-      this.client.connectOptions.maxRetries = Infinity
-    }
     return { type: 'success' }
   }
 
@@ -106,6 +101,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       throw error
     }
+    this.client.connectOptions.maxRetries = Infinity
 
     this.client.contacts[this.client.user.jid] = this.client.user
     texts.log('connected successfully')
