@@ -237,12 +237,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
   }
 
-  searchUsers = mem((typed: string) => {
+  searchUsers = (typed: string) => {
     texts.log('searching users ' + typed)
     const contacts = Object.values(this.client.contacts)
-      .filter((c: WACompleteContact) => !(isGroupID(c.jid) || isBroadcastID(c.jid)))
-    return matchSorter(contacts.filter(Boolean), typed, { keys: ['name', 'notify', 'jid'] }).map(mapContact)
-  })
+      .filter((c: WACompleteContact) => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
+    return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] }).map(mapContact)
+  }
 
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
