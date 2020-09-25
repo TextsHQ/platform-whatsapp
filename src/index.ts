@@ -1,5 +1,4 @@
 import bluebird from 'bluebird'
-import mem from 'mem'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
@@ -178,7 +177,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid }])
       })
       .on('message-status-update', async update => {
-        texts.log(`got update: ${JSON.stringify(update)}`)
+        texts.log('got update:', update)
         const chat = this.getChat(whatsappID(update.to))
         if (!chat) return
 
@@ -202,7 +201,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('user-presence-update', update => {
-        texts.log('presence update: ' + JSON.stringify(update))
+        texts.log('presence update:', update)
         if (isBroadcastID(update.id)) return
 
         const chat = this.getChat(whatsappID(update.id))
@@ -219,7 +218,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.evCallback(mapPresenceUpdate(update, chat, lastActive))
       })
       .on('chat-update', async update => {
-        texts.log(`received chat update: ${JSON.stringify(update)}`)
+        texts.log('received chat update:', update)
         const chat = await this.loadThread(update.jid)
         if (!chat) return
         this.evCallback([{
@@ -336,7 +335,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       })
     }
-    // texts.log (`loading messages: ${JSON.stringify(messages.map (m => m.key.id))}`)
+
     return {
       items: mapMessages(messages, this.meContact.jid),
       hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor,
@@ -351,7 +350,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       content = mContent.fileBuffer || await fs.readFile(mContent.filePath)
     } else content = { text: mContent.text } as WATextMessage
 
-    texts.log(`sending message to ${threadID}, options: ${JSON.stringify(options)}`)
+    texts.log(`sending message to ${threadID}, options:`, options)
 
     const ops: MessageOptions = {
       filename: mContent.fileName,
