@@ -137,7 +137,7 @@ function messageAttachments(message: WAMessageContent, id: string): { attachment
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
-        posterImg: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+        data: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
         fileName: message.documentMessage?.fileName,
       },
     ]
@@ -279,6 +279,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   return {
     _original: [message, currentUserID],
     id: message.key.id,
+    threadID: message.key.remoteJid,
     textHeading: messageHeading(message),
     text: isDeleted ? 'This message has been deleted.' : (messageText(message.message) ?? stubBasedMessage),
     timestamp: new Date(timestamp * 1000),

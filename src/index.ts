@@ -457,7 +457,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   loadDynamicMessage = async (message: Message) => {
-    const m = message?._original?.[0] as WAMessage
+    const m = await this.client.loadMessage(message.threadID, message.id)
     if (!m) return message
 
     const mID = m.key.id
