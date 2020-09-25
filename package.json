@@ -22,6 +22,8 @@
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.32",
+    "@types/eslint": "^7.2.3",
+    "@types/match-sorter": "^4.0.0",
     "eslint": "^7.8.1",
     "husky": "^4.3.0",
     "typescript": "^4.0.2"

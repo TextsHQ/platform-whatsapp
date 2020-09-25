@@ -6,14 +6,13 @@ import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from
 
 const { WEB_MESSAGE_INFO_STUBTYPE, WEB_MESSAGE_INFO_STATUS } = WAMessageProto.WebMessageInfo
 
-const participantAdded = message =>
+const participantAdded = (message: WAMessage) =>
   (message.participant
     ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
     : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
-  [WEB_MESSAGE_INFO_STUBTYPE.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
   [WEB_MESSAGE_INFO_STUBTYPE.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
@@ -24,7 +23,6 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
   // This account was previously a business account but has now registered as a standard account and may no longer belong to the business.
   [WEB_MESSAGE_INFO_STUBTYPE.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
-  [WEB_MESSAGE_INFO_STUBTYPE.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   // This chat is with the verified business account for "X". Click for more info.
   // [AFTER CLICK] WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account".
   [WEB_MESSAGE_INFO_STUBTYPE.VERIFIED_HIGH]: 'This chat is with a verified business account.',
@@ -32,19 +30,30 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_VOICE]: 'Missed voice call',
   [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
   [WEB_MESSAGE_INFO_STUBTYPE.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
+
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: message =>
-    `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{0}}',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
+  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
+
+  [WEB_MESSAGE_INFO_STUBTYPE.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
+  [WEB_MESSAGE_INFO_STUBTYPE.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
+  [WEB_MESSAGE_INFO_STUBTYPE.GENERIC_NOTIFICATION]: '{{0}}',
+
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: participantAdded,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: '{{sender}} created this group',
+
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: message =>
+    `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
     return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
@@ -53,12 +62,6 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
     if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
     return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
-  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
-  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
-  [WEB_MESSAGE_INFO_STUBTYPE.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
-
-  [WEB_MESSAGE_INFO_STUBTYPE.GENERIC_NOTIFICATION]: '{{0}}',
 }
 const NOTIFYING_STUB_TYPES = new Set(
   [
