@@ -1,5 +1,5 @@
 import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate, whatsappID, isGroupID } from '@adiwajshing/baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, ThreadActionType, Action, UNKNOWN_DATE } from '@textshq/platform-sdk'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from './util'
@@ -75,14 +75,14 @@ const ATTACHMENT_MAP = {
   [MessageType.video]: MessageAttachmentType.VIDEO,
 }
 const MESSAGE_ACTION_MAP = {
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: ThreadActionType.THREAD_PARTICIPANTS_ADDED,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: ThreadActionType.THREAD_PARTICIPANTS_REMOVED,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: ThreadActionType.GROUP_THREAD_CREATED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD]: MessageActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_INVITE]: MessageActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: MessageActionType.THREAD_PARTICIPANTS_ADDED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: MessageActionType.THREAD_PARTICIPANTS_REMOVED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: MessageActionType.THREAD_PARTICIPANTS_REMOVED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CREATE]: MessageActionType.GROUP_THREAD_CREATED,
   // [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_DESCRIPTION]: ,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: ThreadActionType.THREAD_TITLE_UPDATED,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_SUBJECT]: MessageActionType.THREAD_TITLE_UPDATED,
 }
 
 function threadType(jid: string): ThreadType {
@@ -103,10 +103,10 @@ export function mapContact(contact: WACompleteContact): Participant {
     imgURL: contact.imgUrl,
   }
 }
-function messageAction(message: WAMessage): Action {
+function messageAction(message: WAMessage): MessageAction {
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType]
   if (!actionType) return null
-  if (actionType === ThreadActionType.THREAD_TITLE_UPDATED) {
+  if (actionType === MessageActionType.THREAD_TITLE_UPDATED) {
     return {
       type: actionType,
       title: message.messageStubParameters[0],
