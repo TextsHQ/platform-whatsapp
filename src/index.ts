@@ -25,6 +25,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus = null
 
+  private meContact: WACompleteContact
+
   init = async (session: any) => {
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
@@ -90,7 +92,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('began connect')
 
     try {
-      await this.client.connect()
+      const { user } = await this.client.connect()
+      this.meContact = user as WACompleteContact
       this.setConnStatus({ status: ConnectionStatus.CONNECTED })
     } catch (error) {
       texts.log('connect failed:', error)
@@ -101,7 +104,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw error
     }
     this.client.connectOptions.maxRetries = Infinity
-
     this.client.contacts[this.client.user.jid] = this.client.user
     texts.log('connected successfully')
   }
@@ -126,10 +128,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       phoneNumber: numberFromJid(meContact.jid),
       imgURL: meContact.imgUrl,
     }
-  }
-
-  get meContact() {
-    return this.client.user as WACompleteContact
   }
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
