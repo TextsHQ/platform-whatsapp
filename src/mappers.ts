@@ -117,7 +117,7 @@ function messageAction(message: WAMessage): MessageAction {
     participantIDs: message.messageStubParameters ? message.messageStubParameters.map(p => whatsappID(p)) : [message.participant],
   }
 }
-function messageAttachments(message: WAMessageContent, id: string): { attachments: MessageAttachment[], media: boolean } {
+function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) return response
 
@@ -140,7 +140,8 @@ function messageAttachments(message: WAMessageContent, id: string): { attachment
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
-        data: jpegThumbnail ? Buffer.from(jpegThumbnail) : null,
+        posterImg: `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}`,
+        srcURL: `asset://message/${jid}/${id}`,
         fileName: message.documentMessage?.fileName,
       },
     ]
@@ -272,7 +273,7 @@ function messageStatus(status: number | string) {
 export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
   const sender = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
-  const { attachments, media } = messageAttachments(message.message, message.key.id)
+  const { attachments } = messageAttachments(message.message, message.key.remoteJid, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = messageQuoted(message.message)
   const mLink = messageLink(message.message)
@@ -292,7 +293,6 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     attachments,
     reactions: [],
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
-    isDynamicMessage: media && (!message.message?.videoMessage || !!message.message?.videoMessage?.url),
     seen: messageSeen(message),
     linkedMessage: linked,
     link: mLink,
@@ -314,7 +314,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     return participant
   }) || []
   return {
-    _original: t,
+    _original: JSON.stringify(t),
     id: whatsappID(t.jid),
     title: t.name,
     description: t.description,
@@ -323,7 +323,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
     messages: {
-      items: t.messages ? mapMessages(t.messages, currentUserID) : [],
+      items: t.messages ? mapMessages(t.messages.all(), currentUserID) : [],
       hasMore: true,
       oldestCursor: JSON.stringify(t.messages?.[0] ? { id: t.messages[0].key.id, fromMe: t.messages[0].key.fromMe } : undefined),
     },

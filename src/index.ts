@@ -9,9 +9,9 @@ import { isBroadcastID, numberFromJid } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
-const THREAD_PAGE_SIZE = 30
+const THREAD_PAGE_SIZE = 20
 
-const CONNECT_TIMEOUT_MS = 60_000
+const CONNECT_TIMEOUT_MS = 20_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -32,10 +32,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.phoneResponseTime = 12 * 1000
-    this.client.connectOptions.maxIdleTimeMs = 20 * 1000
+    this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
-    this.client.connectOptions.timeoutMs = CONNECT_TIMEOUT_MS
+    this.client.shouldLogMessages = texts.IS_DEV
 
     // prevent logging of phone numbers
     // @ts-expect-error
@@ -141,10 +141,16 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
+    const saveLog = async () => {
+      const file = `/Users/adhirajsingh/baileys-${new Date().toISOString()}.json`
+      await fs.writeFile(file, JSON.stringify(this.client.messageLog, null, '\t'))
+      texts.log(`saved Baileys log to ${file}`)
+    }
     this.client
+      .on('intermediate-close', () => saveLog())
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
-
+        saveLog()
         if (reason === 'replaced') return this.setConnStatus({ status: ConnectionStatus.CONFLICT })
         this.setConnStatus({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
@@ -180,7 +186,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (!chat) return
 
         if (isGroupID(chat.jid)) {
-          chat.messages.forEach(msg => {
+          chat.messages.all().forEach(msg => {
             if (update.ids.includes(msg.key.id)) {
               const status = update.type
               const cChat = msg as WACompleteMessage
@@ -243,17 +249,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
-
+    chat.imgUrl = 'asset://profile-picture/' + jid
     if (isGroupID(jid)) {
       await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
       try {
         const meta = await this.client.getBroadcastListInfo(jid)
-        chat.participants = await bluebird.map(meta.recipients, p => this.contactForJid(p.id))
+        chat.participants = meta.recipients.map(p => this.contactForJid(p.id))
       } catch (error) {
         texts.log(`failed to get broadcast info for ${jid}: ${error}`)
       }
-    } else chat.participants = [await this.contactForJid(jid), this.meContact]
+    } else chat.participants = [this.contactForJid(jid), this.meContact]
 
     return chat
   }
@@ -267,7 +273,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       t: unixTimestampSeconds(),
       spam: 'false',
       modify_tag: '',
-      messages: [],
+      messages: undefined,
       name,
     }
 
@@ -278,7 +284,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else if (userIDs.length === 1) {
       chat = this.getChat(whatsappID(userIDs[0])) || chat
       chat.jid = whatsappID(userIDs[0])
-      chat.participants = [await this.contactForJid(userIDs[0]), this.meContact]
+      chat.participants = [this.contactForJid(userIDs[0]), this.meContact]
       chat.imgUrl = chat.participants[0].imgUrl
     } else throw new Error('no users provided')
 
@@ -290,7 +296,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('requested thread data, page: ' + beforeCursor)
 
-    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor)
+    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor, { loadProfilePicture: false })
+
+    texts.log('loaded threads')
+
     chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
     chats = chats.filter(c => c.jid !== STORIES_JID && !!c)
 
@@ -453,30 +462,21 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  loadDynamicMessage = async (message: Message) => {
-    const m = await this.client.loadMessage(message.threadID, message.id)
-    if (!m) return message
-
-    const mID = m.key.id
-    const content: Partial<Message> = {}
-    if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
-      texts.log('video url not present yet for ' + mID)
-      return content
-    }
-    texts.log('downloading media: ' + mID)
-
-    try {
-      content.attachments = [
-        {
-          ...message.attachments[0],
-          data: await this.client.downloadMediaMessage(m),
-        },
-      ]
-      texts.log('downloaded media: ' + mID)
-    } catch (error) {
-      texts.log('error in downloading media of ' + mID + ': ' + error)
-    }
-    return content
+  getAsset = async (key: string) => {
+    if (key.startsWith('profile-picture/')) {
+      const url = await this.client.getProfilePicture(key.replace('profile-picture/', '')).catch(() => '')
+      return url
+    } if (key.startsWith('message/')) {
+      const comps = key.split('/')
+      const m = await this.client.loadMessage(comps[1], comps[2])
+      const mID = m.key.id
+      if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
+        texts.log('video url not present yet for ' + mID)
+        return undefined
+      }
+      const buffer = await this.client.downloadMediaMessage(m)
+      return buffer
+    } return Buffer.from([])
   }
 
   onThreadSelected = async (threadID: string) => {
@@ -513,10 +513,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.modifyChat(threadID, mod, 8 * 60 * 60 * 1000)
   }
 
-  private contactForJid = async (jid: string) => {
+  private contactForJid = (jid: string) => {
     jid = whatsappID(jid)
     const contact = (this.client.contacts[jid] || { jid }) as WACompleteContact
-    if (!contact.imgUrl) contact.imgUrl = await this.client.getProfilePicture(jid).catch(() => '')
+    contact.imgUrl = 'asset://profile-picture/' + jid
     return contact
   }
 
