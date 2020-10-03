@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "link:../../Baileys",
+    "@adiwajshing/baileys": "https://github.com/adiwajshing/Baileys",
     "bluebird": "^3.7.2",
     "match-sorter": "^4.2.1",
     "mem": "^6.1.1"
@@ -24,8 +24,8 @@
     "@types/bluebird": "^3.5.32",
     "@types/eslint": "^7.2.3",
     "@types/match-sorter": "^4.0.0",
-    "eslint": "^7.8.1",
+    "eslint": "^7.10.0",
     "husky": "^4.3.0",
-    "typescript": "^4.0.2"
+    "typescript": "^4.0.3"
   }
 }

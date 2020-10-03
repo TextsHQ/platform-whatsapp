@@ -1,5 +1,6 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
+import os from 'os'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
@@ -141,16 +142,17 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
-    const saveLog = async () => {
-      const file = `/Users/adhirajsingh/baileys-${new Date().toISOString()}.json`
-      await fs.writeFile(file, JSON.stringify(this.client.messageLog, null, '\t'))
-      texts.log(`saved Baileys log to ${file}`)
-    }
     this.client
-      .on('intermediate-close', () => saveLog())
+      .on('intermediate-close', async () => {
+        texts.log('intermediate-close')
+        if (texts.IS_DEV) {
+          const logPath = os.homedir() + `/baileys-${new Date().toISOString()}.json`
+          await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
+          texts.log(`saved Baileys log to ${logPath}`)
+        }
+      })
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
-        saveLog()
         if (reason === 'replaced') return this.setConnStatus({ status: ConnectionStatus.CONFLICT })
         this.setConnStatus({ status: isReconnecting ? ConnectionStatus.CONNECTING : ConnectionStatus.DISCONNECTED })
       })
@@ -463,12 +465,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getAsset = async (key: string) => {
+    const parts = key.split('/')
     if (key.startsWith('profile-picture/')) {
-      const url = await this.client.getProfilePicture(key.replace('profile-picture/', '')).catch(() => '')
+      const url = await this.client.getProfilePicture(parts[1]).catch(() => '')
       return url
-    } if (key.startsWith('message/')) {
-      const comps = key.split('/')
-      const m = await this.client.loadMessage(comps[1], comps[2])
+    }
+    if (key.startsWith('attachment/')) {
+      const m = await this.client.loadMessage(parts[1], parts[2])
       const mID = m.key.id
       if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
         texts.log('video url not present yet for ' + mID)
@@ -476,7 +479,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       const buffer = await this.client.downloadMediaMessage(m)
       return buffer
-    } return Buffer.from([])
+    }
   }
 
   onThreadSelected = async (threadID: string) => {

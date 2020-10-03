@@ -141,7 +141,7 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
         posterImg: `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}`,
-        srcURL: `asset://message/${jid}/${id}`,
+        srcURL: `asset://attachment/${jid}/${id}`,
         fileName: message.documentMessage?.fileName,
       },
     ]
