@@ -298,7 +298,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('requested thread data, page: ' + beforeCursor)
 
-    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, +beforeCursor, { loadProfilePicture: false })
+    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, beforeCursor, { loadProfilePicture: false })
 
     texts.log('loaded threads')
 
