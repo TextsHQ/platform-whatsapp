@@ -142,14 +142,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
+    const saveLog = async () => {
+      const logPath = os.homedir() + `/baileys-${new Date().toISOString()}.json`
+      await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
+      texts.log(`saved Baileys log to ${logPath}`)
+    }
     this.client
       .on('intermediate-close', async () => {
         texts.log('intermediate-close')
-        if (texts.IS_DEV) {
-          const logPath = os.homedir() + `/baileys-${new Date().toISOString()}.json`
-          await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
-          texts.log(`saved Baileys log to ${logPath}`)
-        }
+        if (texts.IS_DEV) saveLog()
       })
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
