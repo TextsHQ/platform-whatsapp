@@ -256,8 +256,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
-    if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
     if (isGroupID(jid)) {
+      if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
       try {
