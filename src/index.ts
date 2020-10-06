@@ -2,8 +2,8 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WAMessage, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, Message, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { isBroadcastID, numberFromJid } from './util'
@@ -16,6 +16,8 @@ const CONNECT_TIMEOUT_MS = 20_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
 
 export default class WhatsAppAPI implements PlatformAPI {
+  private accountID: string
+
   private client = new WAConnection()
 
   private evCallback: OnServerEventCallback = () => {}
@@ -28,7 +30,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private meContact: WACompleteContact
 
-  init = async (session: any) => {
+  init = async (session: any, accountID: string) => {
+    this.accountID = accountID
+
     this.client.logLevel = texts.IS_DEV ? MessageLogLevel.unhandled : MessageLogLevel.none
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
@@ -252,7 +256,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
-    chat.imgUrl = 'asset://profile-picture/' + jid
+    if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
     if (isGroupID(jid)) {
       await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
@@ -465,14 +469,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  getAsset = async (key: string) => {
-    const parts = key.split('/')
-    if (key.startsWith('profile-picture/')) {
-      const url = await this.client.getProfilePicture(parts[1]).catch(() => '')
+  getAsset = async (category: string, jid: string, msgID: string) => {
+    if (category === 'profile-picture') {
+      const url = await this.client.getProfilePicture(jid).catch(() => null)
       return url
     }
-    if (key.startsWith('attachment/')) {
-      const m = await this.client.loadMessage(parts[1], parts[2])
+    if (category === 'attachment') {
+      const m = await this.client.loadMessage(jid, msgID)
       const mID = m.key.id
       if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
         texts.log('video url not present yet for ' + mID)
@@ -520,7 +523,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private contactForJid = (jid: string) => {
     jid = whatsappID(jid)
     const contact = (this.client.contacts[jid] || { jid }) as WACompleteContact
-    contact.imgUrl = 'asset://profile-picture/' + jid
+    contact.imgUrl = `asset://${this.accountID}/profile-picture/${jid}`
     return contact
   }
 
