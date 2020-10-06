@@ -53,7 +53,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
-  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{sender}} from this group`,
+  [WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
   [WEB_MESSAGE_INFO_STUBTYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
     return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
