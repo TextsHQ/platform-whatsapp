@@ -298,31 +298,31 @@ export default class WhatsAppAPI implements PlatformAPI {
     return mapThread(chat, this.meContact.jid)
   }
 
-  getThreads = async (inboxName: InboxName, beforeCursor?: string) => {
+  getThreads = async (inboxName: InboxName, { cursor, direction } = { cursor: null, direction: null }) => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
-    texts.log('requested thread data, page: ' + beforeCursor)
+    texts.log('requested thread data, page: ' + cursor)
 
-    let { chats, cursor } = await this.client.loadChats(THREAD_PAGE_SIZE, beforeCursor, { loadProfilePicture: false })
+    const loadChatsResult = await this.client.loadChats(THREAD_PAGE_SIZE, cursor, { loadProfilePicture: false })
 
     texts.log('loaded threads')
 
-    chats = await bluebird.map(chats, chat => this.loadThread(chat.jid))
-    chats = chats.filter(c => c.jid !== STORIES_JID && !!c)
+    const unfiltered = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
+    const chats = unfiltered.filter(c => c.jid !== STORIES_JID && !!c)
 
     const items = mapThreads(chats as WACompleteChat[], this.meContact.jid)
 
     return {
       items,
       hasMore: chats.length >= THREAD_PAGE_SIZE,
-      oldestCursor: cursor?.toString(),
+      oldestCursor: loadChatsResult.cursor?.toString(),
     }
   }
 
-  searchMessages = async (typed: string, beforeCursor?: string, threadID?: string) => {
+  searchMessages = async (typed: string, { cursor, direction } = { cursor: null, direction: null }, threadID?: string) => {
     if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
 
-    const page = beforeCursor ? (+beforeCursor || 1) : 1
+    const page = cursor ? (+cursor || 1) : 1
     const nextPage = (page + 1).toString()
 
     texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
@@ -335,14 +335,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getMessages = async (threadID: string, bCursor?: string) => {
-    texts.log(`loading messages of ${threadID} -- ${bCursor}`)
+  getMessages = async (threadID: string, { cursor, direction } = { cursor: null, direction: null }) => {
+    texts.log(`loading messages of ${threadID} -- ${cursor}`)
 
-    const mCursor = bCursor && JSON.parse(bCursor)
-    const { messages, cursor } = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, mCursor)
+    const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && JSON.parse(cursor))
 
     if (isGroupID(threadID)) {
-      await bluebird.map(messages, async (m: WACompleteMessage) => {
+      await bluebird.map(loadMessagesResult.messages, async (m: WACompleteMessage) => {
         if (m.key.fromMe && !m.info) {
           m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
             .catch(() => ({ reads: [], deliveries: [] }))
@@ -350,10 +349,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
     }
 
+    const items = mapMessages(loadMessagesResult.messages, this.meContact.jid)
     return {
-      items: mapMessages(messages, this.meContact.jid),
-      hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor,
-      oldestCursor: cursor && JSON.stringify(cursor),
+      items,
+      hasMore: loadMessagesResult.messages.length >= MESSAGE_PAGE_SIZE || !cursor,
+      oldestCursor: loadMessagesResult.cursor && JSON.stringify(loadMessagesResult.cursor),
     }
   }
 
