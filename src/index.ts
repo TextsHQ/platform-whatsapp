@@ -3,7 +3,7 @@ import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, MessageLogLevel, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { isBroadcastID, numberFromJid } from './util'
@@ -298,7 +298,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return mapThread(chat, this.meContact.jid)
   }
 
-  getThreads = async (inboxName: InboxName, { cursor, direction } = { cursor: null, direction: null }) => {
+  getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
     texts.log('requested thread data, page: ' + cursor)
@@ -319,7 +319,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  searchMessages = async (typed: string, { cursor, direction } = { cursor: null, direction: null }, threadID?: string) => {
+  searchMessages = async (typed: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }, threadID?: string) => {
     if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
 
     const page = cursor ? (+cursor || 1) : 1
@@ -335,7 +335,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getMessages = async (threadID: string, { cursor, direction } = { cursor: null, direction: null }) => {
+  getMessages = async (threadID: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
     texts.log(`loading messages of ${threadID} -- ${cursor}`)
 
     const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && JSON.parse(cursor))
