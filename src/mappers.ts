@@ -132,6 +132,7 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
     const messageType = Object.keys(message)[0]
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
+    const fileName = message.documentMessage?.fileName
 
     response.attachments = [
       {
@@ -141,8 +142,8 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
         posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
-        srcURL: `asset://attachment/${jid}/${id}`,
-        fileName: message.documentMessage?.fileName,
+        srcURL: `asset://attachment/${jid}/${id}/${fileName}`,
+        fileName,
       },
     ]
     response.media = true
