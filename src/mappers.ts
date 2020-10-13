@@ -12,7 +12,7 @@ const participantAdded = (message: WAMessage) =>
     : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
-  [WEB_MESSAGE_INFO_STUBTYPE.CIPHERTEXT]: 'Waiting for this message. This may take a while.',
+  [WEB_MESSAGE_INFO_STUBTYPE.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
   // This chat is with the official business account of "X". Click for more info.
@@ -316,6 +316,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     participant.isAdmin = t.admins?.has(participant.id) || false
     return participant
   }) || []
+  const messages = t.messages ? t.messages.all() : []
   return {
     _original: JSON.stringify(t),
     id: whatsappID(t.jid),
@@ -326,9 +327,9 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
     messages: {
-      items: t.messages ? mapMessages(t.messages.all(), currentUserID) : [],
+      items: mapMessages(messages, currentUserID),
       hasMore: true,
-      oldestCursor: JSON.stringify(t.messages?.[0] ? { id: t.messages[0].key.id, fromMe: t.messages[0].key.fromMe } : undefined),
+      oldestCursor: JSON.stringify(messages[0] ? { id: messages[0].key.id, fromMe: messages[0].key.fromMe } : undefined),
     },
     participants: {
       items: participants,
