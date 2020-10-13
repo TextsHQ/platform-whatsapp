@@ -12,6 +12,8 @@ const participantAdded = (message: WAMessage) =>
     : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
+  [WEB_MESSAGE_INFO_STUBTYPE.CIPHERTEXT]: 'Waiting for this message. This may take a while.',
+
   [WEB_MESSAGE_INFO_STUBTYPE.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
