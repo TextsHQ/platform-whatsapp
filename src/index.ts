@@ -2,11 +2,11 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
-import { isBroadcastID, numberFromJid } from './util'
+import { hasUrl, isBroadcastID, numberFromJid } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -14,6 +14,7 @@ const THREAD_PAGE_SIZE = 20
 
 const CONNECT_TIMEOUT_MS = 20_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
+const ATTACHMENT_UPDATE_WAIT_TIME_MS = 15_000
 
 export default class WhatsAppAPI implements PlatformAPI {
   private accountID: string
@@ -36,7 +37,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
-    this.client.connectOptions.phoneResponseTime = 12 * 1000
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
@@ -116,7 +116,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
     let { meContact } = this
-    if (!meContact) console.log(`unexpectedly called when state is ${this.client.state}`)
+    if (!meContact) texts.log(`unexpectedly called when state is ${this.client.state}`)
     let attemptsRemaining = 20
     while (!meContact?.jid) {
       await bluebird.delay(50)
@@ -474,12 +474,23 @@ export default class WhatsAppAPI implements PlatformAPI {
       const url = await this.client.getProfilePicture(jid).catch(() => null)
       return url
     }
+
     if (category === 'attachment') {
-      const m = await this.client.loadMessage(jid, msgID)
+      let m = await this.client.loadMessage(jid, msgID)
       const mID = m.key.id
-      if (m.message?.videoMessage && !m.message?.videoMessage?.url) {
-        texts.log('video url not present yet for ' + mID)
-        return undefined
+
+      if (!hasUrl(m)) {
+        texts.log('url not present yet for ' + mID + ', waiting...')
+        await promiseTimeout(ATTACHMENT_UPDATE_WAIT_TIME_MS, resolve => {
+          const update = msg => {
+            if (mID === msg.key.id) {
+              m = msg
+              resolve()
+              this.client.off('message-update', update)
+            }
+          }
+          this.client.on('message-update', update)
+        })
       }
       const buffer = await this.client.downloadMediaMessage(m)
       return buffer
@@ -549,7 +560,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.name = meta.subject || chat.name
 
       if (!chat.read_only) {
-        // texts.log (`restrict: ${!meta['restrict'] || chat.admins.has (this.meContact.jid)}`)
         chat.read_only = (!(meta as any).announce || chat.admins.has(this.meContact.jid)) ? 'false' : 'true'
       }
     } catch (error) {
