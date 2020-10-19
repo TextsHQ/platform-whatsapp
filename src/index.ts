@@ -369,6 +369,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const ops: MessageOptions = {
       filename: mContent.fileName,
       caption: mContent.text,
+      ptt: options.isRecordedAudio,
     }
 
     let messageType: MessageType = MessageType.text
