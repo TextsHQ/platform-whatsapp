@@ -46,6 +46,7 @@ const info: Platform = {
     Attribute.SUPPORTS_STOP_TYPING_INDICATOR,
     // Attribute.SUPPORTS_SEARCH,
   ]),
+  audioMimeType: 'audio/ogg',
   mapMessage,
   extra: {
     getUnknownParticipant(participantID: string): Participant {
