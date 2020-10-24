@@ -370,6 +370,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       filename: mContent.fileName,
       caption: mContent.text,
       ptt: options.isRecordedAudio,
+      duration: options.audioDurationSeconds,
     }
 
     let messageType: MessageType = MessageType.text
