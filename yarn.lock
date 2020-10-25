@@ -4,7 +4,7 @@
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys":
   version "3.2.1"
-  resolved "https://github.com/adiwajshing/Baileys#51672150e4c6982fb5e39b42db3b4e0881c5faaa"
+  resolved "https://github.com/adiwajshing/Baileys#ad0f35a1cdf54fcf899d194e4df6c2c81642ad74"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.8"
     curve25519-js "^0.0.4"
