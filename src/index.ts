@@ -34,7 +34,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   init = async (session: any, { accountID }: AccountInfo) => {
     this.accountID = accountID
 
-    this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
+    this.client.logger.level = texts.IS_DEV ? 'trace' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
