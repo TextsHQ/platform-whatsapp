@@ -279,7 +279,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const { attachments } = messageAttachments(message.message, message.key.remoteJid, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
   const linked = messageQuoted(message.message)
-  const mLink = messageLink(message.message)
+  const link = messageLink(message.message)
   const action = messageAction(message)
   const isDeleted = message.messageStubType === WEB_MESSAGE_INFO_STUBTYPE.REVOKE
   const isAction = !!stubBasedMessage && message.messageStubType !== WEB_MESSAGE_INFO_STUBTYPE.REVOKE
@@ -298,7 +298,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WEB_MESSAGE_INFO_STATUS.SERVER_ACK : true,
     seen: messageSeen(message),
     linkedMessage: linked,
-    link: mLink,
+    links: [link],
     parseTemplate: !!stubBasedMessage || !!(message.message?.extendedTextMessage?.contextInfo?.mentionedJid),
     isAction,
     action,

@@ -1,9 +1,9 @@
-import { Platform, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
+import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
 import { removeServer } from './util'
 import { mapMessage } from './mappers'
 
-const info: Platform = {
+const info: PlatformInfo = {
   name: 'whatsapp-baileys',
   version: '0.2.4',
   displayName: 'WhatsApp',
@@ -30,7 +30,6 @@ const info: Platform = {
       const interval = setInterval(poll, 50)
     `,
   },
-  supportedReactions: {},
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
   maxGroupTitleLength: 25,
   attributes: new Set([
