@@ -192,7 +192,7 @@ function messageHeading(message: WAMessage) {
     if (m.liveLocationMessage) return '📍 Live Location'
     if (m.productMessage?.product) return '📦 Product'
     const inner = m[Object.keys(m)[0]]
-    if (inner.contextInfo?.isForwarded) return 'Forwarded'
+    if (inner?.contextInfo?.isForwarded) return 'Forwarded'
   }
 }
 

@@ -381,7 +381,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (Buffer.isBuffer(content)) {
       if (mimeType === Mimetype.webp) messageType = MessageType.sticker
-      else if (mimeType === 'image/gif' || mimeType?.includes('video/')) messageType = MessageType.video
+      else if (mimeType?.includes('video/')) messageType = MessageType.video
       else if (mimeType?.includes('image/')) messageType = MessageType.image
       else if (mimeType?.includes('audio/')) messageType = MessageType.audio
       else messageType = MessageType.document
