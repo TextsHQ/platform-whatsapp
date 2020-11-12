@@ -93,12 +93,13 @@ function threadType(jid: string): ThreadType {
   return 'single'
 }
 
-export function mapContact(contact: WACompleteContact): Participant {
+export function mapContact(contact: WACompleteContact, isSelf: boolean = false): Participant {
   if (isGroupID(contact.jid) || isBroadcastID(contact.jid)) {
     throw new Error('a group or broadcast list cannot be a contact')
   }
   return {
     id: whatsappID(contact.jid),
+    isSelf,
     fullName: contact.name || contact.notify || contact.vname,
     phoneNumber: numberFromJid(contact.jid),
     isVerified: contact.verify === '2',
@@ -312,7 +313,7 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
 
 export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
   const participants = t.participants?.map(c => {
-    const participant = mapContact(c)
+    const participant = mapContact(c, currentUserID === c.jid)
     participant.isAdmin = t.admins?.has(participant.id) || false
     return participant
   }) || []

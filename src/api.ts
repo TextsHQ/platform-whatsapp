@@ -128,6 +128,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     return {
       id: meContact.jid,
+      isSelf: true,
       fullName: meContact.name,
       displayText: numberFromJid(meContact.jid),
       phoneNumber: numberFromJid(meContact.jid),
@@ -251,7 +252,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     const contacts = Object.values(this.client.contacts)
       .filter((c: WACompleteContact) => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
-    return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] }).map(mapContact)
+    return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] }).map(c => mapContact(c, c.jid === this.client.user.jid))
   }
 
   loadThread = async (jid: string) => {
