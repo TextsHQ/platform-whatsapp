@@ -2,7 +2,7 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
@@ -38,12 +38,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
-    this.client.connectOptions.waitOnlyForLastMessage = true
     this.client.connectOptions.maxRetries = 5
     this.client.shouldLogMessages = texts.IS_DEV
 
     // prevent logging of phone numbers
-    // @ts-expect-error
+    // @ts-ignore
     this.client.assertChatGet = jid => {
       const chat = this.client.chats.get(jid)
       if (!chat) throw new Error('chat not found')
@@ -152,6 +151,32 @@ export default class WhatsAppAPI implements PlatformAPI {
       await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
       texts.log(`saved Baileys log to ${logPath}`)
     }
+    const onChatsUpdate = async (updates: Partial<WAChat>[]) => {
+      // texts.log('received chat update:', updates)
+      const callbacks = await Promise.all(
+        updates.map(async update => {
+          const list: ServerEvent[] = []
+          if (update.jid === 'status@broadcast') return list
+          const chat = await this.loadThread(update.jid)
+          if (!chat) return list
+          if (chat.t || chat.messages) {
+            list.push({ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: update.jid })
+          }
+          list.push(
+            {
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'thread',
+              objectID: [update.jid],
+              mutationType: 'updated',
+              data: mapThreadProps(chat),
+            },
+          )
+          return list
+        }),
+      )
+      this.evCallback(callbacks.flat())
+    }
+
     this.client
       .on('intermediate-close', async () => {
         texts.log('intermediate-close')
@@ -165,28 +190,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       .on('connecting', () => {
         this.setConnStatus({ status: ConnectionStatus.CONNECTING })
       })
-      .on('open', ({ updatedChats }) => {
+      .on('open', () => {
         this.setConnStatus({ status: ConnectionStatus.CONNECTED })
-
-        // if this is a reconnect, update the chats
-        if (updatedChats) {
-          const updates = Object.keys(updatedChats)
-            .map<ServerEvent>(threadID => ({ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID }))
-
-          texts.log(`got ${updates.length} new chats while disconnected`)
-          this.evCallback(updates)
-        }
       })
       .on('connection-phone-change', ({ connected }) => {
         texts.log(`phone connected: ${connected}`)
         this.setConnStatus({ status: connected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
-      })
-      .on('message-new', async message => {
-        const jid = whatsappID(message.key.remoteJid)
-        texts.log('received message: ' + jid)
-        if (jid === 'status@broadcast') return
-
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid }])
       })
       .on('message-status-update', async update => {
         texts.log('got update:', update)
@@ -229,23 +238,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         this.evCallback(mapPresenceUpdate(update, chat, lastActive))
       })
-      .on('chat-update', async update => {
-        texts.log('received chat update:', update)
-        const chat = await this.loadThread(update.jid)
-        if (!chat) return
-        this.evCallback([{
-          type: ServerEventType.STATE_SYNC,
-          objectName: 'thread',
-          objectID: [update.jid],
-          mutationType: 'updated',
-          data: mapThreadProps(chat),
-        }])
-      })
-      .on('message-update', (message: WACompleteMessage) => {
-        const jid = whatsappID(message.key.remoteJid)
-        if (!this.getChat(jid)) return
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid }])
-      })
+      .on('chat-update', update => onChatsUpdate([update]))
+      .on('chats-update', onChatsUpdate)
   }
 
   searchUsers = (typed: string) => {
@@ -303,6 +297,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
     texts.log('requested thread data, page: ' + cursor)
+
+    if (!this.client.lastChatsReceived) {
+      await new Promise(resolve => {
+        const interval = setInterval(() => this.client.getChats(), 20_000)
+        this.client.once('chats-received', () => {
+          clearInterval(interval)
+          resolve()
+        })
+      })
+    }
 
     const loadChatsResult = await this.client.loadChats(THREAD_PAGE_SIZE, cursor, { loadProfilePicture: false })
 
