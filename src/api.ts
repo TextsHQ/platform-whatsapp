@@ -159,9 +159,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           if (update.jid === 'status@broadcast') return list
           const chat = await this.loadThread(update.jid)
           if (!chat) return list
-          if (chat.t || chat.messages) {
-            list.push({ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: update.jid })
-          }
+
           list.push(
             {
               type: ServerEventType.STATE_SYNC,
@@ -171,6 +169,17 @@ export default class WhatsAppAPI implements PlatformAPI {
               data: mapThreadProps(chat),
             },
           )
+          if (update.messages) {
+            update.messages.all().forEach(m => (
+              list.push({
+                type: ServerEventType.STATE_SYNC,
+                mutationType: update.count ? 'created' : 'updated',
+                objectID: [update.jid, m.key.id],
+                objectName: 'message',
+                data: mapMessage(m, this.client.user.jid),
+              })
+            ))
+          }
           return list
         }),
       )
