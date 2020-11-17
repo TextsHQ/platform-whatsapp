@@ -65,6 +65,10 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
     return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
 }
+
+const EXPIRING_MESSAGES_ON = '{{sender}} turned on disappearing messages. New messages will disappear from this chat after 7 days.'
+const EXPIRING_MESSAGES_OFF = '{{sender}} turned off disappearing messages.'
+
 const NOTIFYING_STUB_TYPES = new Set(
   [
     WEB_MESSAGE_INFO_STUBTYPE.GROUP_PARTICIPANT_ADD,
@@ -145,7 +149,7 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
         isGif: message.videoMessage?.gifPlayback,
         mimeType: message[messageType].mimetype,
         posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
-        srcURL: `asset://attachment/${jid}/${id}/${fileName}`,
+        srcURL: `asset://attachment/${jid}/${id}/${fileName || ''}`,
         fileName,
       },
     ]
