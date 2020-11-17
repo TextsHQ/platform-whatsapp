@@ -180,6 +180,9 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
             ))
           }
+          if (update.presences) {
+            list.push(...mapPresenceUpdate(update))
+          }
           return list
         }),
       )
@@ -187,8 +190,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
-      .on('intermediate-close', async () => {
-        texts.log('intermediate-close')
+      .on('ws-close', async () => {
+        texts.log('ws-close')
         if (texts.IS_DEV) saveLog()
       })
       .on('close', ({ reason, isReconnecting }) => {
@@ -229,23 +232,6 @@ export default class WhatsAppAPI implements PlatformAPI {
           })
         }
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
-      })
-      .on('user-presence-update', update => {
-        texts.log('presence update:', update)
-        if (isBroadcastID(update.id)) return
-
-        const chat = this.getChat(whatsappID(update.id))
-        if (!chat) return
-
-        let lastActive = new Date()
-        if (!isGroupID(update.id)) {
-          if (update.type === Presence.available) chat.isActive = true
-          else if (chat.isActive && update.type === Presence.unavailable) chat.isActive = false
-          else if (update.t) lastActive = new Date((+update.t) * 1000)
-          else lastActive = null
-        }
-
-        this.evCallback(mapPresenceUpdate(update, chat, lastActive))
       })
       .on('chat-update', update => onChatsUpdate([update]))
       .on('chats-update', onChatsUpdate)

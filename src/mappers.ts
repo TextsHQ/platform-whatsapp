@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate, whatsappID, isGroupID } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WAMessageProto, WAMessageContent, PresenceUpdate, whatsappID, isGroupID, WAPresenceData, WAChat } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
@@ -355,20 +355,22 @@ export function mapThreads(threads: WACompleteChat[], currentUserID: string): Th
   return threads.map(t => mapThread(t, currentUserID))
 }
 
-export function mapPresenceUpdate(update: PresenceUpdate, chat: WACompleteChat, lastActive: Date): ServerEvent[] {
-  const threadID = whatsappID(update.id)
-  const participantID = update.participant ? whatsappID(update.participant) : threadID
-  if ([Presence.available, Presence.unavailable].includes(update.type)) {
+export function mapPresenceUpdate(chatUpdate: Partial<WAChat>): ServerEvent[] {
+  const threadID = chatUpdate.jid
+  const [participantID] = Object.keys(chatUpdate.presences)
+  const presence = chatUpdate.presences[participantID]
+  const lastActive = presence.lastSeen && new Date(presence.lastSeen * 1000)
+  if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence)) {
     return [{
       type: ServerEventType.USER_PRESENCE_UPDATED,
       presence: {
         userID: participantID,
-        isActive: chat.isActive,
+        isActive: presence.lastKnownPresence === Presence.available,
         lastActive,
       },
     }, { type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
   }
-  if ([Presence.composing, Presence.recording].includes(update.type)) {
+  if ([Presence.composing, Presence.recording].includes(presence.lastKnownPresence)) {
     return [{
       type: ServerEventType.PARTICIPANT_TYPING,
       typing: true,
@@ -377,7 +379,7 @@ export function mapPresenceUpdate(update: PresenceUpdate, chat: WACompleteChat, 
       durationMs: 120_000,
     }]
   }
-  if (update.type === Presence.paused) {
+  if (presence.lastKnownPresence === Presence.paused) {
     return [{ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
   }
 }
