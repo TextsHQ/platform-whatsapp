@@ -170,15 +170,19 @@ export default class WhatsAppAPI implements PlatformAPI {
             },
           )
           if (update.messages) {
-            update.messages.all().forEach(m => (
-              list.push({
-                type: ServerEventType.STATE_SYNC,
-                mutationType: update.count ? 'created' : 'updated',
-                objectID: [update.jid, m.key.id],
-                objectName: 'message',
-                data: mapMessage(m, this.client.user.jid),
-              })
-            ))
+            // update.messages.all().forEach(m => (
+            //   list.push({
+            //     type: ServerEventType.STATE_SYNC,
+            //     mutationType: update.count ? 'created' : 'updated',
+            //     objectID: [update.jid, m.key.id],
+            //     objectName: 'message',
+            //     data: mapMessage(m, this.client.user.jid),
+            //   })
+            // ))
+            list.push({
+              type: ServerEventType.THREAD_MESSAGES_REFRESH,
+              threadID: update.jid,
+            })
           }
           if (update.presences) {
             list.push(...mapPresenceUpdate(update))
