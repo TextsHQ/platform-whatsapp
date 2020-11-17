@@ -16,16 +16,16 @@
     "@adiwajshing/baileys": "https://github.com/adiwajshing/Baileys",
     "bluebird": "^3.7.2",
     "match-sorter": "^4.2.1",
-    "mem": "^6.1.1"
+    "mem": "^8.0.0"
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
     "@textshq/platform-sdk": "link:../platform-sdk",
-    "@types/bluebird": "^3.5.32",
-    "@types/eslint": "^7.2.3",
+    "@types/bluebird": "^3.5.33",
+    "@types/eslint": "^7.2.5",
     "@types/match-sorter": "^4.0.0",
-    "eslint": "^7.10.0",
+    "eslint": "^7.13.0",
     "husky": "^4.3.0",
-    "typescript": "^4.0.3"
+    "typescript": "^4.0.5"
   }
 }
