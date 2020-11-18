@@ -296,8 +296,8 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const action = messageAction(message)
   const isDeleted = message.messageStubType === WA_MESSAGE_STUB_TYPE.REVOKE
 
-  const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type == WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-  const isAction = !!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE || isEphemeralSetting
+  const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
+  const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
   return {
     _original: [message, currentUserID],
     id: message.key.id,
