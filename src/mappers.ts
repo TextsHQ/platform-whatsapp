@@ -64,9 +64,6 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   },
 }
 
-const EXPIRING_MESSAGES_ON = '{{sender}} turned on disappearing messages. New messages will disappear from this chat after 7 days.'
-const EXPIRING_MESSAGES_OFF = '{{sender}} turned off disappearing messages.'
-
 const NOTIFYING_STUB_TYPES = new Set(
   [
     WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_ADD,
