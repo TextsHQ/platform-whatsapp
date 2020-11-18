@@ -13,8 +13,10 @@ export const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') =>
   `data:${mimeType};base64,${buff.toString('base64')}`
 
 export const hasUrl = (msg: WAMessage) => {
-  if (!msg.message) return false
-  const key = Object.keys(msg.message)[0]
-  const message = msg.message[key] as WAGenericMediaMessage
+  const content = (msg.message.ephemeralMessage || msg)?.message
+  if (!content) return false
+
+  const key = Object.keys(content)[0]
+  const message = content[key] as WAGenericMediaMessage
   return !!message?.url
 }
