@@ -360,14 +360,15 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
 }
 
 export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
-  const thread = mapThread(t, null)
-  delete thread._original
-  delete thread.id
-  delete thread.type
-  delete thread.timestamp
-  delete thread.participants
-  delete thread.messages
-  return thread
+  return {
+    title: t.name,
+    description: t.description,
+    imgURL: t.imgUrl,
+    isUnread: !!t.count,
+    isArchived: t.archive === 'true',
+    isReadOnly: t.read_only === 'true',
+    createdAt: t.creationDate,
+  }
 }
 
 export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
