@@ -364,7 +364,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     const { mimeType } = msgContent
     const txt = { text: msgContent.text } as WATextMessage
     const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
-
     const ops: MessageOptions = {
       filename: msgContent.fileName,
       caption: msgContent.text,
@@ -390,7 +389,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (mimeType === 'audio/ogg') ops.ptt = true
 
-    const sentMessage = await this.client.sendMessage(threadID, txt, messageType, ops)
+    const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
