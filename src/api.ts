@@ -360,29 +360,25 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  sendMessage = async (threadID: string, mContent: MessageContent, options?: MessageSendOptions) => {
-    const { mimeType } = mContent
-    let content: WATextMessage | Buffer
-    if (mContent.fileBuffer || mContent.filePath) {
-      content = mContent.fileBuffer || await fs.readFile(mContent.filePath)
-    } else content = { text: mContent.text } as WATextMessage
-
-    texts.log(`sending message to ${threadID}, options:`, options)
+  sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
+    const { mimeType } = msgContent
+    const txt = { text: msgContent.text } as WATextMessage
+    const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
 
     const ops: MessageOptions = {
-      filename: mContent.fileName,
-      caption: mContent.text,
+      filename: msgContent.fileName,
+      caption: msgContent.text,
       ptt: options.isRecordedAudio,
       duration: options.audioDurationSeconds,
     }
 
-    let messageType: MessageType = MessageType.text
     if (options?.quotedMessageID) {
       const message = await this.client.loadMessage(threadID, options.quotedMessageID)
       ops.quoted = message
     }
 
-    if (Buffer.isBuffer(content)) {
+    let messageType = MessageType.text
+    if (buffer) {
       if (mimeType === Mimetype.webp) messageType = MessageType.sticker
       else if (mimeType?.includes('video/')) messageType = MessageType.video
       else if (mimeType?.includes('image/')) messageType = MessageType.image
@@ -394,7 +390,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (mimeType === 'audio/ogg') ops.ptt = true
 
-    const sentMessage = await this.client.sendMessage(threadID, content, messageType, ops)
+    const sentMessage = await this.client.sendMessage(threadID, txt, messageType, ops)
     if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
