@@ -220,19 +220,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         if (isGroupID(chat.jid)) {
           chat.messages.all().forEach(msg => {
-            if (update.ids.includes(msg.key.id)) {
-              const status = update.type
-              const cChat = msg as WACompleteMessage
+            if (!update.ids.includes(msg.key.id)) return
+            const status = update.type
+            const waMsg = msg as WACompleteMessage
 
-              if (!cChat.info) cChat.info = { reads: [], deliveries: [] }
+            if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
 
-              const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
+            const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
+            if (status >= WA_MESSAGE_STATUS_TYPE.READ) waMsg.info.reads.push(person)
+            else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) waMsg.info.deliveries.push(person)
 
-              if (status >= WA_MESSAGE_STATUS_TYPE.READ) cChat.info.reads.push(person)
-              else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) cChat.info.deliveries.push(person)
-
-              cChat.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
-            }
+            waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
           })
         }
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
@@ -245,7 +243,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('searching users ' + typed)
     const contacts = Object.values(this.client.contacts)
       .filter((c: WACompleteContact) => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
-    return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] }).map(c => mapContact(c, c.jid === this.client.user.jid))
+    return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] })
+      .map(c => mapContact(c, c.jid === this.client.user.jid))
   }
 
   loadThread = async (jid: string) => {

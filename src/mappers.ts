@@ -361,10 +361,12 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
 
 export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
   const thread = mapThread(t, null)
-  delete thread.id
   delete thread._original
-  delete thread.timestamp
+  delete thread.id
   delete thread.type
+  delete thread.timestamp
+  delete thread.participants
+  delete thread.messages
   return thread
 }
 
