@@ -254,9 +254,7 @@ function messageLink(message: WAMessageContent): MessageLink {
 }
 function messageStubText(message: WAMessage) {
   const mapped = PRE_DEFINED_MESSAGES[message.messageStubType] || null
-
   let txt: string = typeof mapped === 'function' ? mapped(message) : mapped
-
   if (txt) {
     message.messageStubParameters.forEach((p, i) => {
       txt = txt.replace(`{{${i}}}`, whatsappID(p))
