@@ -236,7 +236,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('chat-update', update => onChatsUpdate([update]))
-      .on('chats-update', onChatsUpdate)
+      // .on('chats-update', onChatsUpdate)
   }
 
   searchUsers = (typed: string) => {
