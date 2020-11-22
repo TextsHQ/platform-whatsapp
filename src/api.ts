@@ -2,7 +2,7 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
@@ -151,7 +151,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
       texts.log(`saved Baileys log to ${logPath}`)
     }
-    const onChatsUpdate = async (updates: Partial<WAChat>[]) => {
+    const onChatsUpdate = async (updates: Partial<WAChatUpdate>[]) => {
       // texts.log('received chat update:', updates)
       const callbacks = await Promise.all(
         updates.map(async update => {
@@ -160,29 +160,30 @@ export default class WhatsAppAPI implements PlatformAPI {
           const chat = await this.loadThread(update.jid)
           if (!chat) return list
 
-          list.push(
-            {
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'thread',
-              objectID: [update.jid],
-              mutationType: 'updated',
-              data: mapThreadProps(chat),
-            },
-          )
+          const keys = new Set(Object.keys(update))
+          keys.delete('messages')
+          keys.delete('jid')
+          if (keys.size > 0) {
+            list.push(
+              {
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectID: [update.jid],
+                mutationType: 'updated',
+                data: mapThreadProps(chat),
+              },
+            )
+          }
           if (update.messages) {
-            // update.messages.all().forEach(m => (
-            //   list.push({
-            //     type: ServerEventType.STATE_SYNC,
-            //     mutationType: update.count ? 'created' : 'updated',
-            //     objectID: [update.jid, m.key.id],
-            //     objectName: 'message',
-            //     data: mapMessage(m, this.client.user.jid),
-            //   })
-            // ))
-            list.push({
-              type: ServerEventType.THREAD_MESSAGES_REFRESH,
-              threadID: update.jid,
-            })
+            update.messages.all().forEach(m => (
+              list.push({
+                type: ServerEventType.STATE_SYNC,
+                mutationType: update.count ? 'created' : 'updated',
+                objectID: [update.jid, m.key.id],
+                objectName: 'message',
+                data: mapMessage(m, this.client.user.jid),
+              })
+            ))
           }
           if (update.presences) {
             list.push(...mapPresenceUpdate(update))
@@ -190,7 +191,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           return list
         }),
       )
-      this.evCallback(callbacks.flat())
+      const flattenedCallbacks = callbacks.flat()
+      flattenedCallbacks.length > 0 && this.evCallback(flattenedCallbacks)
     }
 
     this.client
@@ -236,7 +238,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('chat-update', update => onChatsUpdate([update]))
-      // .on('chats-update', onChatsUpdate)
+      .on('chats-update', onChatsUpdate)
   }
 
   searchUsers = (typed: string) => {
@@ -301,7 +303,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         const interval = setInterval(() => this.client.getChats(), 20_000)
         this.client.once('chats-received', () => {
           clearInterval(interval)
-          resolve()
+          resolve(undefined)
         })
       })
     }
