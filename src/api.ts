@@ -169,21 +169,22 @@ export default class WhatsAppAPI implements PlatformAPI {
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
                 objectID: [update.jid],
-                mutationType: 'updated',
+                mutationType: 'update',
                 data: mapThreadProps(chat),
               },
             )
           }
           if (update.messages) {
-            update.messages.all().forEach(m => (
-              list.push({
-                type: ServerEventType.STATE_SYNC,
-                mutationType: update.hasNewMessage ? 'created' : 'updated',
-                objectID: [update.jid, m.key.id],
-                objectName: 'message',
-                data: mapMessage(m, this.client.user.jid),
-              })
-            ))
+            // update.messages.all().forEach(m => (
+            //   list.push({
+            //     type: ServerEventType.STATE_SYNC,
+            //     mutationType: 'upsert',
+            //     objectID: [update.jid, m.key.id],
+            //     objectName: 'message',
+            //     data: mapMessage(m, this.client.user.jid),
+            //   })
+            // ))
+            this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
           }
           if (update.presences) {
             list.push(...mapPresenceUpdate(update))
@@ -366,6 +367,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const { mimeType } = msgContent
     const txt = { text: msgContent.text } as WATextMessage
     const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
+
     const ops: MessageOptions = {
       filename: msgContent.fileName,
       caption: msgContent.text,
