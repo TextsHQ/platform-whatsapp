@@ -389,6 +389,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (messageType === MessageType.document) {
       ops.mimetype = mimeType || 'application/octet-stream'
     }
+    // temp measure
+    if (messageType === MessageType.video) {
+      ops.thumbnail = null
+    }
     if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
