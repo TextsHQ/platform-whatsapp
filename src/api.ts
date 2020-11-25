@@ -178,7 +178,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             update.messages.all().forEach(m => (
               list.push({
                 type: ServerEventType.STATE_SYNC,
-                mutationType: update.count ? 'created' : 'updated',
+                mutationType: update.hasNewMessage ? 'created' : 'updated',
                 objectID: [update.jid, m.key.id],
                 objectName: 'message',
                 data: mapMessage(m, this.client.user.jid),
