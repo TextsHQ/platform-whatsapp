@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAChat, WA_MESSAGE_STUB_TYPE } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAChat, WA_MESSAGE_STUB_TYPE, WAPresenceData } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
@@ -373,31 +373,35 @@ export function mapThreads(threads: WACompleteChat[], currentUserID: string): Th
   return threads.map(t => mapThread(t, currentUserID))
 }
 
-export function mapPresenceUpdate(chatUpdate: Partial<WAChat>): ServerEvent[] {
-  const threadID = chatUpdate.jid
-  const [participantID] = Object.keys(chatUpdate.presences)
-  const presence = chatUpdate.presences[participantID]
+export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: string]: WAPresenceData }): ServerEvent[] {
+  const [participantID] = Object.keys(presenceUpdates)
+  const presence = presenceUpdates[participantID]
   const lastActive = presence.lastSeen && new Date(presence.lastSeen * 1000)
+  const mappedPresences: ServerEvent[] = []
   if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence)) {
-    return [{
-      type: ServerEventType.USER_PRESENCE_UPDATED,
-      presence: {
-        userID: participantID,
-        isActive: presence.lastKnownPresence === Presence.available,
-        lastActive,
+    mappedPresences.push(
+      {
+        type: ServerEventType.USER_PRESENCE_UPDATED,
+        presence: {
+          userID: participantID,
+          isActive: presence.lastKnownPresence === Presence.available,
+          lastActive,
+        },
       },
-    }, { type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
+    )
+  } else if ([Presence.composing, Presence.recording].includes(presence.lastKnownPresence)) {
+    mappedPresences.push(
+      {
+        type: ServerEventType.PARTICIPANT_TYPING,
+        typing: true,
+        threadID,
+        participantID,
+        durationMs: 120_000,
+      },
+    )
   }
-  if ([Presence.composing, Presence.recording].includes(presence.lastKnownPresence)) {
-    return [{
-      type: ServerEventType.PARTICIPANT_TYPING,
-      typing: true,
-      threadID,
-      participantID,
-      durationMs: 120_000,
-    }]
+  if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence)) {
+    mappedPresences.push({ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID })
   }
-  if (presence.lastKnownPresence === Presence.paused) {
-    return [{ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID }]
-  }
+  return mappedPresences
 }
