@@ -175,13 +175,13 @@ export default class WhatsAppAPI implements PlatformAPI {
             )
           }
           if (update.messages) {
-            // update.messages.all().forEach(m => (
+            // update.messages.all().forEach(msg => (
             //   list.push({
             //     type: ServerEventType.STATE_SYNC,
             //     mutationType: 'upsert',
-            //     objectID: [update.jid, m.key.id],
+            //     objectID: [update.jid, msg.key.id],
             //     objectName: 'message',
-            //     data: mapMessage(m, this.client.user.jid),
+            //     data: mapMessage(msg, this.client.user.jid),
             //   })
             // ))
             this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
@@ -238,18 +238,18 @@ export default class WhatsAppAPI implements PlatformAPI {
             waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
           })
         }
-        this.evCallback(
-          chat.messages.all().map(msg => (
-            update.ids.includes(msg.key.id)
-            && {
-              type: ServerEventType.STATE_SYNC,
-              mutationType: 'updated',
-              objectID: [chat.jid, msg.key.id],
-              objectName: 'message',
-              data: mapMessage(msg, this.client.user.jid),
-            }
-          )),
-        )
+        // this.evCallback(
+        //   chat.messages.all().filter(msg => update.ids.includes(msg.key.id)).map(msg => (
+        //     {
+        //       type: ServerEventType.STATE_SYNC,
+        //       mutationType: 'upsert',
+        //       objectID: [chat.jid, msg.key.id],
+        //       objectName: 'message',
+        //       data: mapMessage(msg, this.client.user.jid),
+        //     }
+        //   )),
+        // )
+        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('chat-update', update => onChatsUpdate([update]))
       .on('chats-update', onChatsUpdate)
