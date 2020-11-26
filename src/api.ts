@@ -12,7 +12,7 @@ import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 20
 
-const CONNECT_TIMEOUT_MS = 20_000
+const CONNECT_TIMEOUT_MS = 90_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 15_000
 
