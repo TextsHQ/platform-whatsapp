@@ -146,7 +146,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
         isGif: message.videoMessage?.gifPlayback,
         mimeType: messageInner.mimetype,
         posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
-        srcURL: `asset://attachment/${jid}/${id}/${fileName || ''}`,
+        srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
         fileName,
       },
     ]
@@ -350,6 +350,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
 
 export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
   return {
+    id: whatsappID(t.jid),
     title: t.name,
     description: t.description,
     imgURL: t.imgUrl,

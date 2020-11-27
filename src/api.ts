@@ -168,22 +168,23 @@ export default class WhatsAppAPI implements PlatformAPI {
               {
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
-                objectID: [update.jid],
+                objectIDs: {},
                 mutationType: 'update',
-                data: mapThreadProps(chat),
+                entries: [mapThreadProps(chat)],
               },
             )
           }
           if (update.messages) {
-            // update.messages.all().forEach(msg => (
-            //   list.push({
-            //     type: ServerEventType.STATE_SYNC,
-            //     mutationType: 'upsert',
-            //     objectID: [update.jid, msg.key.id],
-            //     objectName: 'message',
-            //     data: mapMessage(msg, this.client.user.jid),
-            //   })
-            // ))
+            // const mapped = update.messages.all().map(msg => mapMessage(msg, this.client.user.jid))
+            // list.push({
+            //   type: ServerEventType.STATE_SYNC,
+            //   mutationType: 'upsert',
+            //   objectIDs: {
+            //     threadID: update.jid,
+            //   },
+            //   objectName: 'message',
+            //   entries: mapped,
+            // })
             this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
           }
           if (update.presences) {
@@ -195,7 +196,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }),
       )
       const flattenedCallbacks = callbacks.flat()
-      flattenedCallbacks.length > 0 && this.evCallback(flattenedCallbacks)
+      if (flattenedCallbacks.length > 0) this.evCallback(flattenedCallbacks)
     }
 
     this.client
@@ -238,17 +239,18 @@ export default class WhatsAppAPI implements PlatformAPI {
             waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
           })
         }
-        // this.evCallback(
-        //   chat.messages.all().filter(msg => update.ids.includes(msg.key.id)).map(msg => (
-        //     {
-        //       type: ServerEventType.STATE_SYNC,
-        //       mutationType: 'upsert',
-        //       objectID: [chat.jid, msg.key.id],
-        //       objectName: 'message',
-        //       data: mapMessage(msg, this.client.user.jid),
-        //     }
-        //   )),
-        // )
+        // const mapped = chat.messages.all()
+        //   .filter(msg => update.ids.includes(msg.key.id))
+        //   .map(msg => mapMessage(msg, this.client.user.jid))
+        // this.evCallback([{
+        //   type: ServerEventType.STATE_SYNC,
+        //   mutationType: 'upsert',
+        //   objectIDs: {
+        //     threadID: chat.jid,
+        //   },
+        //   objectName: 'message',
+        //   entries: mapped,
+        // }])
         this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('chat-update', update => onChatsUpdate([update]))
@@ -393,7 +395,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       caption: msgContent.text,
       ptt: options.isRecordedAudio,
       duration: options.audioDurationSeconds,
-      waitForAck: false,
     }
 
     if (options?.quotedMessageID) {
