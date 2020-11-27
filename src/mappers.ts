@@ -173,9 +173,9 @@ function messageQuoted(messageInner: any): MessagePreview {
   if (!quoted) return null
 
   return {
-    senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
-    text: messageText(contextInfo.quotedMessage, messageInner),
     id: contextInfo.stanzaId,
+    senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
+    text: messageText(contextInfo.quotedMessage, Object.values(contextInfo.quotedMessage)[0]),
   }
 }
 function* messageHeading(message: WAMessage, messageInner: any) {
@@ -274,7 +274,7 @@ function messageStatus(status: number | string) {
 export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
   const isEphemeral = !!message.message?.ephemeralMessage
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
-  const messageInner = messageContent?.[Object.keys(messageContent)[0]]
+  const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
   const sender = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
