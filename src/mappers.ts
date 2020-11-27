@@ -121,7 +121,7 @@ function messageAction(message: WAMessage): MessageAction {
     actorParticipantID: message.participant,
   } as any
 }
-function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
+function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) return response
 
@@ -141,10 +141,10 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
     response.attachments = [
       {
         id,
-        size: { width: message[messageType]?.width, height: message[messageType]?.height },
+        size: { width: messageInner?.width, height: messageInner?.height },
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
-        mimeType: message[messageType].mimetype,
+        mimeType: messageInner.mimetype,
         posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
         srcURL: `asset://attachment/${jid}/${id}/${fileName || ''}`,
         fileName,
@@ -165,40 +165,37 @@ function messageAttachments(message: WAMessageContent, jid: string, id: string):
   }
   return response
 }
-function messageQuoted(message: WAMessageContent): MessagePreview {
-  if (!message) return null
+function messageQuoted(messageInner: any): MessagePreview {
+  if (!messageInner) return
 
-  const m = message.videoMessage
-            || message.audioMessage
-            || message.contactMessage
-            || message.imageMessage
-            || message.extendedTextMessage
-            || message.documentMessage
-            || message.productMessage
-  const contextInfo = m?.contextInfo
+  const contextInfo = messageInner?.contextInfo
   const quoted = contextInfo?.quotedMessage
   if (!quoted) return null
 
   return {
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
-    text: messageText(contextInfo.quotedMessage),
+    text: messageText(contextInfo.quotedMessage, messageInner),
     id: contextInfo.stanzaId,
   }
 }
-function messageHeading(message: WAMessage) {
-  if (message.broadcast) return 'Broadcast'
+function* messageHeading(message: WAMessage, messageInner: any) {
+  if (message.broadcast) yield 'Broadcast'
+  if (messageInner?.contextInfo?.isForwarded) yield 'Forwarded'
   const m = message.message
   if (m) {
-    if (m.groupInviteMessage) return `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
-    if (m.locationMessage) return '📍 Location'
-    if (m.liveLocationMessage) return '📍 Live Location'
-    if (m.productMessage?.product) return '📦 Product'
-    const inner = m[Object.keys(m)[0]]
-    if (inner?.contextInfo?.isForwarded) return 'Forwarded'
+    if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
+    if (m.locationMessage) yield '📍 Location'
+    if (m.liveLocationMessage) yield '📍 Live Location'
+    if (m.productMessage?.product) yield '📦 Product'
   }
 }
 
-function messageText(message: WAMessageContent) {
+const replaceJids = (jids: string[], text: string) => {
+  if (!jids) return text
+  return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`), text)
+}
+
+function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
     if (exp) {
@@ -223,18 +220,11 @@ function messageText(message: WAMessageContent) {
       .filter(Boolean)
       .join('\n')
   }
-  const extendedText = message?.extendedTextMessage
-  if (extendedText) {
-    let { text } = extendedText
-    const mentionedJids = extendedText?.contextInfo?.mentionedJid
-    if (mentionedJids) {
-      mentionedJids.forEach(jid => {
-        text = text.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`)
-      })
-    }
-    return text
+  const text = messageInner?.text ?? messageInner?.caption
+  if (text) {
+    return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
   }
-  return (message?.videoMessage || message?.imageMessage || message?.groupInviteMessage)?.caption || message?.conversation
+  return message?.conversation
 }
 
 function messageLink(message: WAMessageContent): MessageLink {
@@ -284,12 +274,13 @@ function messageStatus(status: number | string) {
 export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
   const isEphemeral = !!message.message?.ephemeralMessage
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
+  const messageInner = messageContent?.[Object.keys(messageContent)[0]]
 
   const sender = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
-  const { attachments } = messageAttachments(messageContent, message.key.remoteJid, message.key.id)
+  const { attachments } = messageAttachments(messageContent, messageInner, message.key.remoteJid, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
-  const linked = messageQuoted(messageContent)
+  const linked = messageQuoted(messageInner)
   const link = messageLink(messageContent)
   const action = messageAction(message)
   const isDeleted = message.messageStubType === WA_MESSAGE_STUB_TYPE.REVOKE
@@ -299,9 +290,10 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   return {
     _original: [message, currentUserID],
     id: message.key.id,
+    cursor: message.key.id + '_' + Number(message.key.fromMe),
     threadID: message.key.remoteJid,
-    textHeading: messageHeading(message),
-    text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent) ?? stubBasedMessage),
+    textHeading: [...messageHeading(message, messageInner)].join('\n'),
+    text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
     timestamp: new Date(timestamp * 1000),
     senderID: sender,
     isSender: message.key.fromMe,
@@ -312,7 +304,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     seen: messageSeen(message),
     linkedMessage: linked,
     links: [link],
-    parseTemplate: isAction || !!(messageContent?.extendedTextMessage?.contextInfo?.mentionedJid),
+    parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid),
     isAction,
     action,
     isErrored: !isAction && message.key.fromMe && message.status === 0,
