@@ -31,9 +31,6 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
 
-  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
-  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to {{0}}',
-  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_ICON]: "{{sender}} changed this group's icon",
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
@@ -51,9 +48,13 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_ADD]: participantAdded,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
 
+  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to {{0}}`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_ICON]: message => `{{${whatsappID(message.participant)}}} changed this group's icon`,
+
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
-  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_RESTRICT]: message => {
     if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
     return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'

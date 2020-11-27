@@ -534,7 +534,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     const jid = threadID
     texts.log(`thread selected: ${jid}`)
-    await this.client.updatePresence(jid, Presence.available)
+    // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
     if (!isGroupID(jid) && !isBroadcastID(jid)) {
       await this.client.requestPresenceUpdate(jid)
