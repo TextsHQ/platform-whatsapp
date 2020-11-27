@@ -337,7 +337,6 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
     messages: {
       items: mapMessages(messages, currentUserID),
       hasMore: true,
-      oldestCursor: JSON.stringify(messages[0] ? { id: messages[0].key.id, fromMe: messages[0].key.fromMe } : undefined),
     },
     participants: {
       items: participants,

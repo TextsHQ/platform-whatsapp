@@ -357,7 +357,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   getMessages = async (threadID: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
     texts.log(`loading messages of ${threadID} -- ${cursor}`)
 
-    const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && JSON.parse(cursor))
+    const getCursor = () => {
+      const [id, fromMe] = cursor.split('_')
+      return {
+        id,
+        fromMe: !!+fromMe,
+      }
+    }
+
+    const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && getCursor())
 
     if (isGroupID(threadID)) {
       await bluebird.map(loadMessagesResult.messages, async (m: WACompleteMessage) => {
@@ -372,7 +380,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     return {
       items,
       hasMore: loadMessagesResult.messages.length >= MESSAGE_PAGE_SIZE || !cursor,
-      oldestCursor: loadMessagesResult.cursor && JSON.stringify(loadMessagesResult.cursor),
     }
   }
 
