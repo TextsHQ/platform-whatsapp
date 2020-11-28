@@ -10,7 +10,7 @@ import { hasUrl, isBroadcastID, numberFromJid } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
-const THREAD_PAGE_SIZE = 20
+const THREAD_PAGE_SIZE = 25
 
 const CONNECT_TIMEOUT_MS = 90_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
@@ -40,6 +40,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.maxRetries = 5
     this.client.shouldLogMessages = texts.IS_DEV
+    this.client.loadProfilePicturesForChatsAutomatically = false
 
     // prevent logging of phone numbers
     // @ts-ignore
@@ -96,8 +97,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('began connect')
 
     try {
-      const { user } = await this.client.connect()
-      this.meContact = user as WACompleteContact
+      await this.client.connect()
       this.setConnStatus({ status: ConnectionStatus.CONNECTED })
     } catch (error) {
       texts.log('connect failed:', error)
@@ -114,7 +114,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
-    let { meContact } = this
+    /* let { meContact } = this
     if (!meContact) texts.log(`unexpectedly called when state is ${this.client.state}`)
     let attemptsRemaining = 20
     while (!meContact?.jid) {
@@ -123,15 +123,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (--attemptsRemaining === 0 && !meContact.jid) {
         throw new Error('unable to get me contact')
       }
-    }
-
+    } */
+    const { meContact } = this
     return {
       id: meContact.jid,
       isSelf: true,
       fullName: meContact.name,
       displayText: numberFromJid(meContact.jid),
       phoneNumber: numberFromJid(meContact.jid),
-      imgURL: meContact.imgUrl,
+      imgURL: `asset://${this.accountID}/profile-picture/${meContact.jid}`,
     }
   }
 
@@ -200,6 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
+      .on('connection-validated', user => this.meContact = user)
       .on('ws-close', async () => {
         texts.log('ws-close')
         if (texts.IS_DEV) saveLog()
@@ -268,7 +269,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
     if (isGroupID(jid)) {
-      if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
+      chat.imgUrl = this.ppUrl(jid)
       await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
       try {
@@ -454,7 +455,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
     texts.log('send typing:', typing, 'to', threadID, typing)
-    await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.paused)
+    await (
+      this.client.updatePresence(threadID, typing ? Presence.composing : Presence.paused)
+        .catch(error => texts.log(`error in presence update: ${error}`))
+    )
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {
@@ -501,7 +505,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getAsset = async (category: string, jid: string, msgID: string) => {
     if (category === 'profile-picture') {
-      const url = await this.client.getProfilePicture(jid).catch(() => null)
+      const item = this.client.contacts[jid] || this.client.chats.get(jid)
+      let url: string
+      if (typeof item?.imgUrl === 'undefined' || item.imgUrl.startsWith('asset://')) {
+        url = await this.client.getProfilePicture(jid).catch(() => null)
+        if (item) item.imgUrl = url
+      } else url = item?.imgUrl
       return url
     }
 
@@ -512,14 +521,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!hasUrl(m)) {
         texts.log('url not present yet for ' + mID + ', waiting...')
         await promiseTimeout(ATTACHMENT_UPDATE_WAIT_TIME_MS, resolve => {
-          const update = msg => {
-            if (mID === msg.key.id) {
-              m = msg
+          const update = (chatUpdate: Partial<WAChat>) => {
+            const message = chatUpdate.messages?.get(mID)
+            if (message) {
+              m = message
               resolve()
-              this.client.off('message-update', update)
+              this.client.off('chat-update', update)
             }
           }
-          this.client.on('message-update', update)
+          this.client.on('chat-update', update)
         })
       }
       const buffer = await this.client.downloadMediaMessage(m)
@@ -564,9 +574,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   private contactForJid = (jid: string) => {
     jid = whatsappID(jid)
     const contact = (this.client.contacts[jid] || { jid }) as WACompleteContact
-    contact.imgUrl = `asset://${this.accountID}/profile-picture/${jid}`
+    contact.imgUrl = this.ppUrl(jid)
     return contact
   }
+
+  private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`
 
   private getChat = (jid: string) => this.client.chats.get(jid) as WACompleteChat
 
