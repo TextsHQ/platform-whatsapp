@@ -416,7 +416,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (messageType === MessageType.document) {
       ops.mimetype = mimeType || 'application/octet-stream'
     }
-    if (mimeType === 'video/gif') {
+    if (msgContent.isGif) {
       ops.mimetype = 'video/gif'
     }
     // temp measure
