@@ -269,7 +269,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid) as WACompleteChat
     if (isGroupID(jid)) {
-      chat.imgUrl = this.ppUrl(jid)
+      if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
+      // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
+      // chat.imgUrl = this.ppUrl(jid)
       await this.setGroupChatProperties(chat)
     } else if (isBroadcastID(jid)) {
       try {
@@ -413,6 +415,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     if (messageType === MessageType.document) {
       ops.mimetype = mimeType || 'application/octet-stream'
+    }
+    if (mimeType === 'video/gif') {
+      ops.mimetype = 'video/gif'
     }
     // temp measure
     if (messageType === MessageType.video) {

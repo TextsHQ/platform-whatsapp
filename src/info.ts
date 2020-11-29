@@ -45,7 +45,10 @@ const info: PlatformInfo = {
     Attribute.SUPPORTS_STOP_TYPING_INDICATOR,
     // Attribute.SUPPORTS_SEARCH,
   ]),
-  audioMimeType: 'audio/ogg',
+  attachments: {
+    audioMimeType: 'audio/ogg',
+    gifMimeType: 'video/gif',
+  },
   mapMessage,
   extra: {
     getUnknownParticipant(participantID: string): Participant {
