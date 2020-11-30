@@ -460,10 +460,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendTypingIndicator = async (threadID: string, typing: boolean) => {
     texts.log('send typing:', typing, 'to', threadID, typing)
-    await (
-      this.client.updatePresence(threadID, typing ? Presence.composing : Presence.paused)
-        .catch(error => texts.log(`error in presence update: ${error}`))
-    )
+    if (this.client.state === 'open') {
+      await this.client.updatePresence(threadID, typing ? Presence.composing : Presence.paused)
+    }
   }
 
   changeThreadTitle = async (threadID: string, newTitle: string) => {
