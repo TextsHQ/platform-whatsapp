@@ -600,7 +600,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           throw err
         })
 
-      chat.participants = await bluebird.map(meta.participants, p => this.contactForJid(p.id))
+      chat.participants = meta.participants.map(p => this.contactForJid(p.id))
       chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
       chat.creationDate = new Date(+meta.creation * 1000)
       chat.name = meta.subject || chat.name
