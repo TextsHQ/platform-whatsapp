@@ -1,8 +1,8 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAChat, WA_MESSAGE_STUB_TYPE, WAPresenceData } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE } from '@textshq/platform-sdk'
 
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
-import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer } from './util'
+import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -31,6 +31,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
 
+  // todo: recheck if {{sender}} is accurate. we've had to replace sender with message.participant for a bunch of messages
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
@@ -327,7 +328,7 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
   }) || []
   const messages = t.messages ? t.messages.all() : []
   return {
-    _original: JSON.stringify(t),
+    _original: safeJSONStringify(t),
     id: whatsappID(t.jid),
     title: t.name,
     description: t.description,

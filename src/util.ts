@@ -20,3 +20,11 @@ export const hasUrl = (msg: WAMessage) => {
   const message = content[key] as WAGenericMediaMessage
   return !!message?.url
 }
+
+export function safeJSONStringify(obj: any) {
+  try {
+    return JSON.stringify(obj)
+  } catch (err) {
+    // swalloe
+  }
+}
