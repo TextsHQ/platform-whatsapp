@@ -511,12 +511,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   getAsset = async (category: string, jid: string, msgID: string) => {
     if (category === 'profile-picture') {
       const item = this.client.contacts[jid] || this.client.chats.get(jid)
-      let url: string
-      if (typeof item?.imgUrl === 'undefined' || item.imgUrl.startsWith('asset://')) {
-        url = await this.client.getProfilePicture(jid).catch(() => null)
+      if (item?.imgUrl == null || item.imgUrl?.startsWith('asset://')) {
+        const url = await this.client.getProfilePicture(jid).catch(() => null)
         if (item) item.imgUrl = url
-      } else url = item?.imgUrl
-      return url
+        return url
+      }
+      return item?.imgUrl
     }
 
     if (category === 'attachment') {
