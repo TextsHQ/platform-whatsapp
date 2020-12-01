@@ -2,11 +2,11 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
-import { hasUrl, isBroadcastID, numberFromJid } from './util'
+import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -41,6 +41,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.connectOptions.maxRetries = 5
     this.client.shouldLogMessages = texts.IS_DEV
     this.client.loadProfilePicturesForChatsAutomatically = false
+    this.client.chatOrderingKey = textsWAKey
 
     // prevent logging of phone numbers
     // @ts-ignore
@@ -520,7 +521,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (category === 'attachment') {
       let m = await this.client.loadMessage(jid, msgID)
-      const mID = m.key.id
+      const mID = WA_MESSAGE_ID(m)
 
       if (!hasUrl(m)) {
         texts.log('url not present yet for ' + mID + ', waiting...')
