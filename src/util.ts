@@ -31,6 +31,6 @@ export function safeJSONStringify(obj: any) {
   try {
     return JSON.stringify(obj)
   } catch (err) {
-    // swalloe
+    // swallow
   }
 }
