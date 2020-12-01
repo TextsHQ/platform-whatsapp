@@ -10,7 +10,7 @@ import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
 import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
-const THREAD_PAGE_SIZE = 25
+const THREAD_PAGE_SIZE = 20
 
 const CONNECT_TIMEOUT_MS = 90_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
