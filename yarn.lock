@@ -3,8 +3,8 @@
 
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys":
-  version "3.3.1"
-  resolved "https://github.com/adiwajshing/Baileys#d4b453f0e59f475247577255aa37f602a5c67fba"
+  version "3.3.2"
+  resolved "https://github.com/adiwajshing/Baileys#4a6c72c36c228552bbf30f697923f61c743d1246"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.8"
     curve25519-js "^0.0.4"
@@ -581,7 +581,7 @@
   resolved "https://registry.yarnpkg.com/@types/match-sorter/-/match-sorter-4.0.0.tgz#8a7286019d4e328c09422bb2af2403a94b7038fd"
   integrity sha512-JK7HNHXZA7i/nEp6fbNAxoX/1j1ysZXmv2/nlkt2UpX1LiUWKLtyt/dMmDTlMPR6t6PkwMmIr2W2AAyu6oELNw==
 
-"@types/node@*", "@types/node@^14.14.9":
+"@types/node@*", "@types/node@^14.14.10":
   version "14.14.10"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.10.tgz#5958a82e41863cfc71f2307b3748e3491ba03785"
   integrity sha512-J32dgx2hw8vXrSbu4ZlVhn1Nm3GbeCFNw2FWL8S5QKucHGY0cyNwjdQdO+KMBZ4wpmC7KhLCiNsdk1RFRIYUQQ==

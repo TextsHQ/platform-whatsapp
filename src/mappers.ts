@@ -290,7 +290,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
   const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
   return {
-    _original: [message, currentUserID],
+    _original: safeJSONStringify([message, currentUserID]),
     id: message.key.id,
     cursor: message.key.id + '_' + Number(message.key.fromMe),
     threadID: message.key.remoteJid,
@@ -320,22 +320,22 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
   return message.map(m => mapMessage(m, currentUserID))
 }
 
-export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
-  const participants = t.participants?.map(c => {
+export function mapThread(chat: WACompleteChat, currentUserID: string): Thread {
+  const participants = chat.participants?.map(c => {
     const participant = mapContact(c, currentUserID === c.jid)
-    participant.isAdmin = t.admins?.has(participant.id) || false
+    participant.isAdmin = chat.admins?.has(participant.id) || false
     return participant
   }) || []
-  const messages = t.messages ? t.messages.all() : []
+  const messages = chat.messages ? chat.messages.all() : []
   return {
-    _original: safeJSONStringify(t),
-    id: whatsappID(t.jid),
-    title: t.name,
-    description: t.description,
-    imgURL: t.imgUrl,
-    isUnread: !!t.count,
-    isArchived: t.archive === 'true',
-    isReadOnly: t.read_only === 'true',
+    _original: safeJSONStringify(chat),
+    id: whatsappID(chat.jid),
+    title: chat.name,
+    description: chat.description,
+    imgURL: chat.imgUrl,
+    isUnread: !!chat.count,
+    isArchived: chat.archive === 'true',
+    isReadOnly: chat.read_only === 'true',
     messages: {
       items: mapMessages(messages, currentUserID),
       hasMore: true,
@@ -344,9 +344,9 @@ export function mapThread(t: WACompleteChat, currentUserID: string): Thread {
       items: participants,
       hasMore: false,
     },
-    timestamp: new Date(+t.t * 1000),
-    type: threadType(t.jid),
-    createdAt: t.creationDate,
+    timestamp: new Date(+chat.t * 1000),
+    type: threadType(chat.jid),
+    createdAt: chat.creationDate,
   }
 }
 
