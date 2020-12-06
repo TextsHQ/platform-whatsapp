@@ -362,7 +362,7 @@ export function mapThread(chat: WAChat, currentUserID: string): Thread {
     participants: mapThreadParticipants(chat, currentUserID),
     timestamp: new Date(+chat.t * 1000),
     type: threadType(chat.jid),
-    createdAt: t.metadata?.creation && new Date(chat.metadata?.creation * 1000),
+    createdAt: chat.metadata?.creation ? new Date(chat.metadata?.creation * 1000) : undefined,
     ...mapThreadProps(chat) as Thread,
   }
 }
