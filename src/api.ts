@@ -201,7 +201,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
-      .on('connection-validated', user => this.meContact = user)
+      .on('connection-validated', user => { this.meContact = user })
       .on('ws-close', async () => {
         texts.log('ws-close')
         if (texts.IS_DEV) saveLog()
@@ -267,14 +267,15 @@ export default class WhatsAppAPI implements PlatformAPI {
       .map(c => mapContact(c, c.jid === this.client.user.jid))
   }
 
-  loadThread = async (jid: string) => {
+  private loadThread = async (jid: string) => {
     const chat = this.getChat(jid)
     if (isGroupID(jid) || isBroadcastID(jid)) {
-      // if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       if (chat) this.loadGroupChatProperties(chat)
+      if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
-    }// else if (!chat.imgUrl)
-    chat.imgUrl = this.ppUrl(jid)
+    } else if (!chat.imgUrl) {
+      chat.imgUrl = this.ppUrl(jid)
+    }
     return chat
   }
 
@@ -510,7 +511,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  changeParticipantRole? = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
+  changeParticipantRole = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
     if (role === 'admin') await this.client.groupMakeAdmin(threadID, [participantID])
     else if (role === 'regular') await this.client.groupDemoteAdmin(threadID, [participantID])
     return true
