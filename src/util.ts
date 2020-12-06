@@ -1,8 +1,7 @@
-import { WAMessage, whatsappID, WAGenericMediaMessage } from '@adiwajshing/baileys'
-import { WACompleteChat } from './types'
+import { WAMessage, whatsappID, WAGenericMediaMessage, WAChat } from '@adiwajshing/baileys'
 
 export const textsWAKey = {
-  key: (c: WACompleteChat) => c.t.toString(16).padStart(8, '0') + c.jid,
+  key: (c: WAChat) => c.t.toString(16).padStart(8, '0') + c.jid,
   compare: (k1: string, k2: string) => k2.localeCompare(k1),
 }
 

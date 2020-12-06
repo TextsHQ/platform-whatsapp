@@ -1,7 +1,7 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData } from '@adiwajshing/baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE } from '@textshq/platform-sdk'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat } from '@adiwajshing/baileys'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
-import { WACompleteMessage, WACompleteChat, WACompleteContact } from './types'
+import { WACompleteMessage, WACompleteContact } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 
 const participantAdded = (message: WAMessage) =>
@@ -105,6 +105,7 @@ export function mapContact(contact: WACompleteContact, isSelf: boolean = false):
     phoneNumber: numberFromJid(contact.jid),
     isVerified: contact.verify === '2',
     imgURL: contact.imgUrl,
+    isAdmin: contact.isAdmin,
   }
 }
 function messageAction(message: WAMessage): MessageAction {
@@ -278,7 +279,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
   const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
-  const sender = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
+  const senderID = message.sender?.jid || (message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid))
   const stubBasedMessage = messageStubText(message)
   const { attachments } = messageAttachments(messageContent, messageInner, message.key.remoteJid, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
@@ -289,6 +290,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
 
   const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
   const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
+
   return {
     _original: safeJSONStringify([message, currentUserID]),
     id: message.key.id,
@@ -297,7 +299,8 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     textHeading: [...messageHeading(message, messageInner)].join('\n'),
     text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
     timestamp: new Date(timestamp * 1000),
-    senderID: sender,
+    sender: message.sender && mapContact(message.sender),
+    senderID,
     isSender: message.key.fromMe,
     isDeleted,
     attachments,
@@ -320,50 +323,52 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
   return message.map(m => mapMessage(m, currentUserID))
 }
 
-export function mapThread(chat: WACompleteChat, currentUserID: string): Thread {
-  const participants = chat.participants?.map(c => {
-    const participant = mapContact(c, currentUserID === c.jid)
-    participant.isAdmin = chat.admins?.has(participant.id) || false
-    return participant
-  }) || []
-  const messages = chat.messages ? chat.messages.all() : []
+export function mapThreadParticipants(chat: WAChat, currentUserID: string): Paginated<Participant> {
+  let participants: Participant[]
+  if (chat.metadata) {
+    participants = chat.metadata.participants.map(({ id, name, isAdmin, imgUrl, isSuperAdmin }: any) => (
+      mapContact({ jid: id, name, imgUrl, isAdmin: isAdmin || isSuperAdmin }, currentUserID === chat.jid)
+    ))
+  } else if (!isGroupID(chat.jid)) {
+    participants = [
+      mapContact({ jid: chat.jid, name: chat.name }, currentUserID === chat.jid),
+    ]
+  }
+  participants?.push(mapContact({ jid: currentUserID }, true))
   return {
-    _original: safeJSONStringify(chat),
-    id: whatsappID(chat.jid),
-    title: chat.name,
-    description: chat.description,
-    imgURL: chat.imgUrl,
-    isUnread: !!chat.count,
-    isArchived: chat.archive === 'true',
-    isReadOnly: chat.read_only === 'true',
-    messages: {
-      items: mapMessages(messages, currentUserID),
-      hasMore: true,
-    },
-    participants: {
-      items: participants,
-      hasMore: false,
-    },
-    timestamp: new Date(+chat.t * 1000),
-    type: threadType(chat.jid),
-    createdAt: chat.creationDate,
+    items: participants || [],
+    hasMore: !participants,
   }
 }
 
-export function mapThreadProps(t: WACompleteChat): Partial<Thread> {
+export function mapThread(chat: WAChat, currentUserID: string): Thread {
+  return {
+    _original: safeJSONStringify(chat),
+    messages: {
+      items: mapMessages(chat.messages.all(), currentUserID),
+      hasMore: true,
+    },
+    participants: mapThreadParticipants(chat, currentUserID),
+    timestamp: new Date(+chat.t * 1000),
+    type: threadType(chat.jid),
+    ...mapThreadProps(chat) as Thread,
+  }
+}
+
+export function mapThreadProps(t: WAChat): Partial<Thread> {
   return {
     id: whatsappID(t.jid),
     title: t.name,
-    description: t.description,
+    description: t.metadata?.desc,
     imgURL: t.imgUrl,
     isUnread: !!t.count,
     isArchived: t.archive === 'true',
     isReadOnly: t.read_only === 'true',
-    createdAt: t.creationDate,
+    createdAt: t.metadata?.creation && new Date(t.metadata?.creation * 1000),
   }
 }
 
-export function mapThreads(threads: WACompleteChat[], currentUserID: string): Thread[] {
+export function mapThreads(threads: WAChat[], currentUserID: string): Thread[] {
   return threads.map(t => mapThread(t, currentUserID))
 }
 
