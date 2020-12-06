@@ -270,7 +270,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private loadThread = async (jid: string) => {
     const chat = this.getChat(jid)
     if (isGroupID(jid) || isBroadcastID(jid)) {
-      if (chat) this.loadGroupChatProperties(chat)
+      if (chat) this.upsertGroupChatParticipants(chat)
       if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
     } else if (!chat.imgUrl) {
@@ -596,7 +596,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getChat = (jid: string) => this.client.chats.get(jid)
 
-  private loadGroupChatProperties = async (chat: WAChat) => {
+  private upsertGroupChatParticipants = async (chat: WAChat) => {
     if (chat.metadata) return
     const participants = await this._getParticipants(chat.jid)
     this.evCallback(
