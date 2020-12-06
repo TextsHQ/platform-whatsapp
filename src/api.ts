@@ -345,14 +345,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private loadReadReceipts = async (messages: WAMessageProto.WebMessageInfo[], threadID: string) => {
-    await bluebird.map(messages, async (m: WACompleteMessage) => {
+    const updatedMessages = await bluebird.map(messages, async (m: WACompleteMessage) => {
       if (m.key.fromMe && !m.info) {
         m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
           .catch(() => ({ reads: [], deliveries: [] }))
         return m
       }
     })
-    const events = messages.filter(Boolean).map<ServerEvent>(m => ({
+    const events = updatedMessages.filter(Boolean).map<ServerEvent>(m => ({
       type: ServerEventType.STATE_SYNC,
       mutationType: 'upsert',
       objectIDs: {
