@@ -330,7 +330,7 @@ export function mapThreadParticipants(chat: WAChat, currentUserID: string): Pagi
     ))
   } else if (!isGroupID(chat.jid)) {
     participants = [
-      mapContact({ jid: chat.jid, name: chat.name }, currentUserID === chat.jid),
+      mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, currentUserID === chat.jid),
     ]
   }
   participants?.push(mapContact({ jid: currentUserID }, true))
