@@ -598,18 +598,30 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private upsertGroupChatParticipants = async (chat: WAChat) => {
     if (chat.metadata) return
+    const isReadOnly = chat.read_only
     const participants = await this._getParticipants(chat.jid)
-    this.evCallback(
-      [
+
+    const events: ServerEvent[] = [
+      {
+        type: ServerEventType.STATE_SYNC,
+        objectName: 'participant',
+        objectIDs: { threadID: chat.jid },
+        mutationType: 'upsert',
+        entries: participants.items,
+      },
+    ]
+    if (isReadOnly !== chat.read_only) {
+      events.push(
         {
           type: ServerEventType.STATE_SYNC,
-          objectName: 'participant',
+          objectName: 'thread',
           objectIDs: { threadID: chat.jid },
-          mutationType: 'upsert',
-          entries: participants.items,
+          mutationType: 'update',
+          entries: [{ isReadOnly: chat.read_only === 'true' }],
         },
-      ],
-    )
+      )
+    }
+    this.evCallback(events)
   }
 
   private setGroupChatProperties = async (chat: WAChat) => {
@@ -631,25 +643,5 @@ export default class WhatsAppAPI implements PlatformAPI {
       const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.meContact.jid)?.isAdmin
       chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
     }
-
-    /* const getGroupData = () => (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
-    const meta = await getGroupData()
-      .catch(async err => {
-        if (!chat.read_only) {
-          texts.log('unexpectedly couldn\'t load group, retrying...')
-          await bluebird.delay(2500)
-          return getGroupData()
-        }
-        throw err
-      }) */
-
-    /* chat.participants = meta.participants.map(({ id }) => this.contactForJid(id))
-      chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
-      chat.creationDate = new Date(+meta.creation * 1000)
-      chat.name = meta.subject || chat.name
-
-    if (!chat.read_only) {
-      chat.read_only = (!(meta as any).announce || chat.admins.has(this.meContact.jid)) ? 'false' : 'true'
-    } */
   }
 }

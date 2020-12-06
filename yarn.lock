@@ -4,7 +4,7 @@
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys":
   version "3.3.2"
-  resolved "https://github.com/adiwajshing/Baileys#a4649234028f1621a46394812d8cb89e7d3b41cb"
+  resolved "https://github.com/adiwajshing/Baileys#69ec8b97b17a8c0b7255ab9e41f50d3078b1f98b"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.8"
     curve25519-js "^0.0.4"
@@ -1067,7 +1067,7 @@ dateformat@^3.0.3:
   resolved "https://registry.yarnpkg.com/dateformat/-/dateformat-3.0.3.tgz#a6e37499a4d9a9cf85ef5872044d62901c9889ae"
   integrity sha512-jyCETtSl3VMZMWeRo7iY1FL19ges1t55hMo5yaam4Jrsm5EPL89UQkoQRyiI+Yf4k8r2ZpdngkV8hr1lIdjb3Q==
 
-debug@4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.2.0:
+debug@4, debug@^4.0.1, debug@^4.1.0, debug@^4.1.1, debug@^4.3.1:
   version "4.3.1"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.1.tgz#f0d229c505e0c6d8c49ac553d1b13dc183f6b2ee"
   integrity sha512-doEwdvm4PCeK4K3RQN2ZC2BYUBaxwLARCqZmMjtF8a51J2Rb0xpVloFRnCODwqjpwnAoao4pelN8l3RJdv3gRQ==
@@ -1499,7 +1499,7 @@ file-entry-cache@^6.0.0:
   dependencies:
     flat-cache "^3.0.4"
 
-file-type@^16.0.0:
+file-type@^16.0.1:
   version "16.0.1"
   resolved "https://registry.yarnpkg.com/file-type/-/file-type-16.0.1.tgz#d12d19c716e49d79e0a27bcf502961498b0b9928"
   integrity sha512-rwXqMZiizJd0uXZE52KN2DtPBAV99qz9cUTHHt8pSyaQzgVYrHJGR0qt2p4N/yzHEL/tGrlB/TgawQb4Fnxxyw==
@@ -2108,13 +2108,13 @@ ms@2.1.2:
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
 
 music-metadata@^7.4.1:
-  version "7.5.0"
-  resolved "https://registry.yarnpkg.com/music-metadata/-/music-metadata-7.5.0.tgz#ca13025414754e530a6b89acd793fa278491f860"
-  integrity sha512-PLem0psHyfYfDuZ3ir7EMXsOtkJsCgQNG0e9wvjgYeeAG2WPpwSZkPaTmuJUUIX7hxojj8VhG+iwuz/f+BpXgQ==
+  version "7.5.1"
+  resolved "https://registry.yarnpkg.com/music-metadata/-/music-metadata-7.5.1.tgz#97f73833f516cddceb3b4a936fa6e9efb9e28986"
+  integrity sha512-rkYf+LmlAaKMHSrXxxUbj53jQsCER+5MhoiqFDvsJ2aQ3jOyNbH0HqUoSc9ipYdSBCx27hAXaA/VCUfM+J8v/g==
   dependencies:
     content-type "^1.0.4"
-    debug "^4.2.0"
-    file-type "^16.0.0"
+    debug "^4.3.1"
+    file-type "^16.0.1"
     media-typer "^1.1.0"
     strtok3 "^6.0.4"
     token-types "^2.0.0"
