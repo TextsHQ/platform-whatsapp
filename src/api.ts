@@ -7,7 +7,8 @@ import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxNam
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapThreadParticipants } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
-import { WACompleteMessage, WACompleteContact } from './types'
+import { WACompleteMessage } from './types'
+import { WAContact } from '../../../../Node/Baileys/lib/WAConnection/Constants'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 30
@@ -29,7 +30,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus = null
 
-  private meContact: WACompleteContact
+  private meContact: WAContact
 
   init = async (session: any, { accountID }: AccountInfo) => {
     this.accountID = accountID
@@ -262,14 +263,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   searchUsers = (typed: string) => {
     texts.log('searching users ' + typed)
     const contacts = Object.values(this.client.contacts)
-      .filter((c: WACompleteContact) => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
+      .filter(c => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
     return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] })
       .map(c => mapContact(c, c.jid === this.client.user.jid))
   }
 
   loadThread = async (jid: string) => {
     const chat = this.getChat(jid)
-    if (isGroupID(jid)) {
+    if (isGroupID(jid) || isBroadcastID(jid)) {
+      chat && this.loadGroupChatProperties(chat)
       // if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
     }// else if (!chat.imgUrl)
@@ -283,7 +285,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       const meta = await this.client.groupCreate(name, userIDs)
       chat = this.getChat(meta.gid)
     } else if (userIDs.length === 1) {
-      chat = this.getChat(whatsappID(userIDs[0])) || await this.client.chatAdd(userIDs[0], name)
+      chat = this.getChat(whatsappID(userIDs[0]))
+      if (!chat) {
+        chat = await this.client.chatAdd(userIDs[0], name)
+        this.client.chats.delete(chat)
+      }
       chat.imgUrl = this.ppUrl(chat.jid)
     } else throw new Error('no users provided')
 
@@ -338,8 +344,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getMessages = async (threadID: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
-    texts.log(`loading messages of ${threadID} -- ${cursor}`)
-
     const getCursor = () => {
       const [id, fromMe] = cursor.split('_')
       return {
@@ -347,28 +351,38 @@ export default class WhatsAppAPI implements PlatformAPI {
         fromMe: !!+fromMe,
       }
     }
-
-    const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && getCursor())
-    const isGroup = isGroupID(threadID)
-    await bluebird.map(loadMessagesResult.messages, async (m: WACompleteMessage) => {
-      if (m.key.fromMe) {
-        m.sender = this.meContact
-        if (isGroup && !m.info) {
+    const messageLen = !!cursor || !this.getChat(threadID) ? MESSAGE_PAGE_SIZE : this.getChat(threadID).messages.length
+    texts.log(`loading ${messageLen} messages of ${threadID} -- ${cursor}`)
+    const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
+    if (isGroupID(threadID)) {
+      // async load delivery & read receipts
+      bluebird.map(messages, async (m: WACompleteMessage) => {
+        if (m.key.fromMe && !m.info) {
           m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
             .catch(() => ({ reads: [], deliveries: [] }))
+          return m
         }
-      } else if (!m.sender) {
-        const sender = isGroup ? m.participant || m.key.participant : m.key.remoteJid
-        if (sender) {
-          m.sender = this.contactForJid(sender)
-        }
-      }
-    })
+      })
+        .then(messages => (
+          messages
+            .filter(Boolean)
+            .map(m => ({
+              type: ServerEventType.STATE_SYNC,
+              mutationType: 'upsert',
+              objectIDs: {
+                threadID, messageID: m.key.id,
+              },
+              objectName: 'message',
+              entries: [mapMessage(m, this.meContact.jid)],
+            }) as ServerEvent)
+        ))
+        .then(events => this.evCallback(events))
+    }
 
-    const items = mapMessages(loadMessagesResult.messages, this.meContact.jid)
+    const items = mapMessages(messages, this.meContact.jid)
     return {
       items,
-      hasMore: loadMessagesResult.messages.length >= MESSAGE_PAGE_SIZE || !cursor,
+      hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,
     }
   }
 
@@ -543,23 +557,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     const jid = threadID
     texts.log(`thread selected: ${jid}`)
-    if (isGroupID(jid)) {
-      const chat = this.getChat(jid)
-      if (chat && !chat.metadata) {
-        const participants = await this.getParticipants(jid)
-        this.evCallback(
-          [
-            {
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'participant',
-              objectIDs: { threadID },
-              mutationType: 'upsert',
-              entries: participants.items,
-            },
-          ],
-        )
-      }
-    }
     // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
     if (!isGroupID(jid) && !isBroadcastID(jid)) {
@@ -589,7 +586,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private contactForJid = (jid: string) => {
     jid = whatsappID(jid)
-    const contact = (this.client.contacts[jid] || { jid }) as WACompleteContact
+    const contact = (this.client.contacts[jid] || { jid })
     if (!contact.imgUrl) contact.imgUrl = this.ppUrl(jid)
     return contact
   }
@@ -598,6 +595,23 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getChat = (jid: string) => this.client.chats.get(jid)
 
+  private loadGroupChatProperties = async (chat: WAChat) => {
+    if (!chat.metadata) {
+      const participants = await this.getParticipants(chat.jid)
+      this.evCallback(
+        [
+          {
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'participant',
+            objectIDs: { threadID: chat.jid },
+            mutationType: 'upsert',
+            entries: participants.items,
+          },
+        ],
+      )
+    }
+  }
+
   private setGroupChatProperties = async (chat: WAChat) => {
     const { jid } = chat
     let meta: WAGroupMetadata
@@ -605,19 +619,16 @@ export default class WhatsAppAPI implements PlatformAPI {
       meta = await this.client.groupMetadata(jid)
     } else {
       const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid)
-      meta = { participants: broadcastMeta.recipients } as WAGroupMetadata
+      meta = { participants: broadcastMeta.recipients.map(({ id }) => ({ jid: id })) } as WAGroupMetadata
       chat.metadata = meta
     }
     meta.participants.forEach(p => {
-      const contact = this.contactForJid(p.id)
-      if (contact) {
-        p.name = contact.name || contact.notify || contact.vname
-        p.imgUrl = contact.imgUrl
-      }
+      const contact = this.contactForJid(p.jid)
+      if (contact) p.imgUrl = contact.imgUrl
     })
 
     if (!chat.read_only) {
-      const isSelfAdmin = meta.participants.find(({ id }) => whatsappID(id) === this.meContact.jid)?.isAdmin
+      const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.meContact.jid)?.isAdmin
       chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
     }
 

@@ -1,7 +1,7 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
-import { WACompleteMessage, WACompleteContact } from './types'
+import { WACompleteMessage } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 
 const participantAdded = (message: WAMessage) =>
@@ -94,7 +94,7 @@ function threadType(jid: string): ThreadType {
   return 'single'
 }
 
-export function mapContact(contact: WACompleteContact, isSelf: boolean = false): Participant {
+export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: boolean = false): Participant {
   if (isGroupID(contact.jid) || isBroadcastID(contact.jid)) {
     throw new Error('a group or broadcast list cannot be a contact')
   }
@@ -105,7 +105,7 @@ export function mapContact(contact: WACompleteContact, isSelf: boolean = false):
     phoneNumber: numberFromJid(contact.jid),
     isVerified: contact.verify === '2',
     imgURL: contact.imgUrl,
-    isAdmin: contact.isAdmin,
+    isAdmin: (contact as WAGroupParticipant).isAdmin,
   }
 }
 function messageAction(message: WAMessage): MessageAction {
@@ -279,7 +279,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
   const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
-  const senderID = message.sender?.jid || (message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid))
+  const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
   const stubBasedMessage = messageStubText(message)
   const { attachments } = messageAttachments(messageContent, messageInner, message.key.remoteJid, message.key.id)
   const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
@@ -325,8 +325,8 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
 export function mapThreadParticipants(chat: WAChat, currentUserID: string): Paginated<Participant> {
   let participants: Participant[]
   if (chat.metadata) {
-    participants = chat.metadata.participants.map(({ id, name, isAdmin, imgUrl, isSuperAdmin }: any) => (
-      mapContact({ jid: id, name, imgUrl, isAdmin: isAdmin || isSuperAdmin }, currentUserID === chat.jid)
+    participants = chat.metadata.participants.map(c => (
+      mapContact(c, currentUserID === c.jid)
     ))
   } else if (!isGroupID(chat.jid)) {
     participants = [
