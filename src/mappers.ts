@@ -345,7 +345,7 @@ export function mapThreadProps(chat: WAChat): Partial<Thread> {
     id: whatsappID(chat.jid),
     title: chat.name,
     description: chat.metadata?.desc,
-    imgURL: chat.imgUrl,
+    imgURL: isGroupID(chat.jid) ? chat.imgUrl : undefined,
     isUnread: !!chat.count,
     isArchived: chat.archive === 'true',
     isReadOnly: chat.read_only === 'true',
