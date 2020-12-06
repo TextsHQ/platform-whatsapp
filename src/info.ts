@@ -46,7 +46,7 @@ const info: PlatformInfo = {
     // Attribute.SUPPORTS_SEARCH,
   ]),
   attachments: {
-    audioMimeType: 'audio/ogg',
+    recordedAudioMimeType: 'audio/ogg',
     gifMimeType: 'video/gif',
   },
   mapMessage,
