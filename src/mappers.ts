@@ -299,7 +299,6 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     textHeading: [...messageHeading(message, messageInner)].join('\n'),
     text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
     timestamp: new Date(timestamp * 1000),
-    sender: message.sender && mapContact(message.sender),
     senderID,
     isSender: message.key.fromMe,
     isDeleted,
@@ -341,6 +340,18 @@ export function mapThreadParticipants(chat: WAChat, currentUserID: string): Pagi
   }
 }
 
+export function mapThreadProps(chat: WAChat): Partial<Thread> {
+  return {
+    id: whatsappID(chat.jid),
+    title: chat.name,
+    description: chat.metadata?.desc,
+    imgURL: chat.imgUrl,
+    isUnread: !!chat.count,
+    isArchived: chat.archive === 'true',
+    isReadOnly: chat.read_only === 'true',
+  }
+}
+
 export function mapThread(chat: WAChat, currentUserID: string): Thread {
   return {
     _original: safeJSONStringify(chat),
@@ -351,20 +362,8 @@ export function mapThread(chat: WAChat, currentUserID: string): Thread {
     participants: mapThreadParticipants(chat, currentUserID),
     timestamp: new Date(+chat.t * 1000),
     type: threadType(chat.jid),
+    createdAt: t.metadata?.creation && new Date(chat.metadata?.creation * 1000),
     ...mapThreadProps(chat) as Thread,
-  }
-}
-
-export function mapThreadProps(t: WAChat): Partial<Thread> {
-  return {
-    id: whatsappID(t.jid),
-    title: t.name,
-    description: t.metadata?.desc,
-    imgURL: t.imgUrl,
-    isUnread: !!t.count,
-    isArchived: t.archive === 'true',
-    isReadOnly: t.read_only === 'true',
-    createdAt: t.metadata?.creation && new Date(t.metadata?.creation * 1000),
   }
 }
 
