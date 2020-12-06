@@ -351,7 +351,10 @@ export default class WhatsAppAPI implements PlatformAPI {
         fromMe: !!+fromMe,
       }
     }
-    const messageLen = !!cursor || !this.getChat(threadID) ? MESSAGE_PAGE_SIZE : this.getChat(threadID).messages.length
+    const messageLen = Math.max(
+      !!cursor || !this.getChat(threadID) ? MESSAGE_PAGE_SIZE : this.getChat(threadID).messages.length,
+      1,
+    )
     texts.log(`loading ${messageLen} messages of ${threadID} -- ${cursor}`)
     const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
     if (isGroupID(threadID)) {
