@@ -287,6 +287,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else if (userIDs.length === 1) {
       chat = this.getChat(whatsappID(userIDs[0]))
       if (!chat) {
+        // @ts-ignore
         chat = await this.client.chatAdd(userIDs[0], name)
         this.client.chats.delete(chat)
       }
