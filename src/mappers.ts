@@ -96,10 +96,10 @@ function threadType(jid: string): ThreadType {
 
 export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: boolean = false): Participant {
   if (isGroupID(contact.jid)) {
-    throw new Error('a group cannot be a contact')
+    throw new Error('mapContact: cannot map a group')
   }
   if (isBroadcastID(contact.jid)) {
-    throw new Error('a broadcast list cannot be a contact')
+    throw new Error('mapContact: cannot map a broadcast list')
   }
   return {
     id: whatsappID(contact.jid),
@@ -125,7 +125,7 @@ function messageAction(message: WAMessage): MessageAction {
     type: actionType,
     participantIDs: message.messageStubParameters ? message.messageStubParameters.map(p => whatsappID(p)) : [message.participant],
     actorParticipantID: message.participant,
-  } as any
+  }
 }
 function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
   const response = { attachments: [] as MessageAttachment[], media: false }
