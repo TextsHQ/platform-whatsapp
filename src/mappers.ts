@@ -95,8 +95,11 @@ function threadType(jid: string): ThreadType {
 }
 
 export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: boolean = false): Participant {
-  if (isGroupID(contact.jid) || isBroadcastID(contact.jid)) {
-    throw new Error('a group or broadcast list cannot be a contact')
+  if (isGroupID(contact.jid)) {
+    throw new Error('a group cannot be a contact')
+  }
+  if (isBroadcastID(contact.jid)) {
+    throw new Error('a broadcast list cannot be a contact')
   }
   return {
     id: whatsappID(contact.jid),
@@ -328,7 +331,7 @@ export function mapThreadParticipants(chat: WAChat, currentUserID: string): Pagi
     participants = chat.metadata.participants.map(c => (
       mapContact(c, currentUserID === c.jid)
     ))
-  } else if (!isGroupID(chat.jid)) {
+  } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
     participants = [
       mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, currentUserID === chat.jid),
     ]
