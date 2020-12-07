@@ -47,7 +47,7 @@ const info: PlatformInfo = {
   ]),
   attachments: {
     recordedAudioMimeType: 'audio/ogg',
-    gifMimeType: 'video/gif',
+    gifMimeType: 'video/mp4',
   },
   mapMessage,
   extra: {
