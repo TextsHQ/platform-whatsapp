@@ -115,16 +115,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
-    /* let { meContact } = this
-    if (!meContact) texts.log(`unexpectedly called when state is ${this.client.state}`)
-    let attemptsRemaining = 20
-    while (!meContact?.jid) {
-      await bluebird.delay(50)
-      meContact = this.meContact
-      if (--attemptsRemaining === 0 && !meContact.jid) {
-        throw new Error('unable to get me contact')
-      }
-    } */
     const { meContact } = this
     return {
       id: meContact.jid,
@@ -270,7 +260,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   private loadThread = async (jid: string) => {
     const chat = this.getChat(jid)
     if (isGroupID(jid) || isBroadcastID(jid)) {
-      if (chat) this.upsertGroupChatParticipants(chat)
+      try {
+        if (chat) await this.upsertGroupChatParticipants(chat)
+      } catch (error) {
+        texts.log('error in getting group info ', error)
+      }
+
       if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
     } else if (!chat.imgUrl) {
@@ -391,13 +386,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  private _getParticipants = async (threadID: string) => {
+  /* private _getParticipants = async (threadID: string) => {
     const chat = this.getChat(threadID)
     if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
       await this.setGroupChatProperties(chat)
     }
     return mapThreadParticipants(chat, this.meContact.jid)
-  }
+  } */
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
     const { mimeType } = msgContent
@@ -600,9 +595,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   private upsertGroupChatParticipants = async (chat: WAChat) => {
     if (chat.metadata) return
     const isReadOnly = chat.read_only
-    const participants = await this._getParticipants(chat.jid)
+    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
+      await this.setGroupChatProperties(chat)
+    }
 
-    const events: ServerEvent[] = [
+    /*
+      const participants = await this._getParticipants(chat.jid)
+
+      const events: ServerEvent[] = [
       {
         type: ServerEventType.STATE_SYNC,
         objectName: 'participant',
@@ -622,7 +622,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       )
     }
-    this.evCallback(events)
+    this.evCallback(events) */
   }
 
   private setGroupChatProperties = async (chat: WAChat) => {
