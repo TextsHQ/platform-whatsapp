@@ -354,10 +354,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     const events = updatedMessages.filter(Boolean).map<ServerEvent>(m => ({
       type: ServerEventType.STATE_SYNC,
-      mutationType: 'upsert',
+      mutationType: 'update',
       objectIDs: {
         threadID,
-        messageID: m.key.id,
       },
       objectName: 'message',
       entries: [mapMessage(m, this.meContact.jid)],
