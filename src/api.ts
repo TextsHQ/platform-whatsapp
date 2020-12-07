@@ -5,7 +5,7 @@ import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, Message } from '@textshq/platform-sdk'
 
-import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
+import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapThreadParticipants } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
 import { WACompleteMessage } from './types'
 
@@ -270,7 +270,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private loadThread = async (jid: string) => {
     const chat = this.getChat(jid)
     if (isGroupID(jid) || isBroadcastID(jid)) {
-      await this.extendGroupChat(chat)
+      if (chat) this.upsertGroupChatParticipants(chat)
       if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
     } else if (!chat.imgUrl) {
@@ -316,8 +316,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('loaded threads')
 
-    const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
-    const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
+    const unfiltered = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
+    const chats = unfiltered.filter(c => c.jid !== STORIES_JID && !!c)
 
     const items = mapThreads(chats, this.meContact.jid)
 
@@ -389,6 +389,14 @@ export default class WhatsAppAPI implements PlatformAPI {
       items,
       hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,
     }
+  }
+
+  private _getParticipants = async (threadID: string) => {
+    const chat = this.getChat(threadID)
+    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
+      await this.setGroupChatProperties(chat)
+    }
+    return mapThreadParticipants(chat, this.meContact.jid)
   }
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
@@ -589,22 +597,44 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getChat = (jid: string) => this.client.chats.get(jid)
 
-  private extendGroupChat = async (chat: WAChat) => {
-    let meta: WAGroupMetadata
+  private upsertGroupChatParticipants = async (chat: WAChat) => {
+    if (chat.metadata) return
+    const isReadOnly = chat.read_only
+    const participants = await this._getParticipants(chat.jid)
 
-    const getGroupData = () =>
-      (chat.read_only === 'true' ? this.client.groupMetadataMinimal(chat.jid) : this.client.groupMetadata(chat.jid))
-    if (isGroupID(chat.jid)) {
-      meta = await getGroupData() // .catch(() => { }) || { participants: [] } as WAGroupMetadata // swallow error
-    } else if (isBroadcastID(chat.jid)) {
-      const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid).catch(() => { })
-      if (broadcastMeta) {
-        meta = { participants: broadcastMeta.recipients.map(({ id }) => ({ jid: id })) } as WAGroupMetadata
-        chat.metadata = meta
-      }
+    const events: ServerEvent[] = [
+      {
+        type: ServerEventType.STATE_SYNC,
+        objectName: 'participant',
+        objectIDs: { threadID: chat.jid },
+        mutationType: 'upsert',
+        entries: participants.items,
+      },
+    ]
+    if (isReadOnly !== chat.read_only) {
+      events.push(
+        {
+          type: ServerEventType.STATE_SYNC,
+          objectName: 'thread',
+          objectIDs: { threadID: chat.jid },
+          mutationType: 'update',
+          entries: [{ isReadOnly: chat.read_only === 'true' }],
+        },
+      )
     }
-    if (!meta) return
+    this.evCallback(events)
+  }
 
+  private setGroupChatProperties = async (chat: WAChat) => {
+    const { jid } = chat
+    let meta: WAGroupMetadata
+    if (isGroupID(jid)) {
+      meta = await this.client.groupMetadata(jid)
+    } else {
+      const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid)
+      meta = { participants: broadcastMeta.recipients.map(({ id }) => ({ jid: id })) } as WAGroupMetadata
+      chat.metadata = meta
+    }
     meta.participants.forEach(p => {
       const contact = this.contactForJid(p.jid)
       if (contact) p.imgUrl = contact.imgUrl
