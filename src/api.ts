@@ -399,8 +399,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     const ops: MessageOptions = {
       filename: msgContent.fileName,
       caption: msgContent.text,
-      ptt: options.isRecordedAudio,
-      duration: options.audioDurationSeconds,
+      ptt: msgContent.isRecordedAudio,
+      duration: msgContent.audioDurationSeconds,
     }
 
     if (options?.quotedMessageID) {
