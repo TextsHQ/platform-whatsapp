@@ -44,7 +44,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.chatOrderingKey = textsWAKey
 
     // prevent logging of phone numbers
-    // @ts-ignore
+    // @ts-expect-error
     this.client.assertChatGet = jid => {
       const chat = this.client.chats.get(jid)
       if (!chat) throw new Error('chat not found')
@@ -287,7 +287,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else if (userIDs.length === 1) {
       chat = this.getChat(whatsappID(userIDs[0]))
       if (!chat) {
-        // @ts-ignore
+        // @ts-expect-error
         chat = await this.client.chatAdd(userIDs[0], name)
         this.client.chats.delete(chat)
       }
