@@ -373,8 +373,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         fromMe: !!+fromMe,
       }
     }
+    const chat = this.getChat(threadID)
     const messageLen = Math.max(
-      !!cursor || !this.getChat(threadID) ? MESSAGE_PAGE_SIZE : this.getChat(threadID).messages.length,
+      !!cursor || !chat ? MESSAGE_PAGE_SIZE : chat?.messages.length,
       1,
     )
     texts.log(`loading ${messageLen} messages of ${threadID} -- ${cursor}`)
