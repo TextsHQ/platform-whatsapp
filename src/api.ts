@@ -290,7 +290,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgUrl = this.ppUrl(chat.jid)
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.meContact.jid)
+    return mapThread(chat, this.meContact)
   }
 
   getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
@@ -315,7 +315,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats, this.meContact.jid)
+    const items = mapThreads(chats, this.meContact)
 
     return {
       items,
@@ -591,9 +591,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private extendGroupChat = async (chat: WAChat) => {
     if (chat.metadata) return
-    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
-      await this.setGroupChatProperties(chat)
-    }
+    await this.setGroupChatProperties(chat)
   }
 
   private setGroupChatProperties = async (chat: WAChat) => {

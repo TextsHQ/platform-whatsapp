@@ -333,18 +333,18 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
   return message.map(m => mapMessage(m, currentUserID))
 }
 
-function mapThreadParticipants(chat: WAChat, currentUserID: string): Paginated<Participant> {
+function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Participant> {
   let participants: Participant[]
   if (chat.metadata) {
     participants = chat.metadata.participants.map(c => (
-      mapContact(c, currentUserID === c.jid)
+      mapContact(c, meContact.jid === c.jid)
     ))
   } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
     participants = [
-      mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, currentUserID === chat.jid),
+      mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, meContact.jid === chat.jid),
     ]
+    participants?.push(mapContact(meContact, true))
   }
-  participants?.push(mapContact({ jid: currentUserID }, true))
   return {
     items: participants || [],
     hasMore: !participants,
@@ -363,14 +363,14 @@ export function mapThreadProps(chat: WAChat): Partial<Thread> {
   }
 }
 
-export function mapThread(chat: WAChat, currentUserID: string): Thread {
+export function mapThread(chat: WAChat, meContact: WAContact): Thread {
   return {
     _original: safeJSONStringify(chat),
     messages: {
-      items: mapMessages(chat.messages.all(), currentUserID),
+      items: mapMessages(chat.messages.all(), meContact.jid),
       hasMore: true,
     },
-    participants: mapThreadParticipants(chat, currentUserID),
+    participants: mapThreadParticipants(chat, meContact),
     timestamp: new Date(+chat.t * 1000),
     type: threadType(chat.jid),
     createdAt: chat.metadata?.creation ? new Date(chat.metadata?.creation * 1000) : undefined,
@@ -378,8 +378,8 @@ export function mapThread(chat: WAChat, currentUserID: string): Thread {
   }
 }
 
-export function mapThreads(threads: WAChat[], currentUserID: string): Thread[] {
-  return threads.map(t => mapThread(t, currentUserID))
+export function mapThreads(threads: WAChat[], meContact: WAContact): Thread[] {
+  return threads.map(t => mapThread(t, meContact))
 }
 
 export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: string]: WAPresenceData }): ServerEvent[] {
