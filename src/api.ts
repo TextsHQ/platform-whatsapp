@@ -285,7 +285,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgUrl = this.ppUrl(chat.jid)
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.meContact.jid)
+    return mapThread(chat, this.meContact)
   }
 
   getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
@@ -310,7 +310,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats, this.meContact.jid)
+    const items = mapThreads(chats, this.meContact)
 
     return {
       items,
@@ -585,12 +585,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   private getChat = (jid: string) => this.client.chats.get(jid)
 
   private extendGroupChat = async (chat: WAChat) => {
+    if (chat.metadata) return
+
     let meta: WAGroupMetadata
 
-    const getGroupData = () =>
-      (chat.read_only === 'true' ? this.client.groupMetadataMinimal(chat.jid) : this.client.groupMetadata(chat.jid))
     if (isGroupID(chat.jid)) {
-      meta = await getGroupData() // .catch(() => { }) || { participants: [] } as WAGroupMetadata // swallow error
+      meta = await this.client.groupMetadata(chat.jid) // .catch(() => { }) || { participants: [] } as WAGroupMetadata // swallow error
     } else if (isBroadcastID(chat.jid)) {
       const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid).catch(() => { })
       if (broadcastMeta) {
