@@ -312,8 +312,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     texts.log('loaded threads')
 
-    const unfiltered = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
-    const chats = unfiltered.filter(c => c.jid !== STORIES_JID && !!c)
+    const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
+    const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
     const items = mapThreads(chats, this.meContact.jid)
 
@@ -387,14 +387,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,
     }
   }
-
-  /* private _getParticipants = async (threadID: string) => {
-    const chat = this.getChat(threadID)
-    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
-      await this.setGroupChatProperties(chat)
-    }
-    return mapThreadParticipants(chat, this.meContact.jid)
-  } */
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
     const { mimeType } = msgContent
