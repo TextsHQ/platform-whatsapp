@@ -264,7 +264,7 @@ function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date 
     message.info.reads.forEach(info => {
       seenMap[whatsappID(info.jid)] = new Date(+info.t * 1000)
     })
-  } else if (message.status >= 4) { // >= 4 is either WebMessageInfo.WebMessageInfoStatus.READ or WebMessageInfo.WebMessageInfoStatus.PLAYED
+  } else if (message.status === WA_MESSAGE_STATUS_TYPE.READ) {
     const pid = whatsappID(message.key.remoteJid)
     if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
   }
@@ -302,6 +302,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     threadID: message.key.remoteJid,
     textHeading: [...messageHeading(message, messageInner)].join('\n'),
     text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
+    textFooter: message.status === WA_MESSAGE_STATUS_TYPE.PLAYED ? 'Played' : undefined,
     timestamp: new Date(timestamp * 1000),
     senderID,
     isSender: message.key.fromMe,
