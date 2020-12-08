@@ -259,15 +259,16 @@ function messageStubText(message: WAMessage) {
   return txt
 }
 function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date } {
-  const dict: { [id: string]: Date } = {}
+  const seenMap: { [id: string]: Date } = {}
   if (message.info) {
     message.info.reads.forEach(info => {
-      dict[whatsappID(info.jid)] = new Date(+info.t * 1000)
+      seenMap[whatsappID(info.jid)] = new Date(+info.t * 1000)
     })
-  } else if (message.status >= 4) {
-    dict[whatsappID(message.key.remoteJid)] = UNKNOWN_DATE
+  } else if (message.status >= 4) { // >= 4 is either WebMessageInfo.WebMessageInfoStatus.READ or WebMessageInfo.WebMessageInfoStatus.PLAYED
+    const pid = whatsappID(message.key.remoteJid)
+    if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
   }
-  return dict
+  return seenMap
 }
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
