@@ -262,7 +262,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const chat = this.getChat(jid)
     if (isGroupID(jid) || isBroadcastID(jid)) {
       try {
-        if (chat) await this.upsertGroupChatParticipants(chat)
+        if (chat) await this.extendGroupChat(chat)
       } catch (error) {
         texts.log('error in getting group info ', error)
       }
@@ -597,37 +597,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getChat = (jid: string) => this.client.chats.get(jid)
 
-  private upsertGroupChatParticipants = async (chat: WAChat) => {
+  private extendGroupChat = async (chat: WAChat) => {
     if (chat.metadata) return
-    const isReadOnly = chat.read_only
     if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
       await this.setGroupChatProperties(chat)
     }
-
-    /*
-      const participants = await this._getParticipants(chat.jid)
-
-      const events: ServerEvent[] = [
-      {
-        type: ServerEventType.STATE_SYNC,
-        objectName: 'participant',
-        objectIDs: { threadID: chat.jid },
-        mutationType: 'upsert',
-        entries: participants.items,
-      },
-    ]
-    if (isReadOnly !== chat.read_only) {
-      events.push(
-        {
-          type: ServerEventType.STATE_SYNC,
-          objectName: 'thread',
-          objectIDs: { threadID: chat.jid },
-          mutationType: 'update',
-          entries: [{ isReadOnly: chat.read_only === 'true' }],
-        },
-      )
-    }
-    this.evCallback(events) */
   }
 
   private setGroupChatProperties = async (chat: WAChat) => {

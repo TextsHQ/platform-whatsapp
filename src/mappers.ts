@@ -333,7 +333,7 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
   return message.map(m => mapMessage(m, currentUserID))
 }
 
-export function mapThreadParticipants(chat: WAChat, currentUserID: string): Paginated<Participant> {
+function mapThreadParticipants(chat: WAChat, currentUserID: string): Paginated<Participant> {
   let participants: Participant[]
   if (chat.metadata) {
     participants = chat.metadata.participants.map(c => (
