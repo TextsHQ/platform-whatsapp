@@ -116,16 +116,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getCurrentUser = async (): Promise<CurrentUser> => {
     texts.log('requested user data')
-    /* let { meContact } = this
-    if (!meContact) texts.log(`unexpectedly called when state is ${this.client.state}`)
-    let attemptsRemaining = 20
-    while (!meContact?.jid) {
-      await bluebird.delay(50)
-      meContact = this.meContact
-      if (--attemptsRemaining === 0 && !meContact.jid) {
-        throw new Error('unable to get me contact')
-      }
-    } */
     const { meContact } = this
     return {
       id: meContact.jid,
