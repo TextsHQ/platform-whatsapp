@@ -5,7 +5,7 @@ import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType } from '@textshq/platform-sdk'
 
-import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
+import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageProps } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
 import { WACompleteMessage } from './types'
 
@@ -42,6 +42,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.shouldLogMessages = texts.IS_DEV
     this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.chatOrderingKey = textsWAKey
+    this.client.maxCachedMessages = 125
 
     // prevent logging of phone numbers
     // @ts-expect-error
@@ -356,10 +357,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       type: ServerEventType.STATE_SYNC,
       mutationType: 'update',
       objectIDs: {
-        threadID,
+        threadID, messageID: m.key.id,
       },
       objectName: 'message',
-      entries: [mapMessage(m, this.meContact.jid)],
+      entries: [mapMessageProps(m, this.meContact.jid)],
     }))
     this.evCallback(events)
   }
@@ -379,11 +380,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     )
     texts.log(`loading ${messageLen} messages of ${threadID} -- ${cursor}`)
     const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
+    const items = mapMessages(messages, this.meContact.jid)
+
     if (isGroupID(threadID)) {
       this.loadReadReceipts(messages, threadID)
     }
 
-    const items = mapMessages(messages, this.meContact.jid)
     return {
       items,
       hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,

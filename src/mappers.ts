@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, MessageInfo, WAMessageKey } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
 import { WACompleteMessage } from './types'
@@ -258,7 +258,7 @@ function messageStubText(message: WAMessage) {
   }
   return txt
 }
-function messageSeen(message: WACompleteMessage): { [id: string]: Date } {
+function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date } {
   const dict: { [id: string]: Date } = {}
   if (message.info) {
     message.info.reads.forEach(info => {
@@ -319,6 +319,12 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     extra: {
       isEphemeral,
     },
+  }
+}
+export function mapMessageProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }, currentUserID: string): Partial<Message> {
+  return {
+    id: message.key.id,
+    seen: message.info || message.status ? messageSeen(message) : undefined,
   }
 }
 export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {

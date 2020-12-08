@@ -4,7 +4,7 @@
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys":
   version "3.3.2"
-  resolved "https://github.com/adiwajshing/Baileys#69ec8b97b17a8c0b7255ab9e41f50d3078b1f98b"
+  resolved "https://github.com/adiwajshing/Baileys#caf82a46a831f4f1827d01939b880c2199d12aa0"
   dependencies:
     "@adiwajshing/keyed-db" "^0.1.8"
     curve25519-js "^0.0.4"
@@ -1880,9 +1880,9 @@ jpeg-js@0.4.2:
   integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
 
 js-yaml@^3.13.1:
-  version "3.14.0"
-  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.14.0.tgz#a7a34170f26a21bb162424d8adacb4113a69e482"
-  integrity sha512-/4IbIeHcD9VMHFqDR/gQ7EdZdLimOvW2DdcxFjdyyZ9NsbS+ccrXqVWDtab/lRl5AlUqmpBx8EhPaWR+OtY17A==
+  version "3.14.1"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.14.1.tgz#dae812fdb3825fa306609a8717383c50c36a0537"
+  integrity sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==
   dependencies:
     argparse "^1.0.7"
     esprima "^4.0.0"
