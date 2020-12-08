@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, MessageInfo, WAMessageKey } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey } from '@adiwajshing/baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
 import { WACompleteMessage } from './types'
@@ -321,10 +321,10 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     },
   }
 }
-export function mapMessageProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }, currentUserID: string): Partial<Message> {
+export function mapMessageUpdateProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }): Partial<Message> {
   return {
     id: message.key.id,
-    seen: message.info || message.status ? messageSeen(message) : undefined,
+    seen: (message.info || message.status) ? messageSeen(message) : undefined,
   }
 }
 export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {
