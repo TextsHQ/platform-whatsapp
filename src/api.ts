@@ -566,7 +566,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     threadID = whatsappID(threadID)
     const chat = this.client.chats.get(threadID)
-    if (!chat) throw new Error(`thread '${threadID}' not found`)
+    if (!chat) throw new Error('modThread: thread not found')
 
     if ((key in chat) === value) return // already done, nothing to do
     const mod = (value ? key : ('un' + key)) as ChatModification
