@@ -319,21 +319,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  searchMessages = async (typed: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }, threadID?: string) => {
-    if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
-
-    const page = cursor ? (+cursor || 1) : 1
-    const nextPage = (page + 1).toString()
-
-    texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
-
-    const response = await this.client.searchMessages(typed, threadID || null, 10, page)
-    return {
-      items: mapMessages(response.messages, this.meContact.jid),
-      hasMore: !response.last,
-      oldestCursor: nextPage,
-    }
-  }
+  // searchMessages = async (typed: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }, threadID?: string) => {
+  //   if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
+  //   const page = cursor ? (+cursor || 1) : 1
+  //   const nextPage = (page + 1).toString()
+  //   texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
+  //   const response = await this.client.searchMessages(typed, threadID || null, 10, page)
+  //   return {
+  //     items: mapMessages(response.messages, this.meContact.jid),
+  //     hasMore: !response.last,
+  //     oldestCursor: nextPage,
+  //   }
+  // }
 
   private lazyLoadReadReceipts = async (messages: WAMessageProto.WebMessageInfo[], threadID: string) => {
     const updatedMessages = await bluebird.map(messages, async (m: WACompleteMessage) => {
