@@ -150,6 +150,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
         size: { width: messageInner?.width, height: messageInner?.height },
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
         isGif: message.videoMessage?.gifPlayback,
+        isSticker: message.stickerMessage ? true : undefined,
         mimeType: messageInner.mimetype,
         posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
         srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
