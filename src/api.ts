@@ -2,7 +2,7 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import os from 'os'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto } from '@adiwajshing/baileys'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto, WAMessageStatusUpdate } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Message } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageUpdateProps } from './mappers'
@@ -15,6 +15,22 @@ const THREAD_PAGE_SIZE = 15
 const CONNECT_TIMEOUT_MS = 90_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 15_000
+
+function updateReadReceipts(chat: WAChat, update: WAMessageStatusUpdate) {
+  chat.messages.all().forEach(msg => {
+    if (!update.ids.includes(msg.key.id)) return
+    const status = update.type
+    const waMsg = msg as WACompleteMessage
+
+    if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
+
+    const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
+    if (status >= WA_MESSAGE_STATUS_TYPE.READ) waMsg.info.reads.push(person)
+    else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) waMsg.info.deliveries.push(person)
+
+    waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
+  })
+}
 
 export default class WhatsAppAPI implements PlatformAPI {
   private accountID: string
@@ -217,21 +233,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         const chat = this.getChat(whatsappID(update.to))
         if (!chat) return
 
-        if (isGroupID(chat.jid)) {
-          chat.messages.all().forEach(msg => {
-            if (!update.ids.includes(msg.key.id)) return
-            const status = update.type
-            const waMsg = msg as WACompleteMessage
+        if (isGroupID(chat.jid)) updateReadReceipts(chat, update)
 
-            if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
-
-            const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
-            if (status >= WA_MESSAGE_STATUS_TYPE.READ) waMsg.info.reads.push(person)
-            else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) waMsg.info.deliveries.push(person)
-
-            waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
-          })
-        }
         // const mapped = chat.messages.all()
         //   .filter(msg => update.ids.includes(msg.key.id))
         //   .map(msg => mapMessage(msg, this.client.user.jid))
