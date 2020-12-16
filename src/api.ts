@@ -183,17 +183,17 @@ export default class WhatsAppAPI implements PlatformAPI {
             )
           }
           if (update.messages) {
-            // const mapped = update.messages.all().map(msg => mapMessage(msg, this.client.user.jid))
-            // list.push({
-            //   type: ServerEventType.STATE_SYNC,
-            //   mutationType: 'upsert',
-            //   objectIDs: {
-            //     threadID: update.jid,
-            //   },
-            //   objectName: 'message',
-            //   entries: mapped,
-            // })
-            this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
+            const mapped = update.messages.all().map(msg => mapMessage(msg, this.client.user.jid))
+            list.push({
+              type: ServerEventType.STATE_SYNC,
+              mutationType: 'upsert',
+              objectIDs: {
+                threadID: update.jid,
+              },
+              objectName: 'message',
+              entries: mapped,
+            })
+            // this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
           }
           if (update.presences) {
             const mapped = mapPresenceUpdate(update.jid, update.presences)
@@ -235,19 +235,19 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         if (isGroupID(chat.jid)) updateReadReceipts(chat, update)
 
-        // const mapped = chat.messages.all()
-        //   .filter(msg => update.ids.includes(msg.key.id))
-        //   .map(msg => mapMessage(msg, this.client.user.jid))
-        // this.evCallback([{
-        //   type: ServerEventType.STATE_SYNC,
-        //   mutationType: 'upsert',
-        //   objectIDs: {
-        //     threadID: chat.jid,
-        //   },
-        //   objectName: 'message',
-        //   entries: mapped,
-        // }])
-        this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
+        const mapped = chat.messages.all()
+          .filter(msg => update.ids.includes(msg.key.id))
+          .map(msg => mapMessage(msg, this.client.user.jid))
+        this.evCallback([{
+          type: ServerEventType.STATE_SYNC,
+          mutationType: 'upsert',
+          objectIDs: {
+            threadID: chat.jid,
+          },
+          objectName: 'message',
+          entries: mapped,
+        }])
+        // this.evCallback([{ type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: chat.jid }])
       })
       .on('chat-update', update => onChatsUpdate([update]))
       .on('chats-update', onChatsUpdate)
