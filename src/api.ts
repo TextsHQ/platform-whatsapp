@@ -154,11 +154,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async () => {
-    const saveLog = async () => {
-      const logPath = os.homedir() + `/baileys-${new Date().toISOString()}.json`
-      await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
-      texts.log(`saved Baileys log to ${logPath}`)
-    }
+    // const saveLog = async () => {
+    //   const logPath = os.homedir() + `/baileys-${new Date().toISOString()}.json`
+    //   await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
+    //   texts.log(`saved Baileys log to ${logPath}`)
+    // }
     const onChatsUpdate = async (updates: Partial<WAChatUpdate>[]) => {
       // texts.log('received chat update:', updates)
       const callbacks = await Promise.all(
@@ -211,7 +211,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       .on('connection-validated', user => { this.meContact = user })
       .on('ws-close', async () => {
         texts.log('ws-close')
-        if (texts.IS_DEV) saveLog()
+        // if (texts.IS_DEV) saveLog()
       })
       .on('close', ({ reason, isReconnecting }) => {
         texts.log(`got disconnected: ${reason}`)
