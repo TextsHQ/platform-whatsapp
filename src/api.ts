@@ -12,7 +12,7 @@ import { WACompleteMessage } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 15
 
-const CONNECT_TIMEOUT_MS = 90_000
+const CONNECT_TIMEOUT_MS = 15_000
 const DELAY_CONN_STATUS_CHANGE = 15_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 15_000
 
@@ -54,7 +54,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
-    this.client.connectOptions.maxRetries = 5
+    this.client.connectOptions.maxRetries = 1
     this.client.shouldLogMessages = texts.IS_DEV
     this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.chatOrderingKey = textsWAKey
@@ -91,7 +91,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     ) ? 0 : DELAY_CONN_STATUS_CHANGE
     this.connStatusTimeout = setTimeout(() => {
       this.lastConnStatus = state.status
-      this.connCallback(state)
+      this.connCallback({ ...state, canRetry: state.status === ConnectionStatus.DISCONNECTED })
     }, delay)
   }
 
@@ -120,12 +120,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       if (error instanceof BaileysError) {
+        console.error(error.message)
         if (UNAUTHORIZED_CODES.includes(error.status)) throw new ReAuthError(error.message)
-        else if (error.message === 'timed out') throw new ConnectionError('Connection timed out. Make sure your phone is connected to the internet')
+        else if (error.message === 'timed out') throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       }
       throw error
     }
-    this.client.connectOptions.maxRetries = Infinity
     this.client.contacts[this.client.user.jid] = this.client.user
     texts.log('connected successfully')
   }
