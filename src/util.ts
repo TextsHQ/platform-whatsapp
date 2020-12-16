@@ -1,4 +1,4 @@
-import { WAMessage, whatsappID, WAGenericMediaMessage, WAChat } from '@adiwajshing/baileys'
+import { WAMessage, whatsappID, WAGenericMediaMessage, WAChat } from 'baileys'
 
 export const textsWAKey = {
   key: (c: WAChat) => c.t.toString(16).padStart(8, '0') + c.jid,

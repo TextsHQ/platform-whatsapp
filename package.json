@@ -13,7 +13,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "https://github.com/adiwajshing/Baileys",
+    "baileys": "link:../Baileys",
     "bluebird": "^3.7.2",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0"

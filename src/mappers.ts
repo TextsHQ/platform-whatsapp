@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey } from 'baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
 import { WACompleteMessage } from './types'
