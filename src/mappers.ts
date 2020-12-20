@@ -9,6 +9,11 @@ const participantAdded = (message: WAMessage) =>
     ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
     : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
+const numberToBigInt = (number: Number | Long.Long) => BigInt(number.toString())
+
+const isPaymentMessage = (m: WAMessageProto.IMessage) =>
+  !!(m?.sendPaymentMessage || m?.requestPaymentMessage || m?.cancelPaymentRequestMessage || m?.declinePaymentRequestMessage)
+
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WA_MESSAGE_STUB_TYPE.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
@@ -49,6 +54,9 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_ADD]: participantAdded,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
 
+  [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
+  // todo: [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
+
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to {{0}}`,
@@ -86,6 +94,21 @@ const MESSAGE_ACTION_MAP = {
   [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: MessageActionType.GROUP_THREAD_CREATED,
   // [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: ,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: MessageActionType.THREAD_TITLE_UPDATED,
+}
+
+const PAYMENT_STATUS_MAP = {
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.UNKNOWN_STATUS]: 'Unknown status',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.PROCESSING]: 'Processing',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.SENT]: 'Sent',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.NEED_TO_ACCEPT]: 'Needs to accept',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.COMPLETE]: 'Completed',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.COULD_NOT_COMPLETE]: 'Could not complete',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.REFUNDED]: 'Refunded',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.EXPIRED]: 'Expired',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.REJECTED]: 'Rejected',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.CANCELLED]: 'Cancelled',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.WAITING_FOR_PAYER]: 'Waiting for payer',
+  [WAMessageProto.PaymentInfo.PaymentInfoStatus.WAITING]: 'Waiting',
 }
 
 function threadType(jid: string): ThreadType {
@@ -190,6 +213,22 @@ function* messageHeading(message: WAMessage, messageInner: any) {
   if (messageInner?.contextInfo?.isForwarded) yield 'Forwarded'
   const m = message.message
   if (m) {
+    if (isPaymentMessage(m)) {
+      const amount = `${message.paymentInfo.currency} ${numberToBigInt(message.paymentInfo.amount1000) / BigInt(1000)}`
+      const status = PAYMENT_STATUS_MAP[message.paymentInfo.status]
+      if (m.sendPaymentMessage) {
+        yield `💵 Payment to {{${message.paymentInfo.receiverJid}}} | ${amount} | ${status}`
+      }
+      if (m.requestPaymentMessage) {
+        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
+      }
+      if (m.declinePaymentRequestMessage) {
+        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} declined ${amount} | ${status}`
+      }
+      if (m.cancelPaymentRequestMessage) {
+        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} canceled ${amount} | ${status}`
+      }
+    }
     if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
     if (m.locationMessage) yield '📍 Location'
     if (m.liveLocationMessage) yield '📍 Live Location'
@@ -210,6 +249,15 @@ function messageText(message: WAMessageContent, messageInner: any) {
       return `{{sender}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
     }
     return '{{sender}} turned off disappearing messages.'
+  }
+  const paymentMessage = message?.sendPaymentMessage || message?.requestPaymentMessage || message?.cancelPaymentRequestMessage || message?.declinePaymentRequestMessage
+  if (paymentMessage) {
+    if ('noteMessage' in paymentMessage) {
+      const etm = paymentMessage?.noteMessage?.extendedTextMessage
+      const note = etm?.text
+      const jids = etm?.contextInfo?.mentionedJid
+      if (note) return replaceJids(jids, note)
+    }
   }
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
@@ -314,7 +362,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     seen: messageSeen(message),
     linkedMessage: linked,
     links: link ? [link] : undefined,
-    parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid),
+    parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message),
     isAction,
     action,
     isErrored: !isAction && message.key.fromMe && message.status === 0,
