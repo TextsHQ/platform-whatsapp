@@ -313,7 +313,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WA_MESSAGE_STATUS_TYPE.SERVER_ACK : true,
     seen: messageSeen(message),
     linkedMessage: linked,
-    links: [link],
+    links: link ? [link] : undefined,
     parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid),
     isAction,
     action,
