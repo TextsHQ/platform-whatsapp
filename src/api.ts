@@ -570,6 +570,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if ((key in chat) === value) return // already done, nothing to do
     const mod = (value ? key : ('un' + key)) as ChatModification
+    // @ts-expect-error
     await this.client.modifyChat(threadID, mod, 8 * 60 * 60 * 1000)
   }
 

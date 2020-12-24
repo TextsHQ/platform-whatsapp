@@ -40,7 +40,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
-  [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created this group',
+  [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created group "{{0}}"',
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
@@ -59,7 +59,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
-  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to {{0}}`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to "{{0}}"`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_ICON]: message => `{{${whatsappID(message.participant)}}} changed this group's icon`,
 
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_LEAVE]: message =>
@@ -141,6 +141,12 @@ function messageAction(message: WAMessage): MessageAction {
     return {
       type: actionType,
       title: message.messageStubParameters[0],
+      actorParticipantID: message.participant,
+    }
+  }
+  if (actionType === MessageActionType.GROUP_THREAD_CREATED) {
+    return {
+      type: actionType,
       actorParticipantID: message.participant,
     }
   }
