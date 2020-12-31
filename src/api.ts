@@ -96,7 +96,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   login = async ({ jsCodeResult }): Promise<LoginResult> => {
-    texts.log('jsCodeResult', jsCodeResult)
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
 
     const ls = JSON.parse(jsCodeResult)
@@ -112,8 +111,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private connect = async () => {
-    texts.log('began connect')
-
     try {
       await this.client.connect()
       this.setConnStatus({ status: ConnectionStatus.CONNECTED })
@@ -131,7 +128,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
-    texts.log('requested user data')
     const { meContact } = this
     return {
       id: meContact.jid,
@@ -254,7 +250,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   searchUsers = (typed: string) => {
-    texts.log('searching users ' + typed)
     const contacts = Object.values(this.client.contacts)
       .filter(c => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
     return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] })
@@ -294,8 +289,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
-    texts.log('requested thread data, page: ' + cursor)
-
     if (!this.client.lastChatsReceived) {
       await new Promise(resolve => {
         const interval = setInterval(() => this.client.getChats(), 20_000)
@@ -307,8 +300,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const loadChatsResult = await this.client.loadChats(THREAD_PAGE_SIZE, cursor, { loadProfilePicture: false })
-
-    texts.log('loaded threads')
 
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
@@ -369,7 +360,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       !!cursor || !chat ? MESSAGE_PAGE_SIZE : chat?.messages.length,
       1,
     )
-    texts.log(`loading ${messageLen} messages of ${threadID} -- ${cursor}`)
     const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
     const items = mapMessages(messages, this.meContact.jid)
 
@@ -436,8 +426,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    texts.log(`deleting message: ${messageID} in ${threadID}`)
-
     const message = await this.client.loadMessage(threadID, messageID)
     if (forEveryone) await this.client.deleteMessage(threadID, message.key)
     else await this.client.clearMessage(message.key)
@@ -470,8 +458,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
-    texts.log('changing profile picture of ' + threadID)
-
     const chat = this.getChat(threadID)
     if (!chat) new Error('chat not present')
 
@@ -541,11 +527,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onThreadSelected = async (threadID: string) => {
     if (!threadID) {
-      texts.log('set unavailable')
       return
     }
     const jid = threadID
-    texts.log(`thread selected: ${jid}`)
     // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
     if (!isGroupID(jid) && !isBroadcastID(jid)) {
@@ -555,16 +539,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   takeoverConflict = async () => {
-    texts.log('taking over again')
     this.setConnStatus({ status: ConnectionStatus.CONNECTING })
     await this.connect()
-    texts.log('took over')
   }
 
-  private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
-    texts.log(`modifying thread ${threadID} ${key}: ${value}`)
-
-    threadID = whatsappID(threadID)
+  private async modThread(_threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
+    const threadID = whatsappID(_threadID)
     const chat = this.client.chats.get(threadID)
     if (!chat) throw new Error('modThread: thread not found')
 
@@ -574,8 +554,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.modifyChat(threadID, mod, 8 * 60 * 60 * 1000)
   }
 
-  private contactForJid = (jid: string) => {
-    jid = whatsappID(jid)
+  private contactForJid = (_jid: string) => {
+    const jid = whatsappID(_jid)
     const contact = (this.client.contacts[jid] || { jid })
     if (!contact.imgUrl) contact.imgUrl = this.ppUrl(jid)
     return contact
