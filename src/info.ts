@@ -43,7 +43,7 @@ const info: PlatformInfo = {
     Attribute.SUBSCRIBE_TO_CONN_STATE_CHANGE,
     Attribute.SUBSCRIBE_TO_THREAD_SELECTION,
     Attribute.SUPPORTS_STOP_TYPING_INDICATOR,
-    Attribute.SORT_MESSAGES_ON_PUSH,
+    // Attribute.SORT_MESSAGES_ON_PUSH,
     // Attribute.SUPPORTS_SEARCH,
   ]),
   attachments: {
