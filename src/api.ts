@@ -44,7 +44,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus = null
 
-  private meContact: WAContact
+  get meContact() {
+    return this.client.user
+  }
 
   constructor() {
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
@@ -53,7 +55,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.maxRetries = 1
     this.client.shouldLogMessages = texts.IS_DEV
-    this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.chatOrderingKey = textsWAKey
     this.client.maxCachedMessages = 125
 
@@ -204,7 +205,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
-      .on('connection-validated', conn => { this.meContact = conn.user })
       .on('ws-close', async () => {
         texts.log('ws-close')
         // if (texts.IS_DEV) saveLog()
