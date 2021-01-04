@@ -44,10 +44,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus = null
 
-  get meContact() {
-    return this.client.user
-  }
-
   constructor() {
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
@@ -128,17 +124,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log('connected successfully')
   }
 
-  getCurrentUser = async (): Promise<CurrentUser> => {
-    const { meContact } = this
-    return {
-      id: meContact.jid,
-      isSelf: true,
-      fullName: meContact.name,
-      displayText: numberFromJid(meContact.jid),
-      phoneNumber: numberFromJid(meContact.jid),
-      imgURL: `asset://${this.accountID}/profile-picture/${meContact.jid}`,
-    }
-  }
+  getCurrentUser = async (): Promise<CurrentUser> => ({
+    id: this.client.user.jid,
+    isSelf: true,
+    fullName: this.client.user.name,
+    displayText: numberFromJid(this.client.user.jid),
+    phoneNumber: numberFromJid(this.client.user.jid),
+    imgURL: `asset://${this.accountID}/profile-picture/${this.client.user.jid}`,
+  })
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
 
@@ -283,7 +276,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgUrl = this.ppUrl(chat.jid)
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.meContact)
+    return mapThread(chat, this.client.user)
   }
 
   getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
@@ -304,7 +297,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats, this.meContact)
+    const items = mapThreads(chats, this.client.user)
 
     return {
       items,
@@ -320,7 +313,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   //   texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
   //   const response = await this.client.searchMessages(typed, threadID || null, 10, page)
   //   return {
-  //     items: mapMessages(response.messages, this.meContact.jid),
+  //     items: mapMessages(response.messages, this.client.user.jid),
   //     hasMore: !response.last,
   //     oldestCursor: nextPage,
   //   }
@@ -361,7 +354,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       1,
     )
     const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
-    const items = mapMessages(messages, this.meContact.jid)
+    const items = mapMessages(messages, this.client.user.jid)
 
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
@@ -411,11 +404,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
-    if (whatsappID(threadID) === whatsappID(this.meContact.jid)) {
+    if (whatsappID(threadID) === whatsappID(this.client.user.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
-      mapMessage(sentMessage, this.meContact.jid),
+      mapMessage(sentMessage, this.client.user.jid),
     ]
   }
 
@@ -587,7 +580,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     if (!chat.read_only) {
-      const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.meContact.jid)?.isAdmin
+      const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.client.user.jid)?.isAdmin
       chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
     }
   }
