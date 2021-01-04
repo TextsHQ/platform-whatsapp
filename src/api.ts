@@ -204,7 +204,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
-      .on('connection-validated', user => { this.meContact = user })
+      .on('connection-validated', conn => { this.meContact = conn.user })
       .on('ws-close', async () => {
         texts.log('ws-close')
         // if (texts.IS_DEV) saveLog()
