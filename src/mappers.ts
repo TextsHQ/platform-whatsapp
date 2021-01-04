@@ -14,6 +14,14 @@ const numberToBigInt = (number: Number | Long.Long) => BigInt(number.toString())
 const isPaymentMessage = (m: WAMessageProto.IMessage) =>
   !!(m?.sendPaymentMessage || m?.requestPaymentMessage || m?.cancelPaymentRequestMessage || m?.declinePaymentRequestMessage)
 
+const getEphemeralMessageSettingChangedText = (exp: number) => {
+  if (exp) {
+    const expDays = Math.floor(exp / (60 * 60 * 24))
+    return `{{sender}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
+  }
+  return '{{sender}} turned off disappearing messages.'
+}
+
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
   [WA_MESSAGE_STUB_TYPE.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
@@ -56,6 +64,8 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
 
   [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
   // todo: [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
+
+  [WA_MESSAGE_STUB_TYPE.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters[0]),
 
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
@@ -250,11 +260,7 @@ const replaceJids = (jids: string[], text: string) => {
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
-    if (exp) {
-      const expDays = Math.floor(exp / (60 * 60 * 24))
-      return `{{sender}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
-    }
-    return '{{sender}} turned off disappearing messages.'
+    return getEphemeralMessageSettingChangedText(exp)
   }
   const paymentMessage = message?.sendPaymentMessage || message?.requestPaymentMessage || message?.cancelPaymentRequestMessage || message?.declinePaymentRequestMessage
   if (paymentMessage) {
