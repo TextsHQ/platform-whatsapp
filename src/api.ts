@@ -50,7 +50,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.maxRetries = 1
-    this.client.shouldLogMessages = texts.IS_DEV
+    this.client.shouldLogMessages = false // texts.IS_DEV
     this.client.chatOrderingKey = textsWAKey
     this.client.maxCachedMessages = 125
 
