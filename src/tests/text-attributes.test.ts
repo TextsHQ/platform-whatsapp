@@ -56,6 +56,21 @@ const cases = [
       },
     },
   },
+  {
+    text: '*a*_*b*c*',
+    result: {
+      text: 'a_b*c',
+      textAttributes: {
+        entities: [
+          {
+            from: 0,
+            to: 1,
+            bold: true,
+          },
+        ],
+      },
+    },
+  },
 ]
 
 test('text attributes', () => {
