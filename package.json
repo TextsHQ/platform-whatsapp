@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "yarn tsc || true",
     "build": "yarn tsc",
-    "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache"
+    "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache",
+    "test": "jest"
   },
   "husky": {
     "hooks": {
@@ -23,9 +24,11 @@
     "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.33",
     "@types/eslint": "^7.2.5",
+    "@types/jest": "^26.0.19",
     "@types/match-sorter": "^4.0.0",
     "eslint": "^7.14.0",
     "husky": "^4.3.0",
+    "jest": "^26.6.3",
     "typescript": "^4.1.2"
   }
 }

@@ -257,6 +257,28 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`), text)
 }
 
+function mapTextAttributes(text: string) {
+  const entities = []
+  const match = /[*_~]/.exec(text)
+  if (match && match[0]) {
+    const token = match[0]
+    const from = match.index
+    text = text.slice(from + 1)
+    const match2 = new RegExp(`\\w+[${token}]`).exec(text)
+    if (match2 && match2[0]) {
+      const to = from + match2[0].length
+      entities.push({
+        from,
+        to,
+        italic: true,
+      })
+    }
+  }
+  return {
+    entities
+  }
+}
+
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
@@ -356,7 +378,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
   const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
 
-  return {
+  const mapped: Message = {
     _original: safeJSONStringify([message, currentUserID]),
     id: message.key.id,
     cursor: message.key.id + '_' + Number(message.key.fromMe),
@@ -383,6 +405,8 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
       isEphemeral,
     },
   }
+  mapped.textAttributes = mapTextAttributes(mapped.text)
+  return mapped
 }
 export function mapMessageUpdateProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }): Partial<Message> {
   return {
