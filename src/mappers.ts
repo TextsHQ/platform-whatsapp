@@ -3,6 +3,7 @@ import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAtta
 
 import { WACompleteMessage } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
+import { mapTextAttributes } from './text-attributes'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -257,28 +258,6 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`), text)
 }
 
-function mapTextAttributes(text: string) {
-  const entities = []
-  const match = /[*_~]/.exec(text)
-  if (match && match[0]) {
-    const token = match[0]
-    const from = match.index
-    text = text.slice(from + 1)
-    const match2 = new RegExp(`\\w+[${token}]`).exec(text)
-    if (match2 && match2[0]) {
-      const to = from + match2[0].length
-      entities.push({
-        from,
-        to,
-        italic: true,
-      })
-    }
-  }
-  return {
-    entities
-  }
-}
-
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
@@ -405,7 +384,11 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
       isEphemeral,
     },
   }
-  mapped.textAttributes = mapTextAttributes(mapped.text)
+  const { text, textAttributes } = mapTextAttributes(mapped.text)
+  if (textAttributes) {
+    mapped.text = text
+    mapped.textAttributes = textAttributes
+  }
   return mapped
 }
 export function mapMessageUpdateProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }): Partial<Message> {
