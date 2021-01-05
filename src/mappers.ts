@@ -447,9 +447,9 @@ export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: strin
   const [participantID] = Object.keys(presenceUpdates)
   const presence = presenceUpdates[participantID]
   const lastActive = presence.lastSeen && new Date(presence.lastSeen * 1000)
-  const mappedPresences: ServerEvent[] = []
+  const events: ServerEvent[] = []
   if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence)) {
-    mappedPresences.push(
+    events.push(
       {
         type: ServerEventType.USER_PRESENCE_UPDATED,
         presence: {
@@ -460,7 +460,7 @@ export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: strin
       },
     )
   } else if ([Presence.composing, Presence.recording].includes(presence.lastKnownPresence)) {
-    mappedPresences.push(
+    events.push(
       {
         type: ServerEventType.PARTICIPANT_TYPING,
         typing: true,
@@ -471,7 +471,7 @@ export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: strin
     )
   }
   if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence)) {
-    mappedPresences.push({ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID })
+    events.push({ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID })
   }
-  return mappedPresences
+  return events
 }
