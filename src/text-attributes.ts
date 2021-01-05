@@ -10,7 +10,8 @@ export function mapTextAttributes(input: string) {
     const from = output.length + match1.index
     output += input.slice(0, match1.index)
     input = input.slice(match1.index + 1)
-    const match2 = new RegExp(`.+[${token}]`).exec(input)
+    // const match2 = new RegExp(`.+[${token}]`).exec(input)
+    const match2 = new RegExp(`([^${token}]+[${token}])+`).exec(input)
     if (match2 && match2[0]) {
       // console.log('match2', input, match2, match2[0])
       output += input.slice(0, match2[0].length - 1)

@@ -49,7 +49,7 @@ const cases = [
         entities: [
           {
             from: 0,
-            to: 2,
+            to: 1,
             bold: true,
           },
         ],
