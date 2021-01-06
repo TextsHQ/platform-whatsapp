@@ -1,14 +1,25 @@
 import { TextEntity } from '@textshq/platform-sdk'
+import emojiRegex from 'emoji-regex/index.js'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/
+const RE_EMOJI = emojiRegex()
+
+const isStartSep = c => RE_SEP.test(c)
+
+const isEndSep = c => RE_EMOJI.test(c) || RE_SEP.test(c)
 
 export function mapTextAttributes(input: string) {
   const entities = []
   let output = ''
   let prevToken = null
   let curToken = null
-  while (input) {
+  input = Array.from(input)
+  let i = 0
+  while (input.length) {
+    if (i++ > 100) {
+      break
+    }
     console.log('-- input:', input, prevToken)
     const c1 = input[0]
     if (c1 === prevToken) {
@@ -18,7 +29,8 @@ export function mapTextAttributes(input: string) {
     } else if (RE_SEP.test(c1)) {
       prevToken = null
     }
-    if ('*_~'.includes(c1)) {
+    const lastChar = output.slice(-1)
+    if ((lastChar === '' || isStartSep(lastChar)) && '*_~'.includes(c1)) {
       curToken = c1
       prevToken = curToken
     } else {
@@ -27,7 +39,11 @@ export function mapTextAttributes(input: string) {
     if (curToken) {
       input = input.slice(curToken.length)
       let closingIndex = input.indexOf(curToken)
+      let j = 0
       while (closingIndex > -1) {
+        if (j++ > 10) {
+          break
+        }
         const prevChar = input[closingIndex - 1]
         const nextChar = input[closingIndex + 1]
         console.log(
@@ -39,7 +55,7 @@ export function mapTextAttributes(input: string) {
         )
         if (
           /[^\s]/.test(prevChar) &&
-          (nextChar == undefined || RE_SEP.test(nextChar))
+          (nextChar == undefined || isEndSep(nextChar))
         ) {
           break
         }
@@ -50,7 +66,7 @@ export function mapTextAttributes(input: string) {
       if (closingIndex > 0) {
         const from = output.length
         const to = from + closingIndex
-        output += input.slice(0, closingIndex)
+        output += input.slice(0, closingIndex).join('')
         input = input.slice(closingIndex + 1)
         const entity: TextEntity = {
           from,

@@ -2,24 +2,24 @@ import { mapTextAttributes } from '../text-attributes'
 
 const cases = [
   {
-    text: 'a*bold* _italic_ ~strikethrough~',
+    text: '*bold* _italic_ ~strikethrough~',
     result: {
-      text: 'abold italic strikethrough',
+      text: 'bold italic strikethrough',
       textAttributes: {
         entities: [
           {
-            from: 1,
-            to: 5,
+            from: 0,
+            to: 4,
             bold: true,
           },
           {
-            from: 6,
-            to: 12,
+            from: 5,
+            to: 11,
             italic: true,
           },
           {
-            from: 13,
-            to: 26,
+            from: 12,
+            to: 25,
             strikethrough: true,
           },
         ],
@@ -29,17 +29,12 @@ const cases = [
   {
     text: 'a*bold* _italic_ ~strikethrough~z',
     result: {
-      text: 'abold italic ~strikethrough~z',
+      text: 'a*bold* italic ~strikethrough~z',
       textAttributes: {
         entities: [
           {
-            from: 1,
-            to: 5,
-            bold: true,
-          },
-          {
-            from: 6,
-            to: 12,
+            from: 8,
+            to: 14,
             italic: true,
           },
         ],
@@ -121,10 +116,30 @@ const cases = [
       },
     },
   },
+  {
+    text: '*abc*✌️ *xyz* 123',
+    result: {
+      text: 'abc✌️ xyz 123',
+      textAttributes: {
+        entities: [
+          {
+            from: 0,
+            to: 3,
+            bold: true,
+          },
+          {
+            from: 6,
+            to: 9,
+            bold: true,
+          },
+        ],
+      },
+    },
+  },
 ]
 
 test('text attributes', () => {
-  for (const c of cases.slice(0)) {
+  for (const c of cases.slice(6)) {
     expect(mapTextAttributes(c.text)).toEqual(c.result)
   }
 })
