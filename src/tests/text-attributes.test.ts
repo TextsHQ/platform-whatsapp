@@ -2,9 +2,9 @@ import { mapTextAttributes } from '../text-attributes'
 
 const cases = [
   {
-    text: 'a*bold* _italic_ ~strikethrough~z',
+    text: 'a*bold* _italic_ ~strikethrough~',
     result: {
-      text: 'abold italic strikethroughz',
+      text: 'abold italic strikethrough',
       textAttributes: {
         entities: [
           {
@@ -67,6 +67,11 @@ const cases = [
             to: 1,
             bold: true,
           },
+          {
+            from: 2,
+            to: 5,
+            bold: true,
+          },
         ],
       },
     },
@@ -74,7 +79,7 @@ const cases = [
 ]
 
 test('text attributes', () => {
-  for (const c of cases) {
+  for (const c of cases.slice(0)) {
     expect(mapTextAttributes(c.text)).toEqual(c.result)
   }
 })

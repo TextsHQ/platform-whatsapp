@@ -4,48 +4,77 @@ export function mapTextAttributes(input: string) {
   const entities = []
   let output = ''
   let match1
-  let token = ''
-  const getRegExp = () => {
-    const marks = ['*', '_', '~']
-    const validMarks = marks.filter(x => x !== token).join('')
-    return new RegExp(`[${validMarks}]`)
-  }
-  while ((match1 = getRegExp().exec(input))) {
-    // console.log('match1', input, match1, match1[0])
-    token = match1[0]
-    const from = output.length + match1.index
-    output += input.slice(0, match1.index)
-    input = input.slice(match1.index + 1)
-    // const match2 = new RegExp(`.+[${token}]`).exec(input)
-    const match2 = new RegExp(`([^${token}]+[${token}])+`).exec(input)
-    if (match2 && match2[0]) {
-      // console.log('match2', input, match2, match2[0])
-      output += input.slice(0, match2[0].length - 1)
-      const to = from + match2[0].length - 1
-      let entity: TextEntity = {
-        from,
-        to,
+  let prevToken = null
+  let curToken = null
+  while (input) {
+    console.log('-- input:', input)
+    const c1 = input[0]
+    if (c1 === prevToken) {
+      output += c1
+      input = input.slice(1)
+      continue
+    }
+    const c2 = input[1]
+    if ('*_~'.includes(c1)) {
+      curToken = c1
+      prevToken = curToken
+    } else {
+      curToken = null
+    }
+    if (curToken) {
+      input = input.slice(curToken.length)
+      let closingIndex = input.indexOf(curToken)
+      while (closingIndex) {
+        const prevChar = input[closingIndex - 1]
+        const nextChar = input[closingIndex + 1]
+        console.log(
+          curToken,
+          prevChar,
+          nextChar,
+          /[^\s]/.test(prevChar),
+          nextChar == undefined || /[\s*_~]/.test(nextChar)
+        )
+        if (
+          /[^\s]/.test(prevChar) &&
+          (nextChar == undefined || /[\s*_~]/.test(nextChar))
+        ) {
+          break
+        }
+        closingIndex = input.indexOf(curToken, closingIndex + 1)
       }
-      switch (token) {
-        case '*':
-          entity.bold = true
-          break
-        case '_':
-          entity.italic = true
-          break
-        case '~':
-          entity.strikethrough = true
-          break
-        case '```':
-          entity.code = true
-          break
+      console.log(closingIndex, curToken)
+      if (closingIndex > 0) {
+        const from = output.length
+        const to = from + closingIndex
+        output += input.slice(0, closingIndex)
+        input = input.slice(closingIndex + 1)
+        const entity: TextEntity = {
+          from,
+          to,
+        }
+        switch (curToken) {
+          case '*':
+            entity.bold = true
+            break
+          case '_':
+            entity.italic = true
+            break
+          case '~':
+            entity.strikethrough = true
+            break
+          case '```':
+            entity.code = true
+            break
+        }
+        entities.push(entity)
+      } else {
+        output += curToken
       }
-      entities.push(entity)
-
-      input = input.slice(match2[0].length)
+    } else {
+      output += c1
+      input = input.slice(1)
     }
   }
-  output += input
   return {
     text: output,
     textAttributes: entities.length ? { entities } : null,
