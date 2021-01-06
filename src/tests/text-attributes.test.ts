@@ -136,10 +136,30 @@ const cases = [
       },
     },
   },
+  {
+    text: 'Test _漢字_ *世界* 12',
+    result: {
+      text: 'Test 漢字 世界 12',
+      textAttributes: {
+        entities: [
+          {
+            from: 5,
+            to: 7,
+            italic: true,
+          },
+          {
+            from: 8,
+            to: 10,
+            bold: true,
+          },
+        ],
+      },
+    },
+  },
 ]
 
 test('text attributes', () => {
-  for (const c of cases.slice(6)) {
+  for (const c of cases) {
     expect(mapTextAttributes(c.text)).toEqual(c.result)
   }
 })
