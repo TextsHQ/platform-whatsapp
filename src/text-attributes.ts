@@ -1,8 +1,8 @@
 import { TextEntity } from '@textshq/platform-sdk'
-import emojiRegex = require('emoji-regex')
+import emojiRegex from 'emoji-regex'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
-const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-.\/:;<=>?@\[\]^_`{|}~]/
+const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
 const RE_EMOJI = emojiRegex()
 
 const isStartSep = c => RE_SEP.test(c)
@@ -10,10 +10,10 @@ const isStartSep = c => RE_SEP.test(c)
 const isEndSep = c => RE_EMOJI.test(c) || RE_SEP.test(c)
 
 export function mapTextAttributes(src: string) {
-  const entities = []
+  const entities : TextEntity[] = []
   let output = ''
-  let prevToken = null
-  let curToken = null
+  let prevToken : string = null
+  let curToken: string = null
   let input = Array.from(src)
   while (input.length) {
     const c1 = input[0]
@@ -39,7 +39,7 @@ export function mapTextAttributes(src: string) {
         const nextChar = input[closingIndex + 1]
         if (
           /[^\s]/.test(prevChar)
-          && (nextChar == undefined || isEndSep(nextChar))
+          && (nextChar === undefined || isEndSep(nextChar))
         ) {
           break
         }
@@ -79,6 +79,6 @@ export function mapTextAttributes(src: string) {
   }
   return {
     text: output,
-    textAttributes: entities.length ? { entities } : null,
+    textAttributes: entities.length ? { entities } : undefined,
   }
 }
