@@ -2,7 +2,7 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
 import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto, WAMessageStatusUpdate } from 'baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageUpdateProps } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
@@ -93,7 +93,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }, delay)
   }
 
-  login = async ({ jsCodeResult }): Promise<LoginResult> => {
+  login = async ({ jsCodeResult }: LoginCreds): Promise<LoginResult> => {
     if (!jsCodeResult) return { type: 'error', errorMessage: "Didn't get any data from login page" }
 
     const ls = JSON.parse(jsCodeResult)
@@ -280,7 +280,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return mapThread(chat, this.client.user)
   }
 
-  getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
+  getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
     if (!this.client.lastChatsReceived) {
