@@ -48,7 +48,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
-  [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created group "{{0}}"',
+  [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
