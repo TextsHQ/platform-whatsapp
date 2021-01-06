@@ -27,6 +27,26 @@ const cases = [
     },
   },
   {
+    text: 'a*bold* _italic_ ~strikethrough~z',
+    result: {
+      text: 'abold italic ~strikethrough~z',
+      textAttributes: {
+        entities: [
+          {
+            from: 1,
+            to: 5,
+            bold: true,
+          },
+          {
+            from: 6,
+            to: 12,
+            italic: true,
+          },
+        ],
+      },
+    },
+  },
+  {
     text: '*b _*it_*',
     result: {
       text: 'b _*it_',
@@ -71,6 +91,31 @@ const cases = [
             from: 2,
             to: 5,
             bold: true,
+          },
+        ],
+      },
+    },
+  },
+  {
+    text: '*ab_*it*1* **q** 12*_12_',
+    result: {
+      text: 'ab_*it*1 *q* 12*12',
+      textAttributes: {
+        entities: [
+          {
+            from: 0,
+            to: 8,
+            bold: true,
+          },
+          {
+            from: 9,
+            to: 11,
+            bold: true,
+          },
+          {
+            from: 16,
+            to: 18,
+            italic: true,
           },
         ],
       },
