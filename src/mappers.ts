@@ -3,6 +3,7 @@ import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAtta
 
 import { WACompleteMessage } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
+import { mapTextAttributes } from './text-attributes'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -356,7 +357,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
   const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
 
-  return {
+  const mapped: Message = {
     _original: safeJSONStringify([message, currentUserID]),
     id: message.key.id,
     cursor: message.key.id + '_' + Number(message.key.fromMe),
@@ -383,6 +384,12 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
       isEphemeral,
     },
   }
+  const { text, textAttributes } = mapTextAttributes(mapped.text)
+  if (textAttributes) {
+    mapped.text = text
+    mapped.textAttributes = textAttributes
+  }
+  return mapped
 }
 export function mapMessageUpdateProps(message: Partial<WACompleteMessage> & { key: WAMessageKey }): Partial<Message> {
   return {
