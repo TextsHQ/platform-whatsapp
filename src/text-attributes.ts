@@ -52,9 +52,9 @@ const findClosingIndex = (input: string[], curToken: string) => {
 }
 
 export function mapTextAttributes(src: string) {
-  const entities : TextEntity[] = []
+  const entities: TextEntity[] = []
   let output = ''
-  let prevToken : string = null
+  let prevToken: string = null
   let curToken: string = null
   let input = Array.from(src)
   while (input.length) {
