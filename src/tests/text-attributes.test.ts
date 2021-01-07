@@ -156,6 +156,41 @@ const cases = [
       },
     },
   },
+  {
+    text: 'Inline ``` code ``` should work',
+    result: {
+      text: 'Inline  code  should work',
+      textAttributes: {
+        entities: [
+          {
+            from: 7,
+            to: 13,
+            code: true,
+          },
+        ],
+      },
+    },
+  },
+  {
+    text: '```code``` and ```\n  block\nshould work\n``` as well',
+    result: {
+      text: 'code and \n  block\nshould work\n as well',
+      textAttributes: {
+        entities: [
+          {
+            from: 0,
+            to: 4,
+            code: true,
+          },
+          {
+            from: 9,
+            to: 30,
+            code: true,
+          },
+        ],
+      },
+    },
+  },
 ]
 
 test('text attributes', () => {
