@@ -405,7 +405,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
-    if (whatsappID(threadID) === whatsappID(this.client.user.jid)) {
+    if (threadID === whatsappID(this.client.user.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
@@ -415,7 +415,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
     const loaded = await this.client.loadMessage(threadID, messageID)
-    await bluebird.map(threadIDs, tid => this.client.forwardMessage(whatsappID(tid), loaded))
+    await bluebird.map(threadIDs, tid => this.client.forwardMessage(tid, loaded))
     return true
   }
 

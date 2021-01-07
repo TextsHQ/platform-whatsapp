@@ -223,6 +223,7 @@ function messageQuoted(messageInner: any): MessagePreview {
     id: contextInfo.stanzaId,
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
     text: messageText(contextInfo.quotedMessage, Object.values(contextInfo.quotedMessage)[0]),
+    attachments: [],
   }
 }
 function* messageHeading(message: WAMessage, messageInner: any) {
