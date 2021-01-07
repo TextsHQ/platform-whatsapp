@@ -372,11 +372,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     const txt = { text: msgContent.text } as WATextMessage
     const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
 
+    const chat = this.getChat(threadID)
     const ops: MessageOptions = {
       filename: msgContent.fileName,
       caption: msgContent.text,
       ptt: msgContent.isRecordedAudio,
       duration: msgContent.audioDurationSeconds,
+      sendEphemeral: true,
+      expiration: chat.metadata?.ephemeralDuration || +chat.ephemeral,
     }
 
     if (options?.quotedMessageID) {
