@@ -117,9 +117,9 @@ const cases = [
     },
   },
   {
-    text: '*abc*✌️ *xyz* 123',
+    text: '*abc*🤔 *xyz* 123',
     result: {
-      text: 'abc✌️ xyz 123',
+      text: 'abc🤔 xyz 123',
       textAttributes: {
         entities: [
           {
@@ -128,8 +128,8 @@ const cases = [
             bold: true,
           },
           {
-            from: 6,
-            to: 9,
+            from: 5,
+            to: 8,
             bold: true,
           },
         ],
