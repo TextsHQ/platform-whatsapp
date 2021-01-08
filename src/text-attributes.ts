@@ -16,9 +16,9 @@ import type { TextEntity } from '@textshq/platform-sdk'
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
 const RE_EMOJI = emojiRegex()
 
-const isStartSep = c => RE_SEP.test(c)
+const isStartSep = (c: string) => RE_SEP.test(c)
 
-const isEndSep = c => RE_EMOJI.test(c) || RE_SEP.test(c)
+const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
 
 const findClosingIndex = (input: string[], curToken: string) => {
   const tokenLen = curToken.length
