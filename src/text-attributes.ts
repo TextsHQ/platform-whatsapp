@@ -85,7 +85,7 @@ export function mapTextAttributes(src: string) {
       input = input.slice(curToken.length)
       const closingIndex = findClosingIndex(input, curToken)
       if (closingIndex > 0) {
-        const from = output.length
+        const from = Array.from(output).length
         const to = from + closingIndex
         output += input.slice(0, closingIndex).join('')
         input = input.slice(closingIndex + curToken.length)
