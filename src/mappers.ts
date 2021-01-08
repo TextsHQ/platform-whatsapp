@@ -381,9 +381,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     action,
     isErrored: !isAction && message.key.fromMe && message.status === 0,
     silent: !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
-    extra: {
-      isEphemeral,
-    },
+    expiresInSeconds: messageInner?.contextInfo?.expiration,
   }
   const { text, textAttributes } = mapTextAttributes(mapped.text)
   if (textAttributes) {
