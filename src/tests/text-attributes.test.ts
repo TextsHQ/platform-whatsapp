@@ -1,6 +1,6 @@
 import { mapTextAttributes } from '../text-attributes'
 
-const cases = [
+const flatCases = [
   {
     text: '*bold* _italic_ ~strikethrough~',
     result: {
@@ -36,21 +36,6 @@ const cases = [
             from: 8,
             to: 14,
             italic: true,
-          },
-        ],
-      },
-    },
-  },
-  {
-    text: '*b _*it_*',
-    result: {
-      text: 'b _*it_',
-      textAttributes: {
-        entities: [
-          {
-            from: 0,
-            to: 7,
-            bold: true,
           },
         ],
       },
@@ -192,6 +177,36 @@ const cases = [
     },
   },
 ]
+
+const nestedCases = [
+  {
+    text: 'x *b _it_ ~st~*',
+    result: {
+      text: 'x b it st',
+      textAttributes: {
+        entities: [
+          {
+            from: 4,
+            to: 6,
+            italic: true,
+          },
+          {
+            from: 7,
+            to: 9,
+            strikethrough: true,
+          },
+          {
+            from: 2,
+            to: 9,
+            bold: true,
+          },
+        ],
+      },
+    },
+  },
+]
+
+const cases = [flatCases, nestedCases].flat()
 
 test('text attributes', () => {
   for (const c of cases) {

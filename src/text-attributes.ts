@@ -51,6 +51,12 @@ const findClosingIndex = (input: string[], curToken: string) => {
   return closingIndex
 }
 
+const offsetEntities = (entities: TextEntity[], offset: number) => entities.map(entity => ({
+  ...entity,
+  from: entity.from + offset,
+  to: entity.to + offset,
+}))
+
 export function mapTextAttributes(src: string) {
   const entities: TextEntity[] = []
   let output = ''
@@ -85,9 +91,19 @@ export function mapTextAttributes(src: string) {
       input = input.slice(curToken.length)
       const closingIndex = findClosingIndex(input, curToken)
       if (closingIndex > 0) {
+        const content = input.slice(0, closingIndex).join('')
+        const nestedAttributes = mapTextAttributes(content)
         const from = Array.from(output).length
-        const to = from + closingIndex
-        output += input.slice(0, closingIndex).join('')
+        let to = from + closingIndex
+        if (nestedAttributes.textAttributes) {
+          to = from + nestedAttributes.text.length
+          entities.push(
+            ...offsetEntities(nestedAttributes.textAttributes.entities, from)
+          )
+          output += nestedAttributes.text
+        } else {
+          output += content
+        }
         input = input.slice(closingIndex + curToken.length)
         const entity: TextEntity = {
           from,
