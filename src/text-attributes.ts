@@ -20,24 +20,37 @@ const isStartSep = (c: string) => RE_SEP.test(c)
 
 const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
 
+/**
+ * Try to find the closing index for curToken.
+ *
+ * An example: say curToken is *, and we find the next * at index 10.
+ *
+ * 1. Test the prevChar (input[9]) and nextChar (input[11])
+ * 2. If they are both valid separators, return 10.
+ * 3. Otherwise, find the next * after index 10, and repeat 1-3.
+ */
 const findClosingIndex = (input: string[], curToken: string) => {
   const tokenLen = curToken.length
   let closingIndex = input.indexOf(curToken[0])
   while (closingIndex > -1) {
     let tokenMatched = true
     for (let i = 1; i < tokenLen; i++) {
+      // When token has more than one char, make sure the chars after the
+      // closingIndex fully match token.
       if (input[closingIndex + i] !== curToken[i]) {
         tokenMatched = false
         break
       }
     }
     if (!tokenMatched) {
+      // If not fully matched, find the next closingIndex
       closingIndex = input.indexOf(curToken, closingIndex + 1)
       continue
     } else if (tokenLen > 1) {
       // For code block, the prev and next char doesn't matter.
       return closingIndex
     }
+    // Test prevChar and nextChar are both valid separators.
     const prevChar = input[closingIndex - 1]
     const nextChar = input[closingIndex + tokenLen]
     if (
@@ -46,6 +59,7 @@ const findClosingIndex = (input: string[], curToken: string) => {
     ) {
       break
     }
+    // If prevChar or nextChar is invalid, find the next closingIndex.
     closingIndex = input.indexOf(curToken, closingIndex + 1)
   }
   return closingIndex
@@ -57,15 +71,22 @@ export function mapTextAttributes(src: string) {
   let prevToken: string = null
   let curToken: string = null
   let input = Array.from(src)
+
+  // Parse the input sequentially.
   while (input.length) {
+    // Always start from the first char.
     const c1 = input[0]
     if (c1 === prevToken) {
+      // Somehow, WhatsApp treat a token char immediately after the same valid token as plain text.
+      // Example: *bold**not bold*, the third * is not treated as a token.
       output += c1
       input = input.slice(1)
       continue
     } else if (isStartSep(c1)) {
       prevToken = null
     }
+
+    // c1 is a token if lastChar is a separator and current char is one of *_~`.
     const lastChar = output.slice(-1)
     if ((lastChar === '' || isStartSep(lastChar)) && '*_~`'.includes(c1)) {
       if (c1 === '`') {
@@ -80,15 +101,33 @@ export function mapTextAttributes(src: string) {
     } else {
       curToken = null
     }
+
     if (curToken) {
       prevToken = curToken
       input = input.slice(curToken.length)
       const closingIndex = findClosingIndex(input, curToken)
       if (closingIndex > 0) {
+        // A valid closingIndex is found, it's a valid token!
+        const content = input.slice(0, closingIndex).join('')
+        // See if we can find nested entities.
+        const nestedAttributes = mapTextAttributes(content)
         const from = Array.from(output).length
-        const to = from + closingIndex
-        output += input.slice(0, closingIndex).join('')
-        input = input.slice(closingIndex + curToken.length)
+        let to = from + closingIndex
+        if (nestedAttributes.textAttributes) {
+          // Nested entities change the output, so update the range.
+          to = from + nestedAttributes.text.length
+          // Offset the range of child entities.
+          const childEntities = nestedAttributes.textAttributes.entities.map(entity => ({
+            ...entity,
+            from: entity.from + from,
+            to: entity.to + from,
+          }))
+          entities.push(...childEntities)
+          output += nestedAttributes.text
+        } else {
+          output += content
+        }
+        // Construct the entity of the current token.
         const entity: TextEntity = {
           from,
           to,
@@ -108,10 +147,14 @@ export function mapTextAttributes(src: string) {
             break
         }
         entities.push(entity)
+        // Set input to start from the char after the closing token.
+        input = input.slice(closingIndex + curToken.length)
       } else {
+        // Unable to find a valid closingIndex, curToken is plain text!
         output += curToken
       }
     } else {
+      // c1 is plain text!
       output += c1
       input = input.slice(1)
     }
