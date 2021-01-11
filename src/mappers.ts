@@ -383,10 +383,12 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     silent: !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
     expiresInSeconds: messageInner?.contextInfo?.expiration,
   }
-  const { text, textAttributes } = mapTextAttributes(mapped.text)
-  if (textAttributes) {
-    mapped.text = text
-    mapped.textAttributes = textAttributes
+  if (mapped.text) {
+    const { text, textAttributes } = mapTextAttributes(mapped.text)
+    if (textAttributes) {
+      mapped.text = text
+      mapped.textAttributes = textAttributes
+    }
   }
   return mapped
 }

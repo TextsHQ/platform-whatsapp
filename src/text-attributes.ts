@@ -66,6 +66,8 @@ const findClosingIndex = (input: string[], curToken: string) => {
 }
 
 export function mapTextAttributes(src: string) {
+  if (!src) return
+
   const entities: TextEntity[] = []
   let output = ''
   let prevToken: string = null
