@@ -15,12 +15,12 @@ const numberToBigInt = (number: Number | Long.Long) => BigInt(number.toString())
 const isPaymentMessage = (m: WAMessageProto.IMessage) =>
   !!(m?.sendPaymentMessage || m?.requestPaymentMessage || m?.cancelPaymentRequestMessage || m?.declinePaymentRequestMessage)
 
-const getEphemeralMessageSettingChangedText = (exp: number) => {
+const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
   if (exp) {
     const expDays = Math.floor(exp / (60 * 60 * 24))
-    return `{{sender}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
+    return `{{${actor}}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
   }
-  return '{{sender}} turned off disappearing messages.'
+  return `{{${actor}}} turned off disappearing messages.`
 }
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
@@ -35,28 +35,30 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
   // X registered as a business account, but WhatsApp hasn’t verified their name yet.
   [WA_MESSAGE_STUB_TYPE.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
+  [WA_MESSAGE_STUB_TYPE.BLUE_MSG_SELF_PREMISE_UNVERIFIED]: 'This chat is with a business account.',
   // This account was previously a business account but has now registered as a standard account and may no longer belong to the business.
   [WA_MESSAGE_STUB_TYPE.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
   // This chat is with the verified business account for "X". Click for more info.
   // [AFTER CLICK] WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account".
   [WA_MESSAGE_STUB_TYPE.VERIFIED_HIGH]: 'This chat is with a verified business account.',
+
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_VIDEO]: 'Missed video call',
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_VOICE]: 'Missed voice call',
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
   [WA_MESSAGE_STUB_TYPE.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
 
+  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: "You're now an admin",
+  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: "You're no longer an admin",
+
   // todo: recheck if {{sender}} is accurate. we've had to replace sender with message.participant for a bunch of messages
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
-  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_PROMOTE]: '{{sender}} was made an admin',
-  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: '{{sender}} was demoted',
   [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
+  // /end todo
 
-  [WA_MESSAGE_STUB_TYPE.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
-  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
   [WA_MESSAGE_STUB_TYPE.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   [WA_MESSAGE_STUB_TYPE.GENERIC_NOTIFICATION]: '{{0}}',
 
@@ -66,7 +68,9 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
   // todo: [WA_MESSAGE_STUB_TYPE.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
-  [WA_MESSAGE_STUB_TYPE.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters[0]),
+  [WA_MESSAGE_STUB_TYPE.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant)}}} changed their phone number to a new number {{{{0}}}}`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant)}}} changed their phone number to a new number {{{{0}}}}`,
+  [WA_MESSAGE_STUB_TYPE.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters[0], message.messageStubParameters[1]),
 
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
@@ -76,12 +80,14 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_RESTRICT]: message => {
-    if (message.messageStubParameters[0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
-    return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
+    const actor = whatsappID(message.participant)
+    if (message.messageStubParameters[0] === 'on') return `{{${actor}}} changed this group's settings to allow only admins to edit this group's info`
+    return `{{${actor}}} changed this group's settings to allow all participants to edit this group's info`
   },
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_ANNOUNCE]: message => {
-    if (message.messageStubParameters[0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
-    return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
+    const actor = whatsappID(message.participant)
+    if (message.messageStubParameters[0] === 'on') return `📢 {{${actor}}} changed this group's settings to allow only admins to send messages to this group`
+    return `📢 {{${actor}}} changed this group's settings to allow all participants to send messages to this group`
   },
 }
 
@@ -262,7 +268,7 @@ const replaceJids = (jids: string[], text: string) => {
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
-    return getEphemeralMessageSettingChangedText(exp)
+    return getEphemeralMessageSettingChangedText(exp, 'sender')
   }
   const paymentMessage = message?.sendPaymentMessage || message?.requestPaymentMessage || message?.cancelPaymentRequestMessage || message?.declinePaymentRequestMessage
   if (paymentMessage) {
