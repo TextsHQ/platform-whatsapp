@@ -449,9 +449,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.updatePresence(threadID, presence)
   }
 
-  changeThreadTitle = async (threadID: string, newTitle: string) => {
+  updateThread = async (threadID: string, updates: Partial<Thread>) => {
+    if (!('title' in updates)) return
     if (!isGroupID(threadID)) throw new Error('cannot change title of a individual chat')
-    await this.client.groupUpdateSubject(threadID, newTitle)
+    await this.client.groupUpdateSubject(threadID, updates.title)
     return true
   }
 
