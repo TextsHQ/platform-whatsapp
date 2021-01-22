@@ -280,6 +280,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     return mapThread(chat, this.client.user)
   }
 
+  deleteThread = async (threadID: string) => {
+    await this.client.modifyChat(threadID, 'delete')
+  }
+
   getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
@@ -458,9 +462,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   updateThread = async (threadID: string, updates: Partial<Thread>) => {
-    if (!('title' in updates)) return
-    if (!isGroupID(threadID)) throw new Error('cannot change title of a individual chat')
-    await this.client.groupUpdateSubject(threadID, updates.title)
+    if ('title' in updates) {
+      if (!isGroupID(threadID)) throw new Error('cannot change title of a individual chat')
+      await this.client.groupUpdateSubject(threadID, updates.title)
+    }
+    if ('messageExpirySeconds' in updates) {
+      await this.client.toggleDisappearingMessages(threadID, updates.messageExpirySeconds)
+    }
     return true
   }
 

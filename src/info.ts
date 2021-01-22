@@ -36,6 +36,7 @@ const info: PlatformInfo = {
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_FORWARD,
     Attribute.SUPPORTS_MARK_AS_UNREAD,
+    Attribute.SUPPORTS_DELETE_THREAD,
     Attribute.SHARES_CONTACTS,
     Attribute.SUPPORTS_QUOTED_MESSAGES,
     Attribute.CAN_MESSAGE_PHONE_NUMBER,
