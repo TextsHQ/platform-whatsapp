@@ -234,7 +234,6 @@ function messageQuoted(messageInner: any): MessagePreview {
 }
 function* messageHeading(message: WAMessage, messageInner: any) {
   if (message.broadcast) yield 'Broadcast'
-  if (messageInner?.contextInfo?.isForwarded) yield 'Forwarded'
   const m = message.message
   if (m) {
     if (isPaymentMessage(m)) {
@@ -373,6 +372,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
     textFooter: message.status === WA_MESSAGE_STATUS_TYPE.PLAYED ? 'Played' : undefined,
     timestamp: new Date(timestamp * 1000),
+    forwardedCount: messageInner?.contextInfo?.forwardingScore,
     senderID,
     isSender: message.key.fromMe,
     isDeleted,
