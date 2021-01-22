@@ -6,10 +6,10 @@ export const textsWAKey = {
 }
 
 export const isBroadcastID = (jid: string) =>
-  jid.endsWith('@broadcast')
+  jid?.endsWith('@broadcast')
 
 export const numberFromJid = (jid: string) =>
-  '+' + whatsappID(jid).replace('@s.whatsapp.net', '')
+  '+' + whatsappID(jid)?.replace('@s.whatsapp.net', '')
 
 export const removeServer = (jid: string) =>
   jid.split('@').shift()
