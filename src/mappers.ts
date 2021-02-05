@@ -51,7 +51,6 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_DEMOTE]: "You're no longer an admin",
 
   // todo: recheck if {{sender}} is accurate. we've had to replace sender with message.participant for a bunch of messages
-  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: "{{sender}} joined using this group's invite link",
   [WA_MESSAGE_STUB_TYPE.GROUP_CREATE]: '{{sender}} created this group',
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [WA_MESSAGE_STUB_TYPE.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
@@ -76,6 +75,7 @@ const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} =
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to "{{0}}"`,
   [WA_MESSAGE_STUB_TYPE.GROUP_CHANGE_ICON]: message => `{{${whatsappID(message.participant)}}} changed this group's icon`,
+  [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_INVITE]: message => `{{${whatsappID(message.participant)}}} joined using this group's invite link`,
 
   [WA_MESSAGE_STUB_TYPE.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
