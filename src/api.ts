@@ -11,9 +11,9 @@ import { WACompleteMessage } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 15
 
-const CONNECT_TIMEOUT_MS = 15_000
-const DELAY_CONN_STATUS_CHANGE = 15_000
-const ATTACHMENT_UPDATE_WAIT_TIME_MS = 15_000
+const CONNECT_TIMEOUT_MS = 20_000
+const DELAY_CONN_STATUS_CHANGE = 20_000
+const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
 function updateReadReceipts(chat: WAChat, update: WAMessageStatusUpdate) {
   chat.messages.all().forEach(msg => {
@@ -49,11 +49,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
+    this.client.connectOptions.phoneResponseTime = CONNECT_TIMEOUT_MS
+    this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.connectOptions.maxRetries = 1
     this.client.shouldLogMessages = false // texts.IS_DEV
-    this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.chatOrderingKey = textsWAKey
-    this.client.maxCachedMessages = 125
+    this.client.maxCachedMessages = 300
 
     // prevent logging of phone numbers
     // @ts-expect-error
