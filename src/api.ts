@@ -536,8 +536,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.client.on('chat-update', update)
         })
       }
-      const buffer = await this.client.downloadMediaMessage(m)
-      return buffer
+      const stream = await this.client.downloadMediaMessage(m, 'stream')
+      return stream
     }
   }
 
