@@ -385,7 +385,8 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message),
     isAction,
     action,
-    isErrored: !isAction && message.key.fromMe && message.status === 0,
+    // todo: review logic, this is incorrect:
+    // isErrored: !isAction && message.key.fromMe && message.status === 0,
     silent: !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
     expiresInSeconds: messageInner?.contextInfo?.expiration,
   }
