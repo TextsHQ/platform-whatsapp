@@ -416,9 +416,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       ops.mimetype = 'video/gif'
     }
     // temp measure
-    if (messageType === MessageType.video) {
-      ops.thumbnail = null
-    }
+    ops.thumbnail = null
     if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
