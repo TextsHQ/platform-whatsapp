@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey } from 'baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey, WAContextInfo } from 'baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
 
 import { WACompleteMessage } from './types'
@@ -221,12 +221,13 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
 function messageQuoted(messageInner: any): MessagePreview {
   if (!messageInner) return
 
-  const contextInfo = messageInner?.contextInfo
+  const contextInfo = messageInner?.contextInfo as WAContextInfo
   const quoted = contextInfo?.quotedMessage
   if (!quoted) return null
 
   return {
     id: contextInfo.stanzaId,
+    threadID: whatsappID(contextInfo.remoteJid),
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
     text: messageText(contextInfo.quotedMessage, Object.values(contextInfo.quotedMessage)[0]),
     attachments: [],
