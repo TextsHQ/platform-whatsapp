@@ -397,8 +397,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     if (options?.quotedMessageID) {
-      const message = await this.client.loadMessage(threadID, options.quotedMessageID)
-      ops.quoted = message
+      const message = await this.client.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID)
+      if (message) ops.quoted = message
     }
 
     let messageType = MessageType.text
