@@ -1,7 +1,6 @@
 import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
 import { removeServer } from './util'
-import { mapMessage } from './mappers'
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
@@ -53,7 +52,6 @@ const info: PlatformInfo = {
     gifMimeType: 'video/mp4',
     supportsCaption: true,
   },
-  mapMessage,
   extra: {
     getUnknownParticipant(participantID: string): Participant {
       if (!participantID) return
