@@ -1,0 +1,35 @@
+[
+  {
+    "key": {
+      "remoteJid": "@s.whatsapp.net",
+      "fromMe": false,
+      "id": "17245C1F372991990D"
+    },
+    "message": {
+      "templateMessage": {
+        "hydratedFourRowTemplate": {
+          "hydratedContentText": "What is your current location?",
+          "hydratedButtons": [
+            {
+              "quickReplyButton": {
+                "displayText": "Singapore",
+                "id": "Singapore"
+              }
+            },
+            {
+              "quickReplyButton": {
+                "displayText": "India",
+                "id": "India"
+              }
+            }
+          ],
+          "templateId": "254770952669530"
+        }
+      }
+    },
+    "messageTimestamp": "1614749907",
+    "status": "READ",
+    "ignore": true
+  },
+  "@s.whatsapp.net"
+]

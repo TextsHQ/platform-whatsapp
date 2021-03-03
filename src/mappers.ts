@@ -1,5 +1,5 @@
 import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey, WAContextInfo } from 'baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated } from '@textshq/platform-sdk'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton } from '@textshq/platform-sdk'
 
 import { WACompleteMessage } from './types'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
@@ -265,6 +265,34 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`), text)
 }
 
+function messageButtons(message: WAMessageContent) {
+  const buttons: MessageButton[] = []
+  if (message.templateMessage) {
+    const template = message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate
+    template?.hydratedButtons?.forEach(button => {
+      if (button.callButton) {
+        buttons.push({
+          label: button.callButton.displayText,
+          linkURL: 'tel:' + button.callButton.phoneNumber,
+        })
+      }
+      if (button.quickReplyButton) {
+        buttons.push({
+          label: button.quickReplyButton.displayText,
+          linkURL: 'texts://fill-textarea?text=' + encodeURIComponent(button.quickReplyButton.displayText),
+        })
+      }
+      if (button.urlButton) {
+        buttons.push({
+          label: button.urlButton.displayText,
+          linkURL: button.urlButton.url,
+        })
+      }
+    })
+  }
+  return buttons.length === 0 ? undefined : buttons
+}
+
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
@@ -298,6 +326,10 @@ function messageText(message: WAMessageContent, messageInner: any) {
   const text = messageInner?.text ?? messageInner?.caption
   if (text) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
+  }
+  if (message.templateMessage) {
+    const txt = message.templateMessage.hydratedTemplate.hydratedContentText || message.templateMessage.hydratedFourRowTemplate.hydratedContentText
+    if (txt) return txt
   }
   return message?.conversation
 }
@@ -379,6 +411,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     isDeleted,
     attachments,
     reactions: [],
+    buttons: messageButtons(messageContent),
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WA_MESSAGE_STATUS_TYPE.SERVER_ACK : true,
     seen: messageSeen(message),
     linkedMessage: linked,
