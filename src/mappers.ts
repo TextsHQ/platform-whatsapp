@@ -267,7 +267,7 @@ const replaceJids = (jids: string[], text: string) => {
 
 function messageButtons(message: WAMessageContent) {
   const buttons: MessageButton[] = []
-  if (message.templateMessage) {
+  if (message?.templateMessage) {
     const template = message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate
     template?.hydratedButtons?.forEach(button => {
       if (button.callButton) {
@@ -327,7 +327,7 @@ function messageText(message: WAMessageContent, messageInner: any) {
   if (text) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
   }
-  if (message.templateMessage) {
+  if (message?.templateMessage) {
     const txt = message.templateMessage.hydratedTemplate.hydratedContentText || message.templateMessage.hydratedFourRowTemplate.hydratedContentText
     if (txt) return txt
   }
