@@ -328,7 +328,7 @@ function messageText(message: WAMessageContent, messageInner: any) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
   }
   if (message?.templateMessage) {
-    const txt = message.templateMessage.hydratedTemplate.hydratedContentText || message.templateMessage.hydratedFourRowTemplate.hydratedContentText
+    const txt = message.templateMessage.hydratedTemplate?.hydratedContentText || message.templateMessage.hydratedFourRowTemplate?.hydratedContentText
     if (txt) return txt
   }
   return message?.conversation
