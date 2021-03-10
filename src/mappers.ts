@@ -379,6 +379,8 @@ function messageStatus(status: number | string) {
   return status
 }
 
+const toNumber = (t: Long | number) => (typeof t === 'number' ? t : (t.low || t))
+
 export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
   const isEphemeral = !!message.message?.ephemeralMessage
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
@@ -423,6 +425,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     // isErrored: !isAction && message.key.fromMe && message.status === 0,
     silent: !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
     expiresInSeconds: messageInner?.contextInfo?.expiration,
+    sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
   }
   if (mapped.text) {
     const { text, textAttributes } = mapTextAttributes(mapped.text)
