@@ -396,7 +396,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
   const isDeleted = message.messageStubType === WA_MESSAGE_STUB_TYPE.REVOKE
 
   const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-  const isAction = (!!stubBasedMessage && message.messageStubType !== WA_MESSAGE_STUB_TYPE.REVOKE) || isEphemeralSetting
+  const isAction = (!!stubBasedMessage && ![WA_MESSAGE_STUB_TYPE.REVOKE, WA_MESSAGE_STUB_TYPE.CIPHERTEXT].includes(message.messageStubType)) || isEphemeralSetting
 
   const mapped: Message = {
     _original: safeJSONStringify([message, currentUserID]),
