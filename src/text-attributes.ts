@@ -112,7 +112,10 @@ export function mapTextAttributes(src: string) {
         // A valid closingIndex is found, it's a valid token!
         const content = input.slice(0, closingIndex).join('')
         // See if we can find nested entities.
-        const nestedAttributes = mapTextAttributes(content)
+        let nestedAttributes = { text: '', textAttributes: undefined }
+        if (curToken !== '```') {
+          nestedAttributes = mapTextAttributes(content)
+        }
         const from = Array.from(output).length
         let to = from + closingIndex
         if (nestedAttributes.textAttributes) {
