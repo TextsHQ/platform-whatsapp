@@ -1,4 +1,4 @@
-import { WAMessage, whatsappID, WAGenericMediaMessage, WAChat } from 'baileys'
+import type { WAMessage, WAGenericMediaMessage, WAChat } from 'baileys'
 
 export const textsWAKey = {
   key: (c: WAChat) => c.t.toString(16).padStart(8, '0') + c.jid,
@@ -7,6 +7,9 @@ export const textsWAKey = {
 
 export const isBroadcastID = (jid: string) =>
   jid?.endsWith('@broadcast')
+
+export const whatsappID = (jid: string) =>
+  jid?.replace('@c.us', '@s.whatsapp.net')
 
 export const numberFromJid = (jid: string) =>
   '+' + whatsappID(jid)?.replace('@s.whatsapp.net', '')
