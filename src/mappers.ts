@@ -18,9 +18,13 @@ const isPaymentMessage = (m: WAMessageProto.IMessage) =>
 const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
   if (exp) {
     const expDays = Math.floor(exp / (60 * 60 * 24))
-    return `{{${actor}}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
+    return actor
+      ? `{{${actor}}} has turned on disappearing messages. New messages will disappear from this chat after ${expDays} days.`
+      : `Disappearing messages were turned on. New messages will disappear from this chat after ${expDays} days.`
   }
-  return `{{${actor}}} turned off disappearing messages.`
+  return actor
+    ? `{{${actor}}} turned off disappearing messages.`
+    : 'Disappearing messages were turned off.'
 }
 
 const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
