@@ -1,4 +1,4 @@
-import { WAMessage, MessageInfo } from 'baileys'
+import type { WAMessage, MessageInfo } from 'baileys'
 
 export interface WACompleteMessage extends WAMessage {
   info?: MessageInfo

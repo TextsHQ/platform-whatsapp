@@ -6,7 +6,7 @@ import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxNam
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageUpdateProps } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
-import { WACompleteMessage } from './types'
+import type { WACompleteMessage } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 15
