@@ -1,0 +1,24 @@
+{
+  "_original": "[{\"key\":{\"remoteJid\":\"919000000000-1450087416@g.us\",\"fromMe\":false,\"id\":\"3A4BEEFA838D94F21BF7\",\"participant\":\"919000000001@s.whatsapp.net\"},\"messageTimestamp\":\"1450087416\",\"messageStubType\":\"GROUP_CREATE\",\"messageStubParameters\":[\"\"]},\"919000000001@s.whatsapp.net\"]",
+  "id": "3A4BEEFA838D94F21BF7",
+  "cursor": "3A4BEEFA838D94F21BF7_0",
+  "threadID": "919000000000-1450087416@g.us",
+  "textHeading": "",
+  "text": "Kishan Bagaria created this group",
+  "timestamp": "2015-12-14T10:03:36.000Z",
+  "senderID": "919000000001@s.whatsapp.net",
+  "isSender": false,
+  "isDeleted": false,
+  "attachments": [],
+  "reactions": [],
+  "isDelivered": true,
+  "seen": {},
+  "parseTemplate": true,
+  "isAction": true,
+  "action": {
+    "type": "group_thread_created",
+    "actorParticipantID": ""
+  },
+  "silent": true,
+  "sortKey": "13e9566e93f8"
+}
