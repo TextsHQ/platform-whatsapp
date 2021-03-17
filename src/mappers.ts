@@ -1,9 +1,9 @@
-import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey, WAContextInfo } from 'baileys'
+import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAMessageKey, WAContextInfo } from 'baileys'
 import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton } from '@textshq/platform-sdk'
 
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
-import type { WACompleteMessage } from './types'
+import type { WACompleteMessage, WACompleteChat } from './types'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -138,7 +138,7 @@ function threadType(jid: string): ThreadType {
   return 'single'
 }
 
-export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: boolean = false): Participant {
+export function mapContact(contact: WAContact, isSelf: boolean = false): Participant {
   if (isGroupID(contact.jid)) {
     throw new Error('mapContact: cannot map a group')
   }
@@ -152,7 +152,7 @@ export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: bool
     phoneNumber: numberFromJid(contact.jid),
     isVerified: contact.verify === '2',
     imgURL: contact.imgUrl,
-    isAdmin: (contact as WAGroupParticipant).isAdmin,
+    isAdmin: (contact as any).isAdmin,
   }
 }
 function messageAction(message: WAMessage): MessageAction {
@@ -450,10 +450,10 @@ export function mapMessages(message: WAMessage[], currentUserID: string): Messag
   return message.map(m => mapMessage(m, currentUserID))
 }
 
-function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Participant> {
+function mapThreadParticipants(chat: WACompleteChat, meContact: WAContact): Paginated<Participant> {
   let participants: Participant[]
-  if (chat.metadata) {
-    participants = chat.metadata.participants.map(c => (
+  if (chat.participants) {
+    participants = chat.participants.map(c => (
       mapContact(c, meContact.jid === c.jid)
     ))
   } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
@@ -468,11 +468,11 @@ function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Pa
   }
 }
 
-export function mapThreadProps(chat: WAChat): Partial<Thread> {
+export function mapThreadProps(chat: WACompleteChat): Partial<Thread> {
   return {
     id: whatsappID(chat.jid),
     title: chat.name,
-    description: chat.metadata?.desc,
+    description: chat.description,
     imgURL: isGroupID(chat.jid) ? chat.imgUrl : undefined,
     isUnread: !!chat.count,
     isArchived: chat.archive === 'true',
@@ -480,7 +480,7 @@ export function mapThreadProps(chat: WAChat): Partial<Thread> {
   }
 }
 
-export function mapThread(chat: WAChat, meContact: WAContact): Thread {
+export function mapThread(chat: WACompleteChat, meContact: WAContact): Thread {
   return {
     _original: safeJSONStringify(chat),
     messages: {
@@ -490,12 +490,12 @@ export function mapThread(chat: WAChat, meContact: WAContact): Thread {
     participants: mapThreadParticipants(chat, meContact),
     timestamp: new Date(+chat.t * 1000),
     type: threadType(chat.jid),
-    createdAt: chat.metadata?.creation ? new Date(chat.metadata?.creation * 1000) : undefined,
+    createdAt: chat.creationEpoch ? new Date(chat.creationEpoch * 1000) : undefined,
     ...mapThreadProps(chat) as Thread,
   }
 }
 
-export function mapThreads(threads: WAChat[], meContact: WAContact): Thread[] {
+export function mapThreads(threads: WACompleteChat[], meContact: WAContact): Thread[] {
   return threads.map(t => mapThread(t, meContact))
 }
 

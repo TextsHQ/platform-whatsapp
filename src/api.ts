@@ -1,35 +1,19 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto, WAMessageStatusUpdate } from 'baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User } from '@textshq/platform-sdk'
+import { WAContact, WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID } from 'baileys'
+import { texts, Paginated, Thread, PlatformAPI, OnServerEventCallback, MessageSendOptions, ActivityType, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, User, LoginCreds } from '@textshq/platform-sdk'
 
-import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageUpdateProps } from './mappers'
+import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
-import type { WACompleteMessage } from './types'
+import type { WACompleteMessage, WACompleteChat } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
-const THREAD_PAGE_SIZE = 15
+const THREAD_PAGE_SIZE = 20
 
-const CONNECT_TIMEOUT_MS = 45_000
+const CONNECT_TIMEOUT_MS = 90_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
-
-function updateReadReceipts(chat: WAChat, update: WAMessageStatusUpdate) {
-  chat.messages.all().forEach(msg => {
-    if (!update.ids.includes(msg.key.id)) return
-    const status = update.type
-    const waMsg = msg as WACompleteMessage
-
-    if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
-
-    const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
-    if (status >= WA_MESSAGE_STATUS_TYPE.READ) waMsg.info.reads.push(person)
-    else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) waMsg.info.deliveries.push(person)
-
-    waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
-  })
-}
 
 export default class WhatsAppAPI implements PlatformAPI {
   private accountID: string
@@ -44,17 +28,19 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus = null
 
-  constructor() {
+  private meContact: WAContact
+
+  init = async (session: any, { accountID }: AccountInfo) => {
+    this.accountID = accountID
+
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
-    this.client.connectOptions.phoneResponseTime = CONNECT_TIMEOUT_MS
+    this.client.connectOptions.maxRetries = 5
+    this.client.shouldLogMessages = texts.IS_DEV
     this.client.loadProfilePicturesForChatsAutomatically = false
-    this.client.connectOptions.maxRetries = 1
-    this.client.shouldLogMessages = false // texts.IS_DEV
     this.client.chatOrderingKey = textsWAKey
-    this.client.maxCachedMessages = 300
 
     // prevent logging of phone numbers
     // @ts-expect-error
@@ -63,16 +49,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (!chat) throw new Error('chat not found')
       return chat
     }
-  }
-
-  init = async (session: any, { accountID }: AccountInfo) => {
-    this.accountID = accountID
 
     this.registerCallbacks()
 
     if (!session) return
 
     this.client.loadAuthInfo(session)
+
     await this.connect()
   }
 
@@ -90,7 +73,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     ) ? 0 : DELAY_CONN_STATUS_CHANGE
     this.connStatusTimeout = setTimeout(() => {
       this.lastConnStatus = state.status
-      this.connCallback({ ...state, canRetry: state.status === ConnectionStatus.DISCONNECTED })
+      this.connCallback(state)
     }, delay)
   }
 
@@ -116,24 +99,37 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       if (error instanceof BaileysError) {
-        console.error(error.message)
         if (UNAUTHORIZED_CODES.includes(error.status)) throw new ReAuthError(error.message)
         else if (error.message === 'timed out') throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       }
       throw error
     }
+    this.client.connectOptions.maxRetries = Infinity
     this.client.contacts[this.client.user.jid] = this.client.user
     texts.log('connected successfully')
   }
 
-  getCurrentUser = async (): Promise<CurrentUser> => ({
-    id: this.client.user.jid,
-    isSelf: true,
-    fullName: this.client.user.name,
-    displayText: numberFromJid(this.client.user.jid),
-    phoneNumber: numberFromJid(this.client.user.jid),
-    imgURL: `asset://${this.accountID}/profile-picture/${this.client.user.jid}`,
-  })
+  getCurrentUser = async (): Promise<CurrentUser> => {
+    /* let { meContact } = this
+    if (!meContact) texts.log(`unexpectedly called when state is ${this.client.state}`)
+    let attemptsRemaining = 20
+    while (!meContact?.jid) {
+      await bluebird.delay(50)
+      meContact = this.meContact
+      if (--attemptsRemaining === 0 && !meContact.jid) {
+        throw new Error('unable to get me contact')
+      }
+    } */
+    const { meContact } = this
+    return {
+      id: meContact.jid,
+      isSelf: true,
+      fullName: meContact.name,
+      displayText: numberFromJid(meContact.jid),
+      phoneNumber: numberFromJid(meContact.jid),
+      imgURL: `asset://${this.accountID}/profile-picture/${meContact.jid}`,
+    }
+  }
 
   serializeSession = () => this.client.base64EncodedAuthInfo()
 
@@ -168,7 +164,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               {
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
-                objectIDs: { threadID: chat.jid },
+                objectIDs: {},
                 mutationType: 'update',
                 entries: [mapThreadProps(chat)],
               },
@@ -200,6 +196,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client
+      .on('connection-validated', user => this.meContact = user)
       .on('ws-close', async () => {
         texts.log('ws-close')
         // if (texts.IS_DEV) saveLog()
@@ -224,11 +221,24 @@ export default class WhatsAppAPI implements PlatformAPI {
         const chat = this.getChat(whatsappID(update.to))
         if (!chat) return
 
-        if (isGroupID(chat.jid)) updateReadReceipts(chat, update)
+        if (isGroupID(chat.jid)) {
+          chat.messages?.all().forEach(msg => {
+            if (!update.ids.includes(msg.key.id)) return
+            const status = update.type
+            const waMsg = msg as WACompleteMessage
 
-        const mapped = chat.messages.all()
-          .filter(msg => update.ids.includes(msg.key.id))
-          .map(msg => mapMessage(msg, this.client.user.jid))
+            if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
+
+            const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
+            if (status >= WA_MESSAGE_STATUS_TYPE.READ) waMsg.info.reads.push(person)
+            else if (status >= WA_MESSAGE_STATUS_TYPE.DELIVERY_ACK) waMsg.info.deliveries.push(person)
+
+            waMsg.status = WA_MESSAGE_STATUS_TYPE.SERVER_ACK
+          })
+        }
+        // const mapped = chat.messages.all()
+        //   .filter(msg => update.ids.includes(msg.key.id))
+        //   .map(msg => mapMessage(msg, this.client.user.jid))
         // this.evCallback([{
         //   type: ServerEventType.STATE_SYNC,
         //   mutationType: 'upsert',
@@ -246,39 +256,55 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   searchUsers = (typed: string) => {
     const contacts = Object.values(this.client.contacts)
-      .filter(c => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
+      .filter((c: WAContact) => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
     return matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] })
       .map(c => mapContact(c, c.jid === this.client.user.jid))
   }
 
-  private loadThread = async (jid: string) => {
-    const chat = this.getChat(jid)
-    if (isGroupID(jid) || isBroadcastID(jid)) {
-      await this.extendGroupChat(chat)
+  loadThread = async (jid: string) => {
+    const chat = this.getChat(jid) as WACompleteChat
+    if (isGroupID(jid)) {
       if (!chat.imgUrl) chat.imgUrl = await this.client.getProfilePicture(jid).catch(() => null)
       // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
-    } else if (!chat.imgUrl) {
-      chat.imgUrl = this.ppUrl(jid)
-    }
+      // chat.imgUrl = this.ppUrl(jid)
+      await this.setGroupChatProperties(chat)
+    } else if (isBroadcastID(jid)) {
+      try {
+        const meta = await this.client.getBroadcastListInfo(jid)
+        chat.participants = meta.recipients.map(p => this.contactForJid(p.id))
+      } catch (error) {
+        texts.log(`failed to get broadcast info for ${jid}: ${error}`)
+      }
+    } else chat.participants = [this.contactForJid(jid), this.meContact]
+
     return chat
   }
 
   createThread = async (userIDs: string[], name: string) => {
-    let chat: WAChat
+    let chat: WACompleteChat = {
+      jid: '',
+      count: 0,
+      participants: [],
+      imgUrl: '',
+      t: unixTimestampSeconds(),
+      spam: 'false',
+      modify_tag: '',
+      messages: undefined,
+      name,
+    }
+
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(name, userIDs)
-      chat = this.getChat(meta.gid)
+      chat.jid = meta.gid
+      await this.setGroupChatProperties(chat)
     } else if (userIDs.length === 1) {
-      chat = this.getChat(whatsappID(userIDs[0]))
-      if (!chat) {
-        // @ts-expect-error
-        chat = await this.client.chatAdd(userIDs[0], name)
-        this.client.chats.delete(chat)
-      }
-      chat.imgUrl = this.ppUrl(chat.jid)
+      chat = this.getChat(whatsappID(userIDs[0])) || chat
+      chat.jid = whatsappID(userIDs[0])
+      chat.participants = [this.contactForJid(userIDs[0]), this.meContact]
+      chat.imgUrl = chat.participants[0].imgUrl
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.client.user)
+    return mapThread(chat, this.meContact)
   }
 
   deleteThread = async (threadID: string) => {
@@ -303,7 +329,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats, this.client.user)
+    const items = mapThreads(chats as WACompleteChat[], this.meContact)
 
     return {
       items,
@@ -316,35 +342,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   //   if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
   //   const page = cursor ? (+cursor || 1) : 1
   //   const nextPage = (page + 1).toString()
-  //   texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
   //   const response = await this.client.searchMessages(typed, threadID || null, 10, page)
   //   return {
-  //     items: mapMessages(response.messages, this.client.user.jid),
+  //     items: mapMessages(response.messages, this.meContact.jid),
   //     hasMore: !response.last,
   //     oldestCursor: nextPage,
   //   }
   // }
-
-  private lazyLoadReadReceipts = async (messages: WAMessageProto.WebMessageInfo[], threadID: string) => {
-    const updatedMessages = await bluebird.map(messages, async (m: WACompleteMessage) => {
-      if (m.key.fromMe && !m.info) {
-        m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
-          .catch(() => ({ reads: [], deliveries: [] }))
-        return m
-      }
-    })
-    const entries = updatedMessages.filter(Boolean).map(mapMessageUpdateProps)
-    if (entries.length < 1) return
-    this.evCallback([{
-      type: ServerEventType.STATE_SYNC,
-      mutationType: 'update',
-      objectIDs: {
-        threadID,
-      },
-      objectName: 'message',
-      entries,
-    }])
-  }
 
   getMessages = async (threadID: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
     const getCursor = () => {
@@ -354,21 +358,22 @@ export default class WhatsAppAPI implements PlatformAPI {
         fromMe: !!+fromMe,
       }
     }
-    const chat = this.getChat(threadID)
-    const messageLen = Math.max(
-      !!cursor || !chat ? MESSAGE_PAGE_SIZE : chat?.messages.length,
-      1,
-    )
-    const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
-    const items = mapMessages(messages, this.client.user.jid)
+
+    const loadMessagesResult = await this.client.loadMessages(threadID, MESSAGE_PAGE_SIZE, cursor && getCursor())
 
     if (isGroupID(threadID)) {
-      this.lazyLoadReadReceipts(messages, threadID)
+      await bluebird.map(loadMessagesResult.messages, async (m: WACompleteMessage) => {
+        if (m.key.fromMe && !m.info) {
+          m.info = await this.client.messageInfo(m.key.remoteJid, m.key.id)
+            .catch(() => ({ reads: [], deliveries: [] }))
+        }
+      })
     }
 
+    const items = mapMessages(loadMessagesResult.messages, this.meContact.jid)
     return {
       items,
-      hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,
+      hasMore: loadMessagesResult.messages.length >= MESSAGE_PAGE_SIZE || !cursor,
     }
   }
 
@@ -386,7 +391,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
 
     const chat = this.getChat(threadID)
-    const expiration = chat?.metadata?.ephemeralDuration || +chat?.ephemeral
+    const expiration = +chat?.ephemeral
     const ops: MessageOptions = {
       filename: msgContent.fileName,
       caption: msgContent.text,
@@ -420,11 +425,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (mimeType === 'audio/ogg') ops.ptt = true
 
     const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
-    if (threadID === whatsappID(this.client.user.jid)) {
+    if (threadID === whatsappID(this.meContact.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
-      mapMessage(sentMessage, this.client.user.jid),
+      mapMessage(sentMessage, this.meContact.jid),
     ]
   }
 
@@ -466,7 +471,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.client.groupUpdateSubject(threadID, updates.title)
     }
     if ('messageExpirySeconds' in updates) {
-      await this.client.toggleDisappearingMessages(threadID, updates.messageExpirySeconds)
+      // await this.client.toggleDisappearingMessages(threadID, updates.messageExpirySeconds)
     }
     return true
   }
@@ -534,8 +539,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.client.on('chat-update', update)
         })
       }
-      const stream = await this.client.downloadMediaMessage(m, 'stream')
-      return stream
+      const buffer = await this.client.downloadMediaMessage(m)
+      return buffer
     }
   }
 
@@ -564,45 +569,45 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if ((key in chat) === value) return // already done, nothing to do
     const mod = (value ? key : ('un' + key)) as ChatModification
-    // @ts-expect-error
     await this.client.modifyChat(threadID, mod, 8 * 60 * 60 * 1000)
   }
 
   private contactForJid = (_jid: string) => {
     const jid = whatsappID(_jid)
-    const contact = (this.client.contacts[jid] || { jid })
+    const contact = (this.client.contacts[jid] || { jid }) as WAContact
     if (!contact.imgUrl) contact.imgUrl = this.ppUrl(jid)
     return contact
   }
 
   private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`
 
-  private getChat = (jid: string) => this.client.chats.get(jid)
+  private getChat = (jid: string) => this.client.chats.get(jid) as WACompleteChat
 
-  private extendGroupChat = async (chat: WAChat) => {
-    if (chat.metadata) return
+  private setGroupChatProperties = async (chat: WACompleteChat) => {
+    const { jid } = chat
+    try {
+      const getGroupData = () => (chat.read_only === 'true' ? this.client.groupMetadataMinimal(jid) : this.client.groupMetadata(jid))
+      const meta = await getGroupData()
+        .catch(async err => {
+          if (!chat.read_only) {
+            texts.log('unexpectedly couldn\'t load group, retrying...')
+            await bluebird.delay(2500)
+            return getGroupData()
+          }
+          throw err
+        })
 
-    let meta: WAGroupMetadata
+      chat.ephemeral = (meta as any).ephemeralDuration
+      chat.participants = meta.participants.map(p => this.contactForJid(p.id))
+      chat.admins = new Set(meta.participants.filter(p => p.isAdmin || p.isSuperAdmin).map(p => whatsappID(p.id)))
+      chat.creationEpoch = +meta.creation * 1000
+      chat.name = meta.subject || chat.name
 
-    if (isGroupID(chat.jid)) {
-      meta = await this.client.groupMetadata(chat.jid) // .catch(() => { }) || { participants: [] } as WAGroupMetadata // swallow error
-    } else if (isBroadcastID(chat.jid)) {
-      const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid).catch(() => { })
-      if (broadcastMeta) {
-        meta = { participants: broadcastMeta.recipients.map(({ id }) => ({ jid: id })) } as WAGroupMetadata
-        chat.metadata = meta
+      if (!chat.read_only) {
+        chat.read_only = (!(meta as any).announce || chat.admins.has(this.meContact.jid)) ? 'false' : 'true'
       }
-    }
-    if (!meta) return
-
-    meta.participants.forEach(p => {
-      const contact = this.contactForJid(p.jid)
-      if (contact) p.imgUrl = contact.imgUrl
-    })
-
-    if (!chat.read_only) {
-      const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.client.user.jid)?.isAdmin
-      chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
+    } catch (error) {
+      texts.log(`failed to get group info for ${jid}: ${error}`)
     }
   }
 }
