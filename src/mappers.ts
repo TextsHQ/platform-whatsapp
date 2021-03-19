@@ -484,7 +484,7 @@ export function mapThread(chat: WACompleteChat, meContact: WAContact): Thread {
   return {
     _original: safeJSONStringify(chat),
     messages: {
-      items: mapMessages(chat.messages.all(), meContact.jid),
+      items: mapMessages(chat.messages?.all() || [], meContact.jid),
       hasMore: true,
     },
     participants: mapThreadParticipants(chat, meContact),
