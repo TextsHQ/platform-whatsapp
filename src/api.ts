@@ -50,7 +50,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.autoReconnect = ReconnectMode.onConnectionLost
     this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
     this.client.connectOptions.phoneResponseTime = CONNECT_TIMEOUT_MS
-    this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.connectOptions.maxRetries = 1
     this.client.shouldLogMessages = false // texts.IS_DEV
     this.client.chatOrderingKey = textsWAKey
@@ -298,7 +297,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
     }
 
-    const loadChatsResult = await this.client.loadChats(THREAD_PAGE_SIZE, cursor, { loadProfilePicture: false })
+    const loadChatsResult = await this.client.loadChats(THREAD_PAGE_SIZE, cursor)
 
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
