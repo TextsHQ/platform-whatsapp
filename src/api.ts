@@ -11,7 +11,7 @@ import type { WACompleteMessage } from './types'
 const MESSAGE_PAGE_SIZE = 20
 const THREAD_PAGE_SIZE = 15
 
-const CONNECT_TIMEOUT_MS = 45_000
+const CONNECT_TIMEOUT_MS = 60_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
