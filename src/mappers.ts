@@ -427,7 +427,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     action,
     // todo: review logic, this is incorrect:
     // isErrored: !isAction && message.key.fromMe && message.status === 0,
-    silent: !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
+    silent: message.broadcast || !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
     expiresInSeconds: messageInner?.contextInfo?.expiration,
     sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
   }
