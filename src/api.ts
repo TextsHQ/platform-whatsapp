@@ -73,7 +73,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     ) ? 0 : DELAY_CONN_STATUS_CHANGE
     this.connStatusTimeout = setTimeout(() => {
       this.lastConnStatus = state.status
-      this.connCallback(state)
+      this.connCallback({ ...state, canRetry: state.status === ConnectionStatus.DISCONNECTED })
     }, delay)
   }
 
