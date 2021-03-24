@@ -2,7 +2,7 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
 import { WAContact, WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, unixTimestampSeconds, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID } from 'baileys'
-import { texts, Paginated, Thread, PlatformAPI, OnServerEventCallback, MessageSendOptions, ActivityType, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, User, LoginCreds } from '@textshq/platform-sdk'
+import { texts, Paginated, Thread, PlatformAPI, OnServerEventCallback, MessageSendOptions, ActivityType, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, User, LoginCreds, PhoneNumber } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
@@ -377,7 +377,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getUser = async ({ phoneNumber }: { phoneNumber: string }): Promise<User> => {
+  getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User> => {
     if (!phoneNumber) return
     const jid = phoneNumber + '@c.us'
     const exists = await this.client.isOnWhatsApp(jid)
