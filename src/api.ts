@@ -1,8 +1,8 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
-import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAContact, WAMessageProto, WAMessageStatusUpdate } from 'baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User } from '@textshq/platform-sdk'
+import { WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageType, MessageOptions, Mimetype, Presence, Browsers, ChatModification, WATextMessage, BaileysError, isGroupID, whatsappID, ReconnectMode, UNAUTHORIZED_CODES, promiseTimeout, WAChat, WAChatUpdate, WA_MESSAGE_ID, WAGroupMetadata, WAMessageProto, WAMessageStatusUpdate } from 'baileys'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate, mapMessageUpdateProps } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
@@ -371,7 +371,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getUser = async ({ phoneNumber }: { phoneNumber: string }): Promise<User> => {
+  getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User> => {
     if (!phoneNumber) return
     const jid = phoneNumber + '@c.us'
     const exists = await this.client.isOnWhatsApp(jid)
