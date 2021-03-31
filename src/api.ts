@@ -8,10 +8,11 @@ import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadPr
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
 import type { WACompleteMessage } from './types'
 
-const MESSAGE_PAGE_SIZE = 20
+const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 
-const CONNECT_TIMEOUT_MS = 60_000
+const MAX_IDLE_TIME_MS = 90_000
+const PHONE_RESPONSE_TIME = 90_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
@@ -48,8 +49,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
-    this.client.connectOptions.maxIdleTimeMs = CONNECT_TIMEOUT_MS
-    this.client.connectOptions.phoneResponseTime = CONNECT_TIMEOUT_MS
+    this.client.connectOptions.maxIdleTimeMs = MAX_IDLE_TIME_MS
+    this.client.connectOptions.phoneResponseTime = PHONE_RESPONSE_TIME
     this.client.connectOptions.maxRetries = 1
     this.client.shouldLogMessages = false // texts.IS_DEV
     this.client.chatOrderingKey = textsWAKey
