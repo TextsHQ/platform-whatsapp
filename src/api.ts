@@ -285,8 +285,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.modifyChat(threadID, 'delete')
   }
 
-  getThreads = async (inboxName: InboxName, { cursor, direction }: PaginationArg = { cursor: null, direction: null }): Promise<Paginated<Thread>> => {
+  getThreads = async (inboxName: InboxName, pagination: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
+    const { cursor } = pagination || { cursor: null, direction: null }
 
     if (!this.client.lastChatsReceived) {
       await new Promise(resolve => {
@@ -312,7 +313,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  // searchMessages = async (typed: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }, threadID?: string) => {
+  // searchMessages = async (typed: string, pagination: PaginationArg, threadID?: string) => {
   //   if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
   //   const page = cursor ? (+cursor || 1) : 1
   //   const nextPage = (page + 1).toString()
@@ -346,7 +347,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }])
   }
 
-  getMessages = async (threadID: string, { cursor, direction }: PaginationArg = { cursor: null, direction: null }) => {
+  getMessages = async (threadID: string, pagination: PaginationArg) => {
+    const { cursor } = pagination || { cursor: null, direction: null }
     const getCursor = () => {
       const [id, fromMe] = cursor.split('_')
       return {
