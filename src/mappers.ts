@@ -202,7 +202,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
         isGif: message.videoMessage?.gifPlayback,
         isSticker: message.stickerMessage ? true : undefined,
         mimeType: messageInner.mimetype,
-        posterImg: jpegThumbnail ? `data;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
+        posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
         srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
         fileName,
       },
