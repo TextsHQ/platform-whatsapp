@@ -234,7 +234,6 @@ function messageQuoted(messageInner: any): MessagePreview {
     threadID: whatsappID(contextInfo.remoteJid),
     senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
     text: messageText(contextInfo.quotedMessage, Object.values(contextInfo.quotedMessage)[0]),
-    attachments: [],
   }
 }
 function* messageHeading(message: WAMessage, messageInner: any) {
@@ -416,7 +415,6 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     isSender: message.key.fromMe,
     isDeleted,
     attachments,
-    reactions: [],
     buttons: messageButtons(messageContent),
     isDelivered: message.key.fromMe ? messageStatus(message.status) >= WA_MESSAGE_STATUS_TYPE.SERVER_ACK : true,
     seen: messageSeen(message),
