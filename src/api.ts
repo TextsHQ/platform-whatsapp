@@ -152,16 +152,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     //   texts.log(`saved Baileys log to ${logPath}`)
     // }
 
-    const logInfo = (type: string, data: string) => {
+    const logInfo = (type: string, data) => {
+      // ignore binary messages
+      if (typeof data !== 'string') return;
+
       // strip sensitive info
       // 1. Case: takeover request, strip after "login",
-      if (data.includes('["admin", "login",')) {
-        data = data.split('login')[0] + '<private info truncated>'
+      if (data.includes('"admin","login"')) {
+        data = data.split('login')[0] + ' takeover_request <private info truncated>'
       }
 
       // 2. login or takeover response
       if (data.includes('["Conn",')) {
-        data = data.split('serverToken')[0] + '<private info truncated>'
+        data = data.split('serverToken')[0] + ' connection_request <private info truncated>'
       }
       const timestamp = +new Date()
       // Log this
@@ -169,7 +172,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     this.client.on('ws-request', (data) => logInfo('↑ request', data))
-    this.client.on('ws-request', (data) => logInfo('↓ response', data))
+    this.client.on('ws-response', (data) => logInfo('↓ response', data))
 
     const onChatsUpdate = async (updates: Partial<WAChatUpdate>[]) => {
       // texts.log('received chat update:', updates)
