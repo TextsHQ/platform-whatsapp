@@ -156,20 +156,20 @@ export default class WhatsAppAPI implements PlatformAPI {
       // strip sensitive info
       // 1. Case: takeover request, strip after "login",
       if (data.includes('["admin", "login",')) {
-        data = data.split('login')[0] + '<private info truncated>';
+        data = data.split('login')[0] + '<private info truncated>'
       }
 
       // 2. login or takeover response
       if (data.includes('["Conn",')) {
-        data = data.split('serverToken')[0] + '<private info truncated>';
+        data = data.split('serverToken')[0] + '<private info truncated>'
       }
-      const timestamp = +new Date();
+      const timestamp = +new Date()
       // Log this
-      texts.log(`${timestamp}: ${type} ${data}`);
-    };
+      texts.log(`${timestamp}: ${type} ${data}`)
+    }
 
-    this.client.on('ws-request', (data) => logInfo('↑ request', data));
-    this.client.on('ws-request', (data) => logInfo('↓ response', data));
+    this.client.on('ws-request', (data) => logInfo('↑ request', data))
+    this.client.on('ws-request', (data) => logInfo('↓ response', data))
 
     const onChatsUpdate = async (updates: Partial<WAChatUpdate>[]) => {
       // texts.log('received chat update:', updates)
