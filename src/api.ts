@@ -151,6 +151,26 @@ export default class WhatsAppAPI implements PlatformAPI {
     //   await fs.writeFile(logPath, JSON.stringify(this.client.messageLog, null, '\t'))
     //   texts.log(`saved Baileys log to ${logPath}`)
     // }
+
+    const logInfo = (type: string, data: string) => {
+      // strip sensitive info
+      // 1. Case: takeover request, strip after "login",
+      if (data.includes('["admin", "login",')) {
+        data = data.split('login')[0] + '<private info truncated>';
+      }
+
+      // 2. login or takeover response
+      if (data.includes('["Conn",')) {
+        data = data.split('serverToken')[0] + '<private info truncated>';
+      }
+      const timestamp = +new Date();
+      // Log this
+      texts.log(`${timestamp}: ${type} ${data}`);
+    };
+
+    this.client.on('ws-request', (data) => logInfo('↑ request', data));
+    this.client.on('ws-request', (data) => logInfo('↓ response', data));
+
     const onChatsUpdate = async (updates: Partial<WAChatUpdate>[]) => {
       // texts.log('received chat update:', updates)
       const callbacks = await Promise.all(
