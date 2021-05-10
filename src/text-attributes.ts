@@ -74,6 +74,8 @@ export function mapTextAttributes(src: string) {
   let curToken: string = null
   let input = Array.from(src)
 
+  const mentionRx = /@(.*)\|(.*\.net)/gm
+
   // Parse the input sequentially.
   while (input.length) {
     // Always start from the first char.
@@ -164,6 +166,22 @@ export function mapTextAttributes(src: string) {
       input = input.slice(1)
     }
   }
+
+  const matches = src.match(mentionRx) || []
+
+  for (const match of matches) {
+    const [, username, id] = mentionRx.exec(match)
+
+    entities.push({
+      from: src.indexOf(match),
+      to: src.lastIndexOf(match),
+      mentionedUser: {
+        username, // This isn't getting inserted here but is inserted in the text body
+        id,
+      },
+    })
+  }
+
   return {
     text: output,
     textAttributes: entities.length ? { entities } : undefined,

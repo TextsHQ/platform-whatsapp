@@ -265,7 +265,7 @@ function* messageHeading(message: WAMessage, messageInner: any) {
 
 const replaceJids = (jids: string[], text: string) => {
   if (!jids) return text
-  return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}`), text)
+  return jids.reduce((txt, jid) => txt.replace(`@${removeServer(jid)}`, `@{{${whatsappID(jid)}}}|${jid}`), text)
 }
 
 function messageButtons(message: WAMessageContent) {
