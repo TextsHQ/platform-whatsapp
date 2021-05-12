@@ -176,6 +176,24 @@ const flatCases = [
       },
     },
   },
+  {
+    text: '@{{1234@s.whatsapp.net}} hi',
+    result: {
+      text: '@1234 hi',
+      textAttributes: {
+        entities: [
+          {
+            from: 0,
+            to: 5,
+            mentionedUser: {
+              id: '1234@s.whatsapp.net',
+              username: '1234@s.whatsapp.net',
+            },
+          },
+        ],
+      },
+    },
+  },
 ]
 
 const nestedCases = [

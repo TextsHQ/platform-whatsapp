@@ -20,6 +20,8 @@ const isStartSep = (c: string) => RE_SEP.test(c)
 
 const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
 
+const getClosingToken = (token: string): string => (token === '@{{' ? '}}' : token)
+
 /**
  * Try to find the closing index for curToken.
  *
@@ -30,21 +32,22 @@ const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
  * 3. Otherwise, find the next * after index 10, and repeat 1-3.
  */
 const findClosingIndex = (input: string[], curToken: string) => {
-  const tokenLen = curToken.length
-  let closingIndex = input.indexOf(curToken[0])
+  const closingToken = getClosingToken(curToken)
+  const tokenLen = closingToken.length
+  let closingIndex = input.indexOf(closingToken[0])
   while (closingIndex > -1) {
     let tokenMatched = true
     for (let i = 1; i < tokenLen; i++) {
       // When token has more than one char, make sure the chars after the
       // closingIndex fully match token.
-      if (input[closingIndex + i] !== curToken[i]) {
+      if (input[closingIndex + i] !== closingToken[i]) {
         tokenMatched = false
         break
       }
     }
     if (!tokenMatched) {
       // If not fully matched, find the next closingIndex
-      closingIndex = input.indexOf(curToken, closingIndex + 1)
+      closingIndex = input.indexOf(closingToken, closingIndex + 1)
       continue
     } else if (tokenLen > 1) {
       // For code block, the prev and next char doesn't matter.
@@ -60,7 +63,7 @@ const findClosingIndex = (input: string[], curToken: string) => {
       break
     }
     // If prevChar or nextChar is invalid, find the next closingIndex.
-    closingIndex = input.indexOf(curToken, closingIndex + 1)
+    closingIndex = input.indexOf(closingToken, closingIndex + 1)
   }
   return closingIndex
 }
@@ -90,13 +93,15 @@ export function mapTextAttributes(src: string) {
 
     // c1 is a token if lastChar is a separator and current char is one of *_~`.
     const lastChar = output.slice(-1)
-    if ((lastChar === '' || isStartSep(lastChar)) && '*_~`'.includes(c1)) {
+    if ((lastChar === '' || isStartSep(lastChar)) && '*_~`@'.includes(c1)) {
       if (c1 === '`') {
         if (input[1] === '`' && input[2] === '`') {
           curToken = '```'
         } else {
           curToken = null
         }
+      } else if (c1 === '@' && input[1] === '{' && input[2] === '{') {
+        curToken = '@{{'
       } else {
         curToken = c1
       }
@@ -129,7 +134,7 @@ export function mapTextAttributes(src: string) {
           }))
           entities.push(...childEntities)
           output += nestedAttributes.text
-        } else {
+        } else if (curToken !== '@{{'){
           output += content
         }
         // Construct the entity of the current token.
@@ -150,10 +155,21 @@ export function mapTextAttributes(src: string) {
           case '```':
             entity.code = true
             break
+          case '@{{':
+            const id = content.split('@')[0]
+            // FIXME get display name from id
+            const username = id
+            output += `@${username}`
+            entity.to = from + username.length + 1
+            entity.mentionedUser = {
+              id: content,
+              username: content
+            }
+            break
         }
         entities.push(entity)
         // Set input to start from the char after the closing token.
-        input = input.slice(closingIndex + curToken.length)
+        input = input.slice(closingIndex + getClosingToken(curToken).length)
       } else {
         // Unable to find a valid closingIndex, curToken is plain text!
         output += curToken
