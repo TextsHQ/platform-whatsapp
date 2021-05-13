@@ -179,15 +179,15 @@ const flatCases = [
   {
     text: '@{{1234@s.whatsapp.net}} hi',
     result: {
-      text: '@1234 hi',
+      text: '@Texts User hi',
       textAttributes: {
         entities: [
           {
             from: 0,
-            to: 5,
+            to: 11,
             mentionedUser: {
               id: '1234@s.whatsapp.net',
-              username: '1234@s.whatsapp.net',
+              username: 'Texts User',
             },
           },
         ],
@@ -226,8 +226,11 @@ const nestedCases = [
 
 const cases = [flatCases, nestedCases].flat()
 
+const userIdNameMap = new Map()
+userIdNameMap.set('1234@s.whatsapp.net', 'Texts User')
+
 test('text attributes', () => {
   for (const c of cases) {
-    expect(mapTextAttributes(c.text)).toEqual(c.result)
+    expect(mapTextAttributes(c.text, userIdNameMap)).toEqual(c.result)
   }
 })

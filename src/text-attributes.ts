@@ -68,7 +68,7 @@ const findClosingIndex = (input: string[], curToken: string) => {
   return closingIndex
 }
 
-export function mapTextAttributes(src: string) {
+export function mapTextAttributes(src: string, userIdNameMap: Map<string, string>) {
   if (!src) return
 
   const entities: TextEntity[] = []
@@ -119,7 +119,7 @@ export function mapTextAttributes(src: string) {
         // See if we can find nested entities.
         let nestedAttributes = { text: '', textAttributes: undefined }
         if (curToken !== '```') {
-          nestedAttributes = mapTextAttributes(content)
+          nestedAttributes = mapTextAttributes(content, userIdNameMap)
         }
         const from = Array.from(output).length
         let to = from + closingIndex
@@ -156,14 +156,12 @@ export function mapTextAttributes(src: string) {
             entity.code = true
             break
           case '@{{':
-            const id = content.split('@')[0]
-            // FIXME get display name from id
-            const username = id
+            const username = userIdNameMap.get(content) || content.split('@')[0]
             output += `@${username}`
             entity.to = from + username.length + 1
             entity.mentionedUser = {
               id: content,
-              username: content
+              username
             }
             break
         }

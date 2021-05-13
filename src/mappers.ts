@@ -138,6 +138,8 @@ function threadType(jid: string): ThreadType {
   return 'single'
 }
 
+const contactIdNameMap = new Map<string, string>()
+
 export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: boolean = false): Participant {
   if (isGroupID(contact.jid)) {
     throw new Error('mapContact: cannot map a group')
@@ -145,10 +147,13 @@ export function mapContact(contact: WAContact | WAGroupParticipant, isSelf: bool
   if (isBroadcastID(contact.jid)) {
     throw new Error('mapContact: cannot map a broadcast list')
   }
+  const id= whatsappID(contact.jid)
+  const fullName = contact.name || contact.notify || contact.vname
+  contactIdNameMap.set(id, fullName)
   return {
-    id: whatsappID(contact.jid),
+    id,
     isSelf,
-    fullName: contact.name || contact.notify || contact.vname,
+    fullName,
     phoneNumber: numberFromJid(contact.jid),
     isVerified: contact.verify === '2',
     imgURL: contact.imgUrl,
@@ -430,7 +435,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
   }
   if (mapped.text) {
-    const { text, textAttributes } = mapTextAttributes(mapped.text)
+    const { text, textAttributes } = mapTextAttributes(mapped.text, contactIdNameMap)
     if (textAttributes) {
       mapped.text = text
       mapped.textAttributes = textAttributes
