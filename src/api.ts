@@ -228,7 +228,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         const mapped = chat.messages.all()
           .filter(msg => update.ids.includes(msg.key.id))
-          .map(msg => mapMessage(msg, this.client.user.jid))
+          .map(msg => mapMessage(msg, this.client.user.jid, this.client.contacts))
         // this.evCallback([{
         //   type: ServerEventType.STATE_SYNC,
         //   mutationType: 'upsert',
@@ -278,7 +278,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgUrl = this.ppUrl(chat.jid)
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.client.user)
+    return mapThread(chat, this.client.user, this.client.contacts)
   }
 
   deleteThread = async (threadID: string) => {
@@ -304,7 +304,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats, this.client.user)
+    const items = mapThreads(chats, this.client.user, this.client.contacts)
 
     return {
       items,
@@ -362,7 +362,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       1,
     )
     const { messages } = await this.client.loadMessages(threadID, messageLen, cursor && getCursor())
-    const items = mapMessages(messages, this.client.user.jid)
+    const items = mapMessages(messages, this.client.user.jid, this.client.contacts)
 
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
@@ -426,7 +426,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
-      mapMessage(sentMessage, this.client.user.jid),
+      mapMessage(sentMessage, this.client.user.jid, this.client.contacts),
     ]
   }
 

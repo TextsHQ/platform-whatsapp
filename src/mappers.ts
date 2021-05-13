@@ -384,7 +384,7 @@ function messageStatus(status: number | string) {
 
 const toNumber = (t: Long | number) => (typeof t === 'number' ? t : (t.low || t))
 
-export function mapMessage(message: WACompleteMessage, currentUserID: string): Message {
+export function mapMessage(message: WACompleteMessage, currentUserID: string, contacts: Record<string, WAContact>): Message {
   const isEphemeral = !!message.message?.ephemeralMessage
   const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
   const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
@@ -430,7 +430,7 @@ export function mapMessage(message: WACompleteMessage, currentUserID: string): M
     sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
   }
   if (mapped.text) {
-    const { text, textAttributes } = mapTextAttributes(mapped.text)
+    const { text, textAttributes } = mapTextAttributes(mapped.text, contacts)
     if (textAttributes) {
       mapped.text = text
       mapped.textAttributes = textAttributes
@@ -444,8 +444,8 @@ export function mapMessageUpdateProps(message: Partial<WACompleteMessage> & { ke
     seen: (message.info || message.status) ? messageSeen(message) : undefined,
   }
 }
-export function mapMessages(message: WAMessage[], currentUserID: string): Message[] {
-  return message.map(m => mapMessage(m, currentUserID))
+export function mapMessages(message: WAMessage[], currentUserID: string, contacts: Record<string, WAContact>): Message[] {
+  return message.map(m => mapMessage(m, currentUserID, contacts))
 }
 
 function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Participant> {
@@ -478,11 +478,11 @@ export function mapThreadProps(chat: WAChat): Partial<Thread> {
   }
 }
 
-export function mapThread(chat: WAChat, meContact: WAContact): Thread {
+export function mapThread(chat: WAChat, meContact: WAContact, contacts: Record<string, WAContact>): Thread {
   return {
     _original: safeJSONStringify(chat),
     messages: {
-      items: mapMessages(chat.messages.all(), meContact.jid),
+      items: mapMessages(chat.messages.all(), meContact.jid, contacts),
       hasMore: true,
     },
     participants: mapThreadParticipants(chat, meContact),
@@ -493,8 +493,8 @@ export function mapThread(chat: WAChat, meContact: WAContact): Thread {
   }
 }
 
-export function mapThreads(threads: WAChat[], meContact: WAContact): Thread[] {
-  return threads.map(t => mapThread(t, meContact))
+export function mapThreads(threads: WAChat[], meContact: WAContact, contacts: Record<string, WAContact>): Thread[] {
+  return threads.map(t => mapThread(t, meContact, contacts))
 }
 
 export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: string]: WAPresenceData }): ServerEvent[] {
