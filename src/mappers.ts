@@ -458,7 +458,8 @@ function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Pa
     participants = [
       mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, meContact.jid === chat.jid),
     ]
-    participants?.push(mapContact(meContact, true))
+    // if self thread
+    if (participants[0].id !== chat.jid) participants?.push(mapContact(meContact, true))
   }
   return {
     items: participants || [],
