@@ -94,18 +94,18 @@ export function mapTextAttributes(src: string, contacts: Record<string, WAContac
 
     // c1 is a token if lastChar is a separator and current char is one of *_~`.
     const lastChar = output.slice(-1)
-    if ((lastChar === '' || isStartSep(lastChar)) && '*_~`@'.includes(c1)) {
+    if ((lastChar === '' || isStartSep(lastChar)) && '*_~`'.includes(c1)) {
       if (c1 === '`') {
         if (input[1] === '`' && input[2] === '`') {
           curToken = '```'
         } else {
           curToken = null
         }
-      } else if (c1 === '@' && input[1] === '{' && input[2] === '{') {
-        curToken = '@{{'
       } else {
         curToken = c1
       }
+    } else if (c1 === '@' && input[1] === '{' && input[2] === '{') {
+      curToken = '@{{'
     } else {
       curToken = null
     }

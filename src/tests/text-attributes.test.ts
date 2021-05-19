@@ -178,14 +178,14 @@ const flatCases = [
     },
   },
   {
-    text: '@{{1234@s.whatsapp.net}} hi',
+    text: 'x@{{1234@s.whatsapp.net}} hi',
     result: {
-      text: '@Texts User hi',
+      text: 'x@Texts User hi',
       textAttributes: {
         entities: [
           {
-            from: 0,
-            to: 11,
+            from: 1,
+            to: 12,
             mentionedUser: {
               id: '1234@s.whatsapp.net',
               username: 'Texts User',
