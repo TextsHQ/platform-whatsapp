@@ -1,5 +1,5 @@
 import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAGroupParticipant, WAMessageKey, WAContextInfo } from 'baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton } from '@textshq/platform-sdk'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType } from '@textshq/platform-sdk'
 
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
@@ -514,11 +514,21 @@ export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: strin
         },
       },
     )
-  } else if ([Presence.composing, Presence.recording].includes(presence.lastKnownPresence)) {
+  } else if (presence.lastKnownPresence === Presence.composing) {
     events.push(
       {
-        type: ServerEventType.PARTICIPANT_TYPING,
-        typing: true,
+        type: ServerEventType.USER_ACTIVITY,
+        activityType: ActivityType.TYPING,
+        threadID,
+        participantID,
+        durationMs: 120_000,
+      },
+    )
+  } else if (presence.lastKnownPresence === Presence.recording) {
+    events.push(
+      {
+        type: ServerEventType.USER_ACTIVITY,
+        activityType: ActivityType.RECORDING_VOICE,
         threadID,
         participantID,
         durationMs: 120_000,
@@ -526,7 +536,7 @@ export function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: strin
     )
   }
   if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence)) {
-    events.push({ type: ServerEventType.PARTICIPANT_TYPING, typing: false, threadID, participantID })
+    events.push({ type: ServerEventType.USER_ACTIVITY, activityType: ActivityType.NONE, threadID, participantID })
   }
   return events
 }
