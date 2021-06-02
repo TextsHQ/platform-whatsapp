@@ -376,7 +376,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User> => {
     if (!phoneNumber) return
-    const jid = phoneNumber + '@c.us'
+    const jid = phoneNumber.slice(1) + '@c.us'
     const exists = await this.client.isOnWhatsApp(jid)
     if (exists) return { id: jid, phoneNumber }
     return null
