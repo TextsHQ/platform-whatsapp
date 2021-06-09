@@ -451,15 +451,11 @@ export function mapMessages(message: WAMessage[], currentUserID: string, contact
 function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Participant> {
   let participants: Participant[]
   if (chat.metadata) {
-    participants = chat.metadata.participants.map(c => (
-      mapContact(c, meContact.jid === c.jid)
-    ))
+    participants = chat.metadata.participants.map(c => mapContact(c, meContact.jid === c.jid))
   } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
     participants = [
       mapContact({ jid: chat.jid, name: chat.name, imgUrl: chat.imgUrl }, meContact.jid === chat.jid),
     ]
-    // if self thread
-    if (participants[0].id !== chat.jid) participants?.push(mapContact(meContact, true))
   }
   return {
     items: participants || [],
