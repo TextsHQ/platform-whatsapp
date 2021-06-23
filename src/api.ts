@@ -46,6 +46,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private lastConnStatus: ConnectionStatus = null
 
   constructor() {
+    this.client.version = [2, 2123, 7]
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
