@@ -30,9 +30,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private meContact: WAContact
 
-  init = async (session: any, { accountID }: AccountInfo) => {
-    this.accountID = accountID
-
+  constructor() {
+    this.client.version = [2, 2123, 7]
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
@@ -41,6 +40,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client.shouldLogMessages = texts.IS_DEV
     this.client.loadProfilePicturesForChatsAutomatically = false
     this.client.chatOrderingKey = textsWAKey
+  }
+
+  init = async (session: any, { accountID }: AccountInfo) => {
+    this.accountID = accountID
 
     // prevent logging of phone numbers
     // @ts-expect-error
