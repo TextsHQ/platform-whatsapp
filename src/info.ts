@@ -4,7 +4,7 @@ import { removeServer } from './util'
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
-  version: '2021.04.12',
+  version: '2021.06.23',
   displayName: 'WhatsApp',
   icon: `
 <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
