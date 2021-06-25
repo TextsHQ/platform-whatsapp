@@ -5,7 +5,7 @@ import { WAContact, WAConnection, WA_MESSAGE_STATUS_TYPE, STORIES_JID, MessageTy
 import { texts, Paginated, Thread, PlatformAPI, OnServerEventCallback, MessageSendOptions, ActivityType, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, ServerEvent, MessageContent, ConnectionError, PaginationArg, AccountInfo, User, LoginCreds, PhoneNumber } from '@textshq/platform-sdk'
 
 import { mapMessage, mapMessages, mapContact, mapThreads, mapThread, mapThreadProps, mapPresenceUpdate } from './mappers'
-import { hasUrl, isBroadcastID, numberFromJid, textsWAKey } from './util'
+import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer } from './util'
 import type { WACompleteMessage, WACompleteChat } from './types'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -307,7 +307,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat.imgUrl = chat.participants[0].imgUrl
     } else throw new Error('no users provided')
 
-    return mapThread(chat, this.meContact)
+    return mapThread(chat, this.meContact, this.client.contacts)
   }
 
   deleteThread = async (threadID: string) => {
@@ -333,7 +333,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const loaded = await bluebird.map(loadChatsResult.chats, chat => this.loadThread(chat.jid))
     const chats = loaded.filter(c => c.jid !== STORIES_JID && !!c)
 
-    const items = mapThreads(chats as WACompleteChat[], this.meContact)
+    const items = mapThreads(chats as WACompleteChat[], this.meContact, this.client.contacts)
 
     return {
       items,
@@ -375,7 +375,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       })
     }
 
-    const items = mapMessages(loadMessagesResult.messages, this.meContact.jid)
+    const items = mapMessages(loadMessagesResult.messages, this.meContact.jid, this.client.contacts)
     return {
       items,
       hasMore: loadMessagesResult.messages.length >= MESSAGE_PAGE_SIZE || !cursor,
@@ -384,7 +384,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User> => {
     if (!phoneNumber) return
-    const jid = phoneNumber + '@c.us'
+    const jid = phoneNumber.slice(1) + '@c.us'
     const exists = await this.client.isOnWhatsApp(jid)
     if (exists) return { id: jid, phoneNumber }
     return null
@@ -392,7 +392,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
     const { mimeType } = msgContent
-    const txt = { text: msgContent.text } as WATextMessage
+    let { text } = msgContent
+    msgContent.mentionedUserIDs?.forEach(userID => {
+      const phoneNumber = removeServer(userID)
+      // @+14151231234 => @14151231234
+      text = text.replace('@+' + phoneNumber, '@' + phoneNumber)
+    })
+    const txt = { text } as WATextMessage
     const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
 
     const chat = this.getChat(threadID)
@@ -404,6 +410,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       duration: msgContent.audioDurationSeconds,
       sendEphemeral: !!expiration,
       expiration,
+      contextInfo: {
+        mentionedJid: msgContent.mentionedUserIDs?.map(u => whatsappID(u)),
+      },
     }
 
     if (options?.quotedMessageID) {
@@ -434,7 +443,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
     }
     return [
-      mapMessage(sentMessage, this.meContact.jid),
+      mapMessage(sentMessage, this.meContact.jid, this.client.contacts),
     ]
   }
 

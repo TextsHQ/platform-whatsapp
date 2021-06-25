@@ -11,6 +11,7 @@
 
 import emojiRegex from 'emoji-regex'
 import type { TextEntity } from '@textshq/platform-sdk'
+import type { WAContact } from 'baileys'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
@@ -19,6 +20,8 @@ const RE_EMOJI = emojiRegex()
 const isStartSep = (c: string) => RE_SEP.test(c)
 
 const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
+
+const getClosingToken = (token: string): string => (token === '@{{' ? '}}' : token)
 
 /**
  * Try to find the closing index for curToken.
@@ -30,21 +33,22 @@ const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
  * 3. Otherwise, find the next * after index 10, and repeat 1-3.
  */
 const findClosingIndex = (input: string[], curToken: string) => {
-  const tokenLen = curToken.length
-  let closingIndex = input.indexOf(curToken[0])
+  const closingToken = getClosingToken(curToken)
+  const tokenLen = closingToken.length
+  let closingIndex = input.indexOf(closingToken[0])
   while (closingIndex > -1) {
     let tokenMatched = true
     for (let i = 1; i < tokenLen; i++) {
       // When token has more than one char, make sure the chars after the
       // closingIndex fully match token.
-      if (input[closingIndex + i] !== curToken[i]) {
+      if (input[closingIndex + i] !== closingToken[i]) {
         tokenMatched = false
         break
       }
     }
     if (!tokenMatched) {
       // If not fully matched, find the next closingIndex
-      closingIndex = input.indexOf(curToken, closingIndex + 1)
+      closingIndex = input.indexOf(closingToken, closingIndex + 1)
       continue
     } else if (tokenLen > 1) {
       // For code block, the prev and next char doesn't matter.
@@ -60,12 +64,12 @@ const findClosingIndex = (input: string[], curToken: string) => {
       break
     }
     // If prevChar or nextChar is invalid, find the next closingIndex.
-    closingIndex = input.indexOf(curToken, closingIndex + 1)
+    closingIndex = input.indexOf(closingToken, closingIndex + 1)
   }
   return closingIndex
 }
 
-export function mapTextAttributes(src: string) {
+export function mapTextAttributes(src: string, contacts: Record<string, WAContact>) {
   if (!src) return
 
   const entities: TextEntity[] = []
@@ -100,6 +104,8 @@ export function mapTextAttributes(src: string) {
       } else {
         curToken = c1
       }
+    } else if (c1 === '@' && input[1] === '{' && input[2] === '{') {
+      curToken = '@{{'
     } else {
       curToken = null
     }
@@ -114,7 +120,7 @@ export function mapTextAttributes(src: string) {
         // See if we can find nested entities.
         let nestedAttributes = { text: '', textAttributes: undefined }
         if (curToken !== '```') {
-          nestedAttributes = mapTextAttributes(content)
+          nestedAttributes = mapTextAttributes(content, contacts)
         }
         const from = Array.from(output).length
         let to = from + closingIndex
@@ -129,7 +135,7 @@ export function mapTextAttributes(src: string) {
           }))
           entities.push(...childEntities)
           output += nestedAttributes.text
-        } else {
+        } else if (curToken !== '@{{') {
           output += content
         }
         // Construct the entity of the current token.
@@ -150,10 +156,21 @@ export function mapTextAttributes(src: string) {
           case '```':
             entity.code = true
             break
+          case '@{{': {
+            const contact = contacts[content]
+            const username = contact?.name || contact?.notify || contact?.vname || content.split('@')[0]
+            output += `@${username}`
+            entity.to = from + username.length + 1
+            entity.mentionedUser = {
+              id: content,
+              username,
+            }
+            break
+          }
         }
         entities.push(entity)
         // Set input to start from the char after the closing token.
-        input = input.slice(closingIndex + curToken.length)
+        input = input.slice(closingIndex + getClosingToken(curToken).length)
       } else {
         // Unable to find a valid closingIndex, curToken is plain text!
         output += curToken

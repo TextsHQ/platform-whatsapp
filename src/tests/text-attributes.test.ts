@@ -1,3 +1,4 @@
+import type { WAContact } from 'baileys'
 import { mapTextAttributes } from '../text-attributes'
 
 const flatCases = [
@@ -176,6 +177,24 @@ const flatCases = [
       },
     },
   },
+  {
+    text: 'x@{{1234@s.whatsapp.net}} hi',
+    result: {
+      text: 'x@Texts User hi',
+      textAttributes: {
+        entities: [
+          {
+            from: 1,
+            to: 12,
+            mentionedUser: {
+              id: '1234@s.whatsapp.net',
+              username: 'Texts User',
+            },
+          },
+        ],
+      },
+    },
+  },
 ]
 
 const nestedCases = [
@@ -208,8 +227,14 @@ const nestedCases = [
 
 const cases = [flatCases, nestedCases].flat()
 
+const contacts = {
+  '1234@s.whatsapp.net': {
+    name: 'Texts User',
+  } as WAContact,
+}
+
 test('text attributes', () => {
   for (const c of cases) {
-    expect(mapTextAttributes(c.text)).toEqual(c.result)
+    expect(mapTextAttributes(c.text, contacts)).toEqual(c.result)
   }
 })
