@@ -31,7 +31,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private meContact: WAContact
 
   constructor() {
-    this.client.version = [2, 2123, 7]
+    this.client.version = [2, 2126, 10]
     this.client.logger.level = texts.IS_DEV ? 'debug' : 'silent'
     this.client.browserDescription = Browsers.appropriate('Chrome')
     this.client.autoReconnect = ReconnectMode.onConnectionLost
