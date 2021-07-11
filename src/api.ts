@@ -396,16 +396,19 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const chat = this.getChat(threadID)
     const expiration = chat?.metadata?.ephemeralDuration || +chat?.ephemeral
-    const ops: MessageOptions = {
-      filename: msgContent.fileName,
-      caption: text,
-      ptt: msgContent.isRecordedAudio,
-      duration: msgContent.audioDurationSeconds,
+    const commonOps: MessageOptions = {
       sendEphemeral: !!expiration,
       expiration,
       contextInfo: {
         mentionedJid: msgContent.mentionedUserIDs?.map(u => whatsappID(u)),
       },
+    }
+    const ops: MessageOptions = {
+      ...commonOps,
+      filename: msgContent.fileName,
+      caption: msgContent.text,
+      ptt: msgContent.isRecordedAudio,
+      duration: msgContent.audioDurationSeconds,
     }
 
     if (options?.quotedMessageID) {
@@ -431,13 +434,21 @@ export default class WhatsAppAPI implements PlatformAPI {
     ops.thumbnail = null
     if (mimeType === 'audio/ogg') ops.ptt = true
 
-    const sentMessage = await this.client.sendMessage(threadID, buffer || txt, messageType, ops)
+    const [
+      sentMessage,
+      sentMessageCaption,
+    ] = await Promise.all([
+      this.client.sendMessage(threadID, buffer || txt, messageType, ops),
+      messageType === MessageType.document && msgContent.text && this.client.sendMessage(threadID, msgContent.text, MessageType.text, commonOps),
+    ])
+
     if (threadID === whatsappID(this.client.user.jid)) {
       sentMessage.status = WA_MESSAGE_STATUS_TYPE.READ
+      if (sentMessageCaption) sentMessageCaption.status = WA_MESSAGE_STATUS_TYPE.READ
     }
-    return [
-      mapMessage(sentMessage, this.client.user.jid, this.client.contacts),
-    ]
+    const sent = [mapMessage(sentMessage, this.client.user.jid, this.client.contacts)]
+    if (sentMessageCaption) sent.push(mapMessage(sentMessageCaption, this.client.user.jid, this.client.contacts))
+    return sent
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
