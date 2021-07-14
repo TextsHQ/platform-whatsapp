@@ -1,8 +1,26 @@
-import type { WAMessage, WAGenericMediaMessage, WAChat } from 'baileys'
+import { Chat, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
+import { ActivityType, ConnectionStatus } from '../../platform-sdk/dist'
 
 export const textsWAKey = {
-  key: (c: WAChat) => c.t.toString(16).padStart(8, '0') + c.jid,
+  key: (c: Chat) => c.t.toString(16).padStart(8, '0') + c.jid,
   compare: (k1: string, k2: string) => k2.localeCompare(k1),
+}
+
+export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
+  open: ConnectionStatus.CONNECTED,
+  close: ConnectionStatus.DISCONNECTED,
+  connecting: ConnectionStatus.CONNECTING,
+}
+
+export const PARTICIPANT_ACTION_MAP = {
+  admin: 'promote',
+  regular: 'demote',
+} as const
+
+export const PRESENCE_MAP = {
+  [ActivityType.NONE]: Presence.paused,
+  [ActivityType.TYPING]: Presence.composing,
+  [ActivityType.RECORDING_VOICE]: Presence.recording,
 }
 
 export const isBroadcastID = (jid: string) =>

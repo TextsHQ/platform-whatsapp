@@ -11,7 +11,7 @@
 
 import emojiRegex from 'emoji-regex'
 import type { TextEntity } from '@textshq/platform-sdk'
-import type { WAContact } from 'baileys'
+import type { Contact as WAContact } from '@adiwajshing/baileys'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
