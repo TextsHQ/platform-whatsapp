@@ -1,0 +1,65 @@
+[
+  {
+    "key": {
+      "remoteJid": "917657895429@s.whatsapp.net",
+      "fromMe": true,
+      "id": "3EB010726036F737EEF8"
+    },
+    "message": {
+      "buttonsResponseMessage": {
+        "selectedButtonId": "btn_2",
+        "selectedDisplayText": "Lol",
+        "contextInfo": {
+          "stanzaId": "3EB03BD341B6",
+          "participant": "917657895429@s.whatsapp.net",
+          "quotedMessage": {
+            "buttonsMessage": {
+              "imageMessage": {
+                "url": "https://mmg.whatsapp.net/d/f/AhTGHQJx-fLyxx0QmxMnk0vEzcYZlhJr9bRrOtPb-b58.enc",
+                "mimetype": "image/jpeg",
+                "caption": "what do you think of this image?",
+                "fileSha256": "90fFzBzz69Kb3/+Z4oRtR7Q9KKYmNyi7Jlz2avtWhtc=",
+                "fileLength": "41776",
+                "height": 0,
+                "width": 0,
+                "mediaKey": "DneGCE7mxUfnJnqz/5/p3EBzpMDUf+eqZpSAmAT9W48=",
+                "fileEncSha256": "pyhQMyg/wnfRlsyZuXeSE15g5eoAKkBVTgiV9sXi2V0=",
+                "mediaKeyTimestamp": "1626262906",
+                "viewOnce": false
+              },
+              "contentText": "what do you think of this image?",
+              "buttons": [
+                {
+                  "buttonId": "btn_0",
+                  "buttonText": {
+                    "displayText": "Sad"
+                  },
+                  "type": "RESPONSE"
+                },
+                {
+                  "buttonId": "btn_1",
+                  "buttonText": {
+                    "displayText": "Very saddd"
+                  },
+                  "type": "RESPONSE"
+                },
+                {
+                  "buttonId": "btn_2",
+                  "buttonText": {
+                    "displayText": "Lol"
+                  },
+                  "type": "RESPONSE"
+                }
+              ],
+              "headerType": "IMAGE"
+            }
+          }
+        },
+        "type": "DISPLAY_TEXT"
+      }
+    },
+    "messageTimestamp": "1626262933",
+    "status": "DELIVERY_ACK"
+  },
+  "919401530303@s.whatsapp.net"
+]
