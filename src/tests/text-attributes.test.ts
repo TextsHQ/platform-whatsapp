@@ -1,4 +1,4 @@
-import type { WAContact } from 'baileys'
+import type { Contact as WAContact } from '@adiwajshing/baileys'
 import { mapTextAttributes } from '../text-attributes'
 
 const flatCases = [

@@ -4,7 +4,7 @@ import { promises as fs } from 'fs'
 import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent } from '@textshq/platform-sdk'
 
-import P from '@adiwajshing/baileys/node_modules/@types/pino'
+import P from 'pino'
 import mappers from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP } from './util'
 import type { WACompleteMessage } from './types'
@@ -23,7 +23,7 @@ const AUTO_RECONNECT_CODES = new Set([
 ])
 
 const config: Partial<SocketConfig> = {
-  version: [2, 2126, 10],
+  version: [2, 2126, 11],
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 90_000,
@@ -51,6 +51,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private connStatusTimeout: NodeJS.Timeout = null
 
   private lastConnStatus: ConnectionStatus = null
+
+  private hasSomeChats = false
 
   init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo) => {
     this.accountID = accountID
@@ -136,7 +138,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       fullName: user.name,
       displayText: numberFromJid(user.jid),
       phoneNumber: numberFromJid(user.jid),
-      imgURL: `asset://${this.accountID}/profile-picture/${user.jid}`,
+      imgURL: this.ppUrl(user.jid),
     }
   }
 
@@ -173,32 +175,38 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    const chatUpdateEvents = (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
-      const list = updates.flatMap(update => {
-        update = { ...update }
-        const list: ServerEvent[] = []
-        if (update.jid !== 'status@broadcast') {
-          if (update.presences) {
-            const mapped = this.mappers.mapPresenceUpdate(update.jid, update.presences)
-            texts.log(update.presences, mapped)
-            list.push(...mapped)
-            delete update.presences
+    const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
+      const list = await Promise.all(
+        updates.map(async update => {
+          update = { ...update }
+          const list: ServerEvent[] = []
+          if (update.jid !== 'status@broadcast') {
+            if (update.presences) {
+              const mapped = this.mappers.mapPresenceUpdate(update.jid, update.presences)
+              texts.log(update.presences, mapped)
+              list.push(...mapped)
+              delete update.presences
+            }
+            // load in the chat if it's new
+            if (type === 'upsert') {
+              await this.loadChat(update.jid)
+            }
+            if (Object.keys(update).length > 1) { // more keys than just "jid"
+              list.push(
+                {
+                  type: ServerEventType.STATE_SYNC,
+                  objectName: 'thread',
+                  objectIDs: { threadID: update.jid },
+                  mutationType: type,
+                  entries: type === 'update' ? this.mappers.mapChatsPartial([update]) : this.mappers.mapChats([update as WAChat]),
+                },
+              )
+            }
           }
-          if (Object.keys(update).length > 1) { // more keys than just "jid"
-            list.push(
-              {
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'thread',
-                objectIDs: { threadID: update.jid },
-                mutationType: type,
-                entries: type === 'update' ? this.mappers.mapChatsPartial([update]) : this.mappers.mapChats([update as WAChat]),
-              },
-            )
-          }
-        }
-        return list
-      })
-      !!list.length && this.evCallback(list)
+          return list
+        }),
+      )
+      !!list.length && this.evCallback(list.flat())
     }
     const messageUpdateEvents = (updates: Partial<WAMessage>[], type: 'upsert' | 'update' = 'update') => {
       const list = updates.map(
@@ -211,7 +219,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     ev.on('chats.upsert', ({ chats, type }) => {
-      if (type === 'set') return // TODO?
+      if (type === 'set') {
+        this.hasSomeChats = true
+        return
+      } // TODO?
       chatUpdateEvents(chats, 'upsert')
     })
     ev.on('chats.update', chatUpdateEvents)
@@ -219,6 +230,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('messages.upsert', ({ messages, type }) => {
       if (type === 'notify' || type === 'append') {
         messageUpdateEvents(messages, 'upsert')
+      } else if (type === 'last') {
+        console.log('calling refresh on all yall', messages.length)
+        const list = messages.map(
+          msg => {
+            const ev: ServerEvent = {
+              type: ServerEventType.STATE_SYNC,
+              mutationType: 'upsert',
+              objectIDs: {
+                threadID: msg.key.remoteJid,
+              },
+              objectName: 'message',
+              entries: this.mappers.mapMessages([msg]),
+            }
+            return ev
+          },
+        )
+        !!list.length && this.evCallback(list)
       }
     })
   }
@@ -229,17 +257,35 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.mappers.mapContacts(sorted)
   }
 
-  private getSafeImageUrl = async (jid: string) => {
-    let url = this.store.contacts[jid]?.imgUrl
-    if (!url) {
-      if (isGroupID(jid) || isBroadcastID(jid)) {
-        // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
-        url = await this.store.fetchImageUrl(jid, this.client).catch(() => null)
-      } else {
-        url = this.ppUrl(jid)
-      }
-    }
-    return url
+  private loadChat = async (jid: string) => {
+    const isGroup = isGroupID(jid)
+    await Promise.all([
+      (async () => {
+        let contact = this.store.contacts[jid]
+        if (!contact) {
+          contact = { jid }
+          this.store.contacts[jid] = contact
+        }
+        if (!contact.imgUrl) {
+          if (isGroup || isBroadcastID(jid)) {
+            // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
+            await this.store.fetchImageUrl(jid, this.client).catch(() => null)
+          } else {
+            contact.imgUrl = this.ppUrl(jid)
+          }
+        }
+      })(),
+      (async () => {
+        if (isGroup) {
+          const meta = await this.store.fetchGroupMetadata(jid, this.client)
+          const chat = this.store.chats.get(jid)
+          if (!!chat && !chat.read_only) {
+            const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.store.state.user?.jid)?.isAdmin
+            chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
+          }
+        }
+      })(),
+    ])
   }
 
   createThread = async (userIDs: string[], name: string) => {
@@ -271,22 +317,22 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
     const { cursor } = pagination || { cursor: null, direction: null }
 
-    /* if (!this.client.lastChatsReceived) {
+    if (!this.hasSomeChats) {
       await new Promise(resolve => {
-        const interval = setInterval(() => this.client.getChats(), 20_000)
-        this.client.once('chats-received', () => {
-          clearInterval(interval)
+        this.client!.ev.on('chats.upsert', () => {
           resolve(undefined)
         })
       })
-    } */
+    }
 
     const { chats } = this.store
     const result = chats.paginated(cursor || undefined, THREAD_PAGE_SIZE)
-    await bluebird.map(result, chat => this.getSafeImageUrl(chat.jid))
+    await bluebird.map(result, chat => this.loadChat(chat.jid))
+
+    const items = this.mappers.mapChats(result)
 
     return {
-      items: this.mappers.mapChats(result),
+      items,
       hasMore: chats.length >= THREAD_PAGE_SIZE,
       oldestCursor: result.length ? textsWAKey.key(result.slice(-1)[0]) : undefined,
     }
@@ -364,7 +410,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
-    const meJid = this.store.state.user!.jid
     let content: AnyRegularMessageContent
     let { text, mimeType } = msgContent
 
@@ -495,13 +540,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  getAsset = async (category: string, jid: string, msgID: string) => {
+  getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
     let update: (messages: BaileysEventMap['messages.update']) => void
     switch (category) {
       case 'profile-picture':
         let url: string
         const item = this.store.contacts[jid]
         if (!item?.imgUrl || item.imgUrl?.startsWith('asset://')) {
+          delete item?.imgUrl
           url = await this.store.fetchImageUrl(jid, this.client).catch(() => null)
         }
         return url
@@ -570,41 +616,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.modifyChat(threadID, mod)
   }
 
-  /* private contactForJid = (_jid: string) => {
-    const jid = whatsappID(_jid)
-    const contact = (this.store.contacts[jid] || { jid })
-    if (!contact.imgUrl) contact.imgUrl = this.ppUrl(jid)
-    return contact
-  } */
-
   private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`
 
   private getChat = (jid: string) => this.store.chats.get(jid)
-
-  /* private extendGroupChat = async (chat: WAChat) => {
-    if (chat.metadata) return
-
-    let meta: WAGroupMetadata
-
-    if (isGroupID(chat.jid)) {
-      meta = await this.client.groupMetadata(chat.jid) // .catch(() => { }) || { participants: [] } as WAGroupMetadata // swallow error
-    } else if (isBroadcastID(chat.jid)) {
-      const broadcastMeta = await this.client.getBroadcastListInfo(chat.jid).catch(() => { })
-      if (broadcastMeta) {
-        meta = { participants: broadcastMeta.recipients.map(({ id }) => ({ jid: id })) } as WAGroupMetadata
-        chat.metadata = meta
-      }
-    }
-    if (!meta) return
-
-    meta.participants.forEach(p => {
-      const contact = this.contactForJid(p.jid)
-      if (contact) p.imgUrl = contact.imgUrl
-    })
-
-    if (!chat.read_only) {
-      const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.store.state.user?.jid)?.isAdmin
-      chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
-    }
-  } */
 }

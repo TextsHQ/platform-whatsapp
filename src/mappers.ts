@@ -411,7 +411,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
   function mapThreadParticipants(chat: Partial<WAChat>): Paginated<Participant> {
     let participants: Participant[]
     if (isGroupID(chat.jid)) {
-      // participants = chat.metadata.participants.map(c => mapContact(c, meContact.jid === c.jid))
+      participants = mapContacts(store.groupMetadata[chat.jid]?.participants || [])
     } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
       participants = mapContacts([
         { jid: chat.jid, name: chat.name, imgUrl: store.contacts[chat.jid]?.imgUrl },
@@ -494,14 +494,14 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     {
       id: chat.jid,
       title: chat.name,
-      description: isGroupID(chat.jid) ? '' : '',
+      description: store.groupMetadata[chat.jid]?.desc || '',
       imgURL: store.contacts[chat.jid]?.imgUrl,
       isUnread: typeof chat.count !== 'undefined' ? !!chat.count : undefined,
       isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
       isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
       timestamp: chat.t ? new Date(+chat.t * 1000) : undefined,
       type: threadType(chat.jid),
-      // createdAt: chat.metadata?.creation ? new Date(chat.metadata?.creation * 1000) : undefined
+      createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
     }
   )
 
@@ -519,7 +519,6 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
               items: mapMessages(store.messages[chat.jid]?.array || []),
               hasMore: true,
             },
-            // createdAt: chat.metadata?.creation ? new Date(chat.metadata?.creation * 1000) : undefined
           }
           return result
         },
