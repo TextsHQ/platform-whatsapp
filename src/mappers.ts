@@ -1,3 +1,4 @@
+import { omit } from 'lodash'
 import { WAMessage, MessageType, Presence, WA_MESSAGE_STATUS_TYPE, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WA_MESSAGE_STUB_TYPE, WAPresenceData, WAChat, WAContact, WAMessageKey, WAContextInfo } from 'baileys'
 import { ActivityType, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton } from '@textshq/platform-sdk'
 
@@ -482,7 +483,7 @@ export function mapThreadProps(chat: WACompleteChat): Partial<Thread> {
 
 export function mapThread(chat: WACompleteChat, meContact: WAContact, contacts: Record<string, WAContact>): Thread {
   return {
-    _original: safeJSONStringify(chat),
+    _original: safeJSONStringify(omit(chat, ['participants', 'messages'])),
     messages: {
       items: mapMessages(chat.messages?.all() || [], meContact.jid, contacts),
       hasMore: true,
