@@ -1,7 +1,7 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
-import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification } from '@adiwajshing/baileys'
+import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent } from '@textshq/platform-sdk'
 
 import P from 'pino'
@@ -198,7 +198,7 @@ export default class WhatsAppAPI implements PlatformAPI {
                   objectName: 'thread',
                   objectIDs: { threadID: update.jid },
                   mutationType: type,
-                  entries: type === 'update' ? this.mappers.mapChatsPartial([update]) : this.mappers.mapChats([update as WAChat]),
+                  entries: type === 'update' ? [this.mappers.mapChatPartial(update)] : this.mappers.mapChats([update as WAChat]),
                 },
               )
             }
@@ -225,6 +225,24 @@ export default class WhatsAppAPI implements PlatformAPI {
       } // TODO?
       chatUpdateEvents(chats, 'upsert')
     })
+
+    ev.on('contacts.upsert', ({ contacts, type }) => {
+      if (type === 'set' && this.hasSomeChats) {
+        const events = contacts.map(
+          c => (
+            {
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'thread',
+              objectIDs: { threadID: c.jid },
+              mutationType: 'update',
+              entries: [{ id: c.jid, title: this.mappers.contactName(c) }],
+            }
+          ) as ServerEvent,
+        )
+        this.evCallback(events)
+      }
+    })
+
     ev.on('chats.update', chatUpdateEvents)
     ev.on('messages.update', messageUpdateEvents)
     ev.on('messages.upsert', ({ messages, type }) => {
@@ -276,13 +294,19 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       })(),
       (async () => {
+        let meta: GroupMetadata
         if (isGroup) {
-          const meta = await this.store.fetchGroupMetadata(jid, this.client)
-          const chat = this.store.chats.get(jid)
-          if (!!chat && !chat.read_only) {
-            const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.store.state.user?.jid)?.isAdmin
-            chat.read_only = (!(meta.announce === 'true') || isSelfAdmin) ? 'false' : 'true'
-          }
+          meta = await this.store.fetchGroupMetadata(jid, this.client)
+        } else if (isBroadcastID(jid)) {
+          meta = await this.store.fetchBroadcastListInfo(jid, this.client)
+        } else {
+          return
+        }
+
+        const chat = this.store.chats.get(jid)
+        if (!!chat && !chat.read_only) {
+          const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.store.state.user?.jid)?.isAdmin
+          chat.read_only = (meta.announce !== 'true' || isSelfAdmin) ? 'false' : 'true'
         }
       })(),
     ])
@@ -292,7 +316,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     let chat: WAChat
     if (userIDs.length > 1) {
       const meta = await this.client.groupCreate(name, userIDs)
-      chat = this.getChat(meta.gid)
+      chat = this.getChat(meta.id)
     } else if (userIDs.length === 1) {
       const jid = whatsappID(userIDs[0])
       chat = this.getChat(jid)
@@ -445,6 +469,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID, this.client)
           : undefined,
         ephemeralOptions: chat.ephemeral ? { expiration: chat.ephemeral, eph_setting_ts: chat.eph_setting_ts } : undefined,
+        waitForAck: true,
       },
     )
     return this.mappers.mapMessages([sentMessage])
@@ -480,10 +505,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client.chatRead(threadID, -1, await this.store.mostRecentMessage(threadID, this.client))
   }
 
-  sendReadReceipt = async (threadID: string) => {
+  sendReadReceipt = async (threadID: string, messageID?: string) => {
     const chat = this.store.chats.get(threadID)
+    const msg = messageID ? await this.store.loadMessage(threadID, messageID, this.client) : await this.store.mostRecentMessage(threadID, this.client!)
     if (chat) {
-      await this.client.chatRead(threadID, chat.count, await this.store.mostRecentMessage(threadID, this.client))
+      await this.client.chatRead(threadID, chat.count, msg)
     }
   }
 

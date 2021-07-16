@@ -386,6 +386,14 @@ function messageStatus(status: number | string) {
 export default (store: ReturnType<typeof makeInMemoryStore>) => {
   const meJid = () => store.state.user?.jid
 
+  const contactName = (c: WAContact) => (
+    c.name || c.notify || c.vname || c.short
+  )
+  const contactNameFromJid = (jid: string) => {
+    const c = store.contacts[jid]
+    if (c) return contactName(c)
+  }
+
   const mapContacts = (contacts: (WAContact | WAGroupParticipant)[]): Participant[] => (
     contacts.map(
       contact => {
@@ -398,7 +406,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
         return {
           id: contact.jid,
           isSelf: contact.jid === meJid(),
-          fullName: contact.name || contact.notify || contact.vname,
+          fullName: contactName(contact),
           phoneNumber: numberFromJid(contact.jid),
           isVerified: contact.verify === '2',
           imgURL: contact.imgUrl,
@@ -410,9 +418,12 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
 
   function mapThreadParticipants(chat: Partial<WAChat>): Paginated<Participant> {
     let participants: Participant[]
-    if (isGroupID(chat.jid)) {
-      participants = mapContacts(store.groupMetadata[chat.jid]?.participants || [])
-    } else if (!isGroupID(chat.jid) && !isBroadcastID(chat.jid)) {
+    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
+      const parts = store.groupMetadata[chat.jid]?.participants || []
+      participants = mapContacts(
+        parts.map(p => ({ ...(store.contacts[p.jid] || {}), ...p })),
+      )
+    } else {
       participants = mapContacts([
         { jid: chat.jid, name: chat.name, imgUrl: store.contacts[chat.jid]?.imgUrl },
         store.state.user!,
@@ -490,10 +501,10 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     )
   )
 
-  const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages'> => (
-    {
+  const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages'> => {
+    const mapped = {
       id: chat.jid,
-      title: chat.name,
+      title: chat.name || contactNameFromJid(chat.jid),
       description: store.groupMetadata[chat.jid]?.desc || '',
       imgURL: store.contacts[chat.jid]?.imgUrl,
       isUnread: typeof chat.count !== 'undefined' ? !!chat.count : undefined,
@@ -503,12 +514,18 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
       type: threadType(chat.jid),
       createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
     }
-  )
+    for (const key of Object.keys(mapped)) {
+      if (typeof mapped[key] === 'undefined') {
+        delete mapped[key]
+      }
+    }
+    return mapped
+  }
 
   return {
-    mapChatsPartial: (chats: Partial<WAChat>[]) => (
-      chats.map(mapChatPartial)
-    ),
+    contactName,
+    contactNameFromJid,
+    mapChatPartial,
     mapChats: (chats: WAChat[]) => (
       chats.map(
         chat => {
