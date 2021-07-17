@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@adiwajshing/keyed-db@^0.2.2":
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/@adiwajshing/keyed-db/-/keyed-db-0.2.4.tgz#2a09e88fce20b2672deb60a7750c5fe3ab0dfd99"
-  integrity sha512-yprSnAtj80/VKuDqRcFFLDYltoNV8tChNwFfIgcf6PGD4sjzWIBgs08pRuTqGH5mk5wgL6PBRSsMCZqtZwzFEw==
+"@adiwajshing/keyed-db@^0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@adiwajshing/keyed-db/-/keyed-db-0.1.8.tgz#3c8a16216e7334e16d969398c8d37837f7b8b788"
+  integrity sha512-UEP/94y3Ljihg2XpnI3BRT1Ucc9anP5pP+L5lLZgoWrMzn7xnK5UipLRMC5Yo7mThfZ4xyFVEX8yowZzPFv7dw==
 
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.10.4", "@babel/code-frame@^7.12.11":
   version "7.12.11"
