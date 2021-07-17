@@ -501,7 +501,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     )
   )
 
-  const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages'> => {
+  const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages' | 'type'> => {
     const mapped = {
       id: chat.jid,
       title: chat.name || contactNameFromJid(chat.jid),
@@ -511,8 +511,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
       isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
       isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
       timestamp: chat.t ? new Date(+chat.t * 1000) : undefined,
-      type: threadType(chat.jid),
-      createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
+      mutedUntil: typeof chat.mute !== 'undefined' ? (chat.mute === null ? null : new Date(+chat.mute * 1000)) : undefined,
     }
     for (const key of Object.keys(mapped)) {
       if (typeof mapped[key] === 'undefined') {
@@ -531,6 +530,8 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
         chat => {
           const result: Thread = {
             ...mapChatPartial(chat),
+            type: threadType(chat.jid),
+            createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
             participants: mapThreadParticipants(chat),
             messages: {
               items: mapMessages(store.messages[chat.jid]?.array || []),

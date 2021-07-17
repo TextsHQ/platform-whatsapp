@@ -11,7 +11,7 @@ import type { WACompleteMessage } from './types'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
-const CHAT_MUTE_DURATION_S = 8 * 60 * 60 * 1000
+const CHAT_MUTE_DURATION_S = 64092211200
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
@@ -155,27 +155,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
-    ev.on('connection.update', update => {
-      if (update.connection) {
-        if (update.connection === 'close') {
-          // @ts-ignore
-          const statusCode = update.lastDisconnect!.error?.output?.statusCode || 500
-          // auto reconnect logic
-          if (AUTO_RECONNECT_CODES.has(statusCode)) {
-            update.connection = 'connecting'
-            this.connectInternal()
-          }
-        }
-        this.setConnStatus({ status: CONNECTION_STATE_MAP[update.connection] })
-      }
-
-      if (typeof update.phoneConnected !== 'undefined') {
-        texts.log(`phone connected: ${update.phoneConnected}`)
-        this.setConnStatus({ status: update.phoneConnected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
-      }
-    })
-
     const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
+      // console.log(updates)
       const list = await Promise.all(
         updates.map(async update => {
           update = { ...update }
@@ -183,7 +164,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           if (update.jid !== 'status@broadcast') {
             if (update.presences) {
               const mapped = this.mappers.mapPresenceUpdate(update.jid, update.presences)
-              texts.log(update.presences, mapped)
+              // texts.log(update.presences, mapped)
               list.push(...mapped)
               delete update.presences
             }
@@ -218,11 +199,35 @@ export default class WhatsAppAPI implements PlatformAPI {
       !!list.length && this.evCallback(list)
     }
 
+    ev.on('connection.update', update => {
+      if (update.connection) {
+        let isReplaced = false
+        if (update.connection === 'close') {
+          // @ts-ignore
+          const statusCode = update.lastDisconnect!.error?.output?.statusCode || 500
+          const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
+          isReplaced = statusCode === DisconnectReason.connectionReplaced
+          texts.log('disconnected, reconnecting: ', isReconnecting)
+          // auto reconnect logic
+          if (isReconnecting) {
+            update.connection = 'connecting'
+            this.connectInternal()
+          }
+        }
+        this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[update.connection] })
+      }
+
+      if (typeof update.phoneConnected !== 'undefined') {
+        texts.log(`phone connected: ${update.phoneConnected}`)
+        this.setConnStatus({ status: update.phoneConnected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
+      }
+    })
+
     ev.on('chats.upsert', ({ chats, type }) => {
       if (type === 'set') {
         this.hasSomeChats = true
         return
-      } // TODO?
+      }
       chatUpdateEvents(chats, 'upsert')
     })
 
@@ -244,12 +249,24 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('chats.update', chatUpdateEvents)
+
+    ev.on('chats.delete', entries => {
+      this.evCallback([
+        {
+          type: ServerEventType.STATE_SYNC,
+          mutationType: 'delete',
+          objectIDs: { },
+          objectName: 'thread',
+          entries,
+        },
+      ])
+    })
+
     ev.on('messages.update', messageUpdateEvents)
     ev.on('messages.upsert', ({ messages, type }) => {
       if (type === 'notify' || type === 'append') {
         messageUpdateEvents(messages, 'upsert')
       } else if (type === 'last') {
-        console.log('calling refresh on all yall', messages.length)
         const list = messages.map(
           msg => {
             const ev: ServerEvent = {
@@ -266,6 +283,12 @@ export default class WhatsAppAPI implements PlatformAPI {
         )
         !!list.length && this.evCallback(list)
       }
+    })
+
+    ev.on('messages.delete', ({ jid }) => {
+      this.evCallback([
+        { type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid },
+      ])
     })
   }
 
@@ -502,14 +525,19 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   markAsUnread = async (threadID: string) => {
-    await this.client.chatRead(threadID, -1, await this.store.mostRecentMessage(threadID, this.client))
+    const msg = await this.store.mostRecentMessage(threadID, this.client)
+    await this.client.chatRead(msg!.key, -1)
   }
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
     const chat = this.store.chats.get(threadID)
-    const msg = messageID ? await this.store.loadMessage(threadID, messageID, this.client) : await this.store.mostRecentMessage(threadID, this.client!)
+    const msg = await (
+      messageID
+        ? this.store.loadMessage(threadID, messageID, this.client)
+        : this.store.mostRecentMessage(threadID, this.client!)
+    )
     if (chat) {
-      await this.client.chatRead(threadID, chat.count, msg)
+      await this.client.chatRead(msg!.key, chat.count)
     }
   }
 
