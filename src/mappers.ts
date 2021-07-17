@@ -463,12 +463,15 @@ function mapThreadParticipants(chat: WAChat, meContact: WAContact): Paginated<Pa
   }
 }
 
+const HUNDRED_YEARS_IN_SECONDS = 100 * 86400 * 365
+
 export function mapThreadProps(chat: WAChat): Partial<Thread> {
   return {
     id: whatsappID(chat.jid),
     title: chat.name,
     description: chat.metadata?.desc,
     imgURL: isGroupID(chat.jid) ? chat.imgUrl : undefined,
+    // mutedUntil: +chat.mute > HUNDRED_YEARS_IN_SECONDS ? 'forever' : new Date(+chat.mute * 1000),
     isUnread: !!chat.count,
     isArchived: chat.archive === 'true',
     isReadOnly: chat.read_only === 'true',

@@ -16,6 +16,8 @@ const PHONE_RESPONSE_TIME = 90_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
+const DISTANT_FUTURE_TIMESTAMP = 64092211200
+
 function updateReadReceipts(chat: WAChat, update: WAMessageStatusUpdate) {
   chat.messages.all().forEach(msg => {
     if (!update.ids.includes(msg.key.id)) return
@@ -491,6 +493,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     if ('messageExpirySeconds' in updates) {
       await this.client.toggleDisappearingMessages(threadID, updates.messageExpirySeconds)
     }
+    if ('mutedUntil' in updates) {
+      if (updates.mutedUntil === 'forever') {
+        await this.client.modifyChat(threadID, ChatModification.mute, DISTANT_FUTURE_TIMESTAMP)
+      } else {
+        await this.client.modifyChat(threadID, ChatModification.unmute)
+      }
+    }
     return true
   }
 
@@ -503,9 +512,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   pinThread = (threadID: string, pinned: boolean) =>
     this.modThread(threadID, pinned, 'pin')
-
-  muteThread = (threadID: string, muted: boolean) =>
-    this.modThread(threadID, muted, 'mute')
 
   archiveThread = (threadID: string, archived: boolean) =>
     this.modThread(threadID, archived, 'archive')
