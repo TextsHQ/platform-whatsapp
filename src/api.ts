@@ -208,15 +208,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
       !!list.length && this.evCallback(list.flat())
     }
-    const messageUpdateEvents = (updates: Partial<WAMessage>[], type: 'upsert' | 'update' = 'update') => {
-      const list = updates.map(
-        msg => {
-          const ev: ServerEvent = { type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: msg.key.remoteJid }
-          return ev
-        },
-      )
-      !!list.length && this.evCallback(list)
-    }
 
     ev.on('connection.update', update => {
       if (update.connection) {
@@ -286,26 +277,63 @@ export default class WhatsAppAPI implements PlatformAPI {
       ])
     })
 
-    ev.on('messages.update', messageUpdateEvents)
+    ev.on('messages.update', updates => {
+      const list = updates.map(
+        ({ update, key }) => {
+          const items = this.store.messages[key!.remoteJid]
+          const msg = items.get(update.key?.id || key.id)
+          const ev: ServerEvent = {
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'message',
+            objectIDs: {
+              threadID: msg.key.remoteJid,
+            },
+            mutationType: 'update',
+            entries: this.mappers.mapMessages([msg]),
+          }
+          return ev
+        },
+      )
+      !!list.length && this.evCallback(list)
+    })
     ev.on('messages.upsert', ({ messages, type }) => {
+      let list: ServerEvent[]
       if (type === 'notify' || type === 'append') {
-        messageUpdateEvents(messages, 'upsert')
+        list = messages.map(msg => ({
+          type: ServerEventType.STATE_SYNC,
+          mutationType: 'upsert',
+          objectIDs: {
+            threadID: msg.key.remoteJid,
+          },
+          objectName: 'message',
+          entries: this.mappers.mapMessages([msg]),
+        }))
       } else if (type === 'last') {
-        const list = messages.map(
+        list = messages.map(
           msg => {
-            const ev: ServerEvent = {
-              type: ServerEventType.STATE_SYNC,
-              mutationType: 'upsert',
-              objectIDs: {
+            const storeList = this.store.messages[msg.key.remoteJid!]
+            // no change in last message
+            if (storeList.array[storeList.array.length - 1]?.key.id === msg.key.id) {
+
+            } else if (storeList.array.length) { // recv more messages while disconnected
+              return {
+                type: ServerEventType.THREAD_MESSAGES_REFRESH,
                 threadID: msg.key.remoteJid,
-              },
-              objectName: 'message',
-              entries: this.mappers.mapMessages([msg]),
+              }
+            } else { // empty message list
+              return {
+                type: ServerEventType.STATE_SYNC,
+                mutationType: 'upsert',
+                objectIDs: {
+                  threadID: msg.key.remoteJid,
+                },
+                objectName: 'message',
+                entries: this.mappers.mapMessages([msg]),
+              }
             }
-            return ev
           },
         )
-        !!list.length && this.evCallback(list)
+        !!list?.length && this.evCallback(list.filter(Boolean))
       }
     })
 
