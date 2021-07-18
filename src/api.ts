@@ -105,8 +105,21 @@ export default class WhatsAppAPI implements PlatformAPI {
   private connect = async () => {
     try {
       await this.connectInternal()
-      await this.client!.waitForConnection()
-      // this.setConnStatus({ status: ConnectionStatus.CONNECTED })
+
+      const start = Date.now()
+      while ((Date.now() - start) < config.connectTimeoutMs!) {
+        await delay(500)
+
+        if (this.store.state.connection === 'open') {
+          break
+        }
+        if (this.store.state.connection === 'close' && !this.store.state.lastDisconnect?.error) {
+          break
+        }
+      }
+      if (this.store.state.connection === 'close') {
+        throw this.store.state.lastDisconnect?.error || new ConnectionError('failed to open')
+      }
     } catch (error) {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
@@ -114,6 +127,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
         else if (error.message === DisconnectReason.timedOut) throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       }
+      // ensure cleanup
+      this.client!.end(undefined)
       throw error
     }
     texts.log('connected successfully')
@@ -128,6 +143,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client = makeConnection({ ...config, credentials: this.session })
     this.store.listen(this.client!.ev)
     this.registerCallbacks(this.client!.ev)
+    this.client!.ev.emit('connection.update', { connection: 'connecting' })
   }
 
   getCurrentUser = (): CurrentUser => {
