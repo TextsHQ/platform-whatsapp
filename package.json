@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "link:../../../Node/Baileys",
+    "@adiwajshing/keyed-db": "^0.2.4",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
     "match-sorter": "^4.2.1",
