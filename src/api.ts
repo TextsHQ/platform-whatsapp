@@ -360,12 +360,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.store.contacts[jid] = contact
         }
         if (!contact.imgUrl) {
-          if (isGroup || isBroadcastID(jid)) {
-            // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
-            await this.store.fetchImageUrl(jid, this.client).catch(() => null)
-          } else {
-            contact.imgUrl = this.ppUrl(jid)
-          }
+          // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
+          await this.store.fetchImageUrl(jid, this.client).catch(() => null)
         }
       })(),
       (async () => {
