@@ -403,7 +403,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
         if (isBroadcastID(contact.jid)) {
           throw new Error('mapContact: cannot map a broadcast list')
         }
-        return {
+        const mapped: Participant = {
           id: contact.jid,
           isSelf: contact.jid === meJid(),
           fullName: contactName(contact),
@@ -412,6 +412,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
           imgURL: contact.imgUrl,
           isAdmin: (contact as WAGroupParticipant).isAdmin,
         }
+        return mapped
       },
     )
   )
@@ -529,6 +530,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
       chats.map(
         chat => {
           const result: Thread = {
+            _original: safeJSONStringify([chat, meJid()]),
             ...mapChatPartial(chat),
             type: threadType(chat.jid),
             createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
