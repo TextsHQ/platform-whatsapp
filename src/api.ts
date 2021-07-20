@@ -54,6 +54,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private hasSomeChats = false
 
+  private lastConnect: Date
+
   private chatsRecvCallback: () => void
 
   init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo) => {
@@ -223,6 +225,8 @@ export default class WhatsAppAPI implements PlatformAPI {
             update.connection = 'connecting'
             this.connectInternal(2000)
           }
+        } else if (update.connection === 'open') {
+          this.lastConnect = new Date()
         }
         this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[update.connection] })
       }
@@ -243,6 +247,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.set', ({ contacts }) => {
+      const time = (Date.now() - this.lastConnect.getTime()) / 1000
+      const msg = `received ${contacts.length} contacts, after ${time}s`
+      texts.log(msg)
+      texts.Sentry.captureMessage(msg)
+
       if (this.hasSomeChats) {
         const events = contacts.map(
           c => (
@@ -483,14 +492,16 @@ export default class WhatsAppAPI implements PlatformAPI {
       1,
     )
     const messages = await this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
-
+    const hasMore = (messages.length >= MESSAGE_PAGE_SIZE) || !cursor
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
     }
 
+    // console.log('msg cursor', cursor, 'hasMore', hasMore, 'count', messageLen)
+
     return {
       items: this.mappers.mapMessages(messages),
-      hasMore: messages.length >= MESSAGE_PAGE_SIZE || !cursor || cursor === null,
+      hasMore,
     }
   }
 
