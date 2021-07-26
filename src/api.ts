@@ -341,8 +341,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         )
       }
       list = list?.filter(Boolean)
-      console.log(messages, list)
-      !!list?.length && this.evCallback(list)
+      if (list?.length) this.evCallback(list)
     })
 
     ev.on('messages.delete', ({ jid }) => {
