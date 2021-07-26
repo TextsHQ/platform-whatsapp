@@ -68,6 +68,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   dispose = () => {
+    this.client?.ev.removeAllListeners('connection.update')
     this.client?.end(undefined)
     clearTimeout(this.connStatusTimeout)
   }
@@ -212,11 +213,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     ev.on('connection.update', update => {
+      texts.log('connection update:', update)
       if (update.connection) {
         let isReplaced = false
         if (update.connection === 'close') {
           // @ts-ignore
-          const statusCode = update.lastDisconnect!.error?.output?.statusCode || 500
+          const statusCode = update.lastDisconnect!.error?.output?.statusCode || 1
           const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
           isReplaced = statusCode === DisconnectReason.connectionReplaced
           texts.log('disconnected, reconnecting: ', isReconnecting)
@@ -232,7 +234,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
 
       if (typeof update.phoneConnected !== 'undefined') {
-        texts.log(`phone connected: ${update.phoneConnected}`)
         this.setConnStatus({ status: update.phoneConnected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
       }
     })
