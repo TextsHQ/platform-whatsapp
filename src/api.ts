@@ -312,9 +312,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         list = messages.map(msg => ({
           type: ServerEventType.STATE_SYNC,
           mutationType: 'upsert',
-          objectIDs: {
-            threadID: msg.key.remoteJid,
-          },
+          objectIDs: { threadID: msg.key.remoteJid },
           objectName: 'message',
           entries: this.mappers.mapMessages([msg]),
         }))
@@ -334,17 +332,17 @@ export default class WhatsAppAPI implements PlatformAPI {
               return {
                 type: ServerEventType.STATE_SYNC,
                 mutationType: 'upsert',
-                objectIDs: {
-                  threadID: msg.key.remoteJid,
-                },
+                objectIDs: { threadID: msg.key.remoteJid },
                 objectName: 'message',
                 entries: this.mappers.mapMessages([msg]),
               }
             }
           },
         )
-        !!list?.length && this.evCallback(list.filter(Boolean))
       }
+      list = list?.filter(Boolean)
+      console.log(messages, list)
+      !!list?.length && this.evCallback(list)
     })
 
     ev.on('messages.delete', ({ jid }) => {
