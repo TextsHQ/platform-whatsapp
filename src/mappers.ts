@@ -385,6 +385,8 @@ function messageStatus(status: number | string) {
   return status
 }
 
+type PartialThread = Omit<Thread, 'participants' | 'messages' | 'type'>
+
 export default (store: ReturnType<typeof makeInMemoryStore>) => {
   const meJid = () => store.state.user?.jid
 
@@ -446,66 +448,65 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     }
   )
 
-  const mapMessages = (messages: WACompleteMessage[]) => (
-    messages.map(
-      message => {
-        const currentUserID = meJid()!
-        const isEphemeral = !!message.message?.ephemeralMessage
-        const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
-        const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
+  const mapMessage = (message: WACompleteMessage) => {
+    const currentUserID = meJid()!
+    const isEphemeral = !!message.message?.ephemeralMessage
+    const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
+    const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
-        const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)
-        const stubBasedMessage = messageStubText(message)
-        const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
-        const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
-        const linked = messageQuoted(messageInner)
-        const link = messageLink(messageContent!)
-        const action = messageAction(message)
-        const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
+    const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)
+    const stubBasedMessage = messageStubText(message)
+    const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
+    const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
+    const linked = messageQuoted(messageInner)
+    const link = messageLink(messageContent!)
+    const action = messageAction(message)
+    const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
-        const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-        const isAction = (!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType)) || isEphemeralSetting
+    const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
+    const isAction = (!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType)) || isEphemeralSetting
 
-        const mapped: Message = {
-          _original: safeJSONStringify([message, currentUserID]),
-          ...mapMessagePartial(message),
-          cursor: message.key.id + '_' + Number(message.key.fromMe),
-          threadID: message.key.remoteJid!,
-          textHeading: [...messageHeading(message)].join('\n'),
-          text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
-          textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
-          timestamp: new Date(timestamp * 1000),
-          forwardedCount: messageInner?.contextInfo?.forwardingScore,
-          senderID,
-          isSender: !!message.key.fromMe,
-          isDeleted,
-          attachments,
-          buttons: messageButtons(messageContent!),
-          isDelivered: message.key.fromMe ? messageStatus(message.status) >= WAMessageStatus.SERVER_ACK : true,
-          linkedMessage: linked,
-          links: link ? [link] : undefined,
-          parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
-          isAction,
-          action,
-          // todo: review logic, this is incorrect:
-          // isErrored: !isAction && message.key.fromMe && message.status === 0,
-          silent: message.broadcast || !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
-          expiresInSeconds: messageInner?.contextInfo?.expiration,
-          sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
-        }
-        if (mapped.text) {
-          const { text, textAttributes } = mapTextAttributes(mapped.text, store.contacts)!
-          if (textAttributes) {
-            mapped.text = text
-            mapped.textAttributes = textAttributes
-          }
-        }
-        return mapped
-      },
-    )
-  )
+    const mapped: Message = {
+      _original: safeJSONStringify([message, currentUserID]),
+      ...mapMessagePartial(message),
+      cursor: message.key.id + '_' + Number(message.key.fromMe),
+      threadID: message.key.remoteJid!,
+      textHeading: [...messageHeading(message)].join('\n'),
+      text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
+      textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
+      timestamp: new Date(timestamp * 1000),
+      forwardedCount: messageInner?.contextInfo?.forwardingScore,
+      senderID,
+      isSender: !!message.key.fromMe,
+      isDeleted,
+      attachments,
+      buttons: messageButtons(messageContent!),
+      isDelivered: message.key.fromMe ? messageStatus(message.status) >= WAMessageStatus.SERVER_ACK : true,
+      linkedMessage: linked,
+      links: link ? [link] : undefined,
+      parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
+      isAction,
+      action,
+      // todo: review logic, this is incorrect:
+      // isErrored: !isAction && message.key.fromMe && message.status === 0,
+      silent: message.broadcast || !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
+      expiresInSeconds: messageInner?.contextInfo?.expiration,
+      sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
+    }
+    if (mapped.text) {
+      const { text, textAttributes } = mapTextAttributes(mapped.text, store.contacts)!
+      if (textAttributes) {
+        mapped.text = text
+        mapped.textAttributes = textAttributes
+      }
+    }
+    return mapped
+  }
 
-  const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages' | 'type'> => {
+  const mapMessages = (messages: WACompleteMessage[]) =>
+    messages.map(mapMessage)
+
+  const mapChatPartial = (chat: Partial<WAChat>) => {
     const mapped = {
       id: chat.jid!,
       title: chat.name || contactNameFromJid(chat.jid!),
@@ -522,7 +523,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
         delete mapped[key]
       }
     }
-    return mapped as any
+    return mapped as PartialThread
   }
 
   return {
