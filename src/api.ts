@@ -133,7 +133,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         else if (error.message === DisconnectReason.timedOut) throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       }
       // ensure cleanup
-      // @ts-ignore
+      // @ts-expect-error
       this.client!.end(undefined)
       throw error
     }
@@ -221,7 +221,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (update.connection) {
         let isReplaced = false
         if (update.connection === 'close') {
-          // @ts-ignore
+          // @ts-expect-error
           const statusCode = update.lastDisconnect!.error?.output?.statusCode || 1
           const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
           isReplaced = statusCode === DisconnectReason.connectionReplaced
