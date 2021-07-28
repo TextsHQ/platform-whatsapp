@@ -62,6 +62,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   // /end todo
 
   [WAMessageStubType.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
+  [WAMessageStubType.E2E_DEVICE_CHANGED]: '{{{{0}}}}\'s security code changed',
   [WAMessageStubType.GENERIC_NOTIFICATION]: '{{0}}',
 
   [WAMessageStubType.GROUP_PARTICIPANT_ADD]: participantAdded,
