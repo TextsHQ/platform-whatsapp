@@ -70,12 +70,10 @@ const findClosingIndex = (input: string[], curToken: string) => {
 }
 
 export function mapTextAttributes(src: string, contacts: Record<string, WAContact>) {
-  if (!src) return
-
   const entities: TextEntity[] = []
   let output = ''
-  let prevToken: string = null
-  let curToken: string = null
+  let prevToken: string | null = null
+  let curToken: string | null = null
   let input = Array.from(src)
 
   // Parse the input sequentially.
@@ -118,23 +116,23 @@ export function mapTextAttributes(src: string, contacts: Record<string, WAContac
         // A valid closingIndex is found, it's a valid token!
         const content = input.slice(0, closingIndex).join('')
         // See if we can find nested entities.
-        let nestedAttributes = { text: '', textAttributes: undefined }
+        let nestedAttributes = { text: '', textAttributes: undefined } as ReturnType<typeof mapTextAttributes>
         if (curToken !== '```') {
           nestedAttributes = mapTextAttributes(content, contacts)
         }
         const from = Array.from(output).length
         let to = from + closingIndex
-        if (nestedAttributes.textAttributes) {
+        if (nestedAttributes!.textAttributes) {
           // Nested entities change the output, so update the range.
-          to = from + nestedAttributes.text.length
+          to = from + nestedAttributes!.text.length
           // Offset the range of child entities.
-          const childEntities = nestedAttributes.textAttributes.entities.map(entity => ({
+          const childEntities = nestedAttributes!.textAttributes!.entities.map(entity => ({
             ...entity,
             from: entity.from + from,
             to: entity.to + from,
           }))
           entities.push(...childEntities)
-          output += nestedAttributes.text
+          output += nestedAttributes!.text
         } else if (curToken !== '@{{') {
           output += content
         }

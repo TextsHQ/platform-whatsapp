@@ -26,7 +26,7 @@ const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
     : 'Disappearing messages were turned off.'
 }
 
-const PRE_DEFINED_MESSAGES: {[k: number]: string | ((m: WAMessage) => string)} = {
+const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
   [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
   [WAMessageStubType.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
@@ -141,13 +141,13 @@ function threadType(jid: string): ThreadType {
 
 export function updateReadReceipts(messages: WAMessage[], update: MessageStatusUpdate) {
   for (const msg of messages) {
-    if (!update.ids.includes(msg.key.id)) return
+    if (!update.ids.includes(msg.key.id!)) return
     const status = update.type
     const waMsg = msg as WACompleteMessage
 
     if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
 
-    const person = { jid: update.participant, t: (Date.now() / 1000).toString() }
+    const person = { jid: update.participant!, t: (Date.now() / 1000).toString() }
     if (status >= WAMessageStatus.READ) waMsg.info.reads.push(person)
     else if (status >= WAMessageStatus.DELIVERY_ACK) waMsg.info.deliveries.push(person)
 
@@ -155,9 +155,9 @@ export function updateReadReceipts(messages: WAMessage[], update: MessageStatusU
   }
 }
 
-function messageAction(message: WAMessage): MessageAction {
+function messageAction(message: WAMessage): MessageAction | undefined {
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType]
-  if (!actionType) return null
+  if (!actionType) return
   if (actionType === MessageActionType.THREAD_TITLE_UPDATED) {
     return {
       type: actionType,
@@ -185,10 +185,10 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
   if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
     response.attachments = contacts.map(c => ({
-      id: `${id}_${c.displayName}`,
+      id: `${id}_${c!.displayName}`,
       type: MessageAttachmentType.UNKNOWN,
-      data: Buffer.from(c.vcard, 'utf-8'),
-      fileName: `${c.displayName}.vcf`,
+      data: Buffer.from(c!.vcard!, 'utf-8'),
+      fileName: `${c!.displayName}.vcf`,
     }))
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
     const messageType = Object.keys(message)[0]
@@ -200,12 +200,12 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
         id,
         size: { width: messageInner?.width, height: messageInner?.height },
         type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
-        isGif: message.videoMessage?.gifPlayback,
+        isGif: !!message.videoMessage?.gifPlayback,
         isSticker: message.stickerMessage ? true : undefined,
         mimeType: messageInner.mimetype,
         posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
         srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
-        fileName,
+        fileName: fileName || undefined,
       },
     ]
     response.media = true
@@ -215,26 +215,26 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
       {
         id,
         type: MessageAttachmentType.IMG,
-        mimeType: img.mimetype,
-        posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : null,
+        mimeType: img.mimetype!,
+        posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : undefined,
       },
     ]
     response.media = true
   }
   return response
 }
-function messageQuoted(messageInner: any): MessagePreview {
-  if (!messageInner) return
-
-  const contextInfo = messageInner?.contextInfo as WAContextInfo
-  const quoted = contextInfo?.quotedMessage
-  if (!quoted) return null
-
-  return {
-    id: contextInfo.stanzaId,
-    threadID: whatsappID(contextInfo.remoteJid),
-    senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid),
-    text: messageText(contextInfo.quotedMessage, Object.values(contextInfo.quotedMessage)[0]),
+function messageQuoted(messageInner: any): MessagePreview | undefined {
+  if (messageInner) {
+    const contextInfo = messageInner?.contextInfo as WAContextInfo
+    const quoted = contextInfo?.quotedMessage
+    if (quoted) {
+      return {
+        id: contextInfo.stanzaId!,
+        threadID: whatsappID(contextInfo.remoteJid!),
+        senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid!),
+        text: messageText(contextInfo.quotedMessage!, Object.values(contextInfo.quotedMessage!)[0]) || '',
+      }
+    }
   }
 }
 function* messageHeading(message: WAMessage) {
@@ -242,19 +242,20 @@ function* messageHeading(message: WAMessage) {
   const m = message.message
   if (m) {
     if (isPaymentMessage(m)) {
-      const amount = `${message.paymentInfo.currency} ${numberToBigInt(message.paymentInfo.amount1000) / BigInt(1000)}`
-      const status = PAYMENT_STATUS_MAP[message.paymentInfo.status]
+      const paymentInfo = message.paymentInfo!
+      const amount = `${paymentInfo.currency} ${numberToBigInt(paymentInfo.amount1000!) / BigInt(1000)}`
+      const status = PAYMENT_STATUS_MAP[paymentInfo.status!]
       if (m.sendPaymentMessage) {
-        yield `💵 Payment to {{${message.paymentInfo.receiverJid}}} | ${amount} | ${status}`
+        yield `💵 Payment to {{${paymentInfo.receiverJid}}} | ${amount} | ${status}`
       }
       if (m.requestPaymentMessage) {
         yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
       }
       if (m.declinePaymentRequestMessage) {
-        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} declined ${amount} | ${status}`
+        yield `💵 Payment requested from {{${m.requestPaymentMessage!.requestFrom}}} declined ${amount} | ${status}`
       }
       if (m.cancelPaymentRequestMessage) {
-        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} canceled ${amount} | ${status}`
+        yield `💵 Payment requested from {{${m.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
       }
     }
     if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
@@ -276,20 +277,20 @@ function messageButtons(message: WAMessageContent) {
     template?.hydratedButtons?.forEach(button => {
       if (button.callButton) {
         buttons.push({
-          label: button.callButton.displayText,
+          label: button.callButton.displayText!,
           linkURL: 'tel:' + button.callButton.phoneNumber,
         })
       }
       if (button.quickReplyButton) {
         buttons.push({
-          label: button.quickReplyButton.displayText,
-          linkURL: 'texts://fill-textarea?text=' + encodeURIComponent(button.quickReplyButton.displayText),
+          label: button.quickReplyButton.displayText!,
+          linkURL: 'texts://fill-textarea?text=' + encodeURIComponent(button.quickReplyButton.displayText!),
         })
       }
       if (button.urlButton) {
         buttons.push({
-          label: button.urlButton.displayText,
-          linkURL: button.urlButton.url,
+          label: button.urlButton.displayText!,
+          linkURL: button.urlButton.url!,
         })
       }
     })
@@ -300,7 +301,7 @@ function messageButtons(message: WAMessageContent) {
 function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
     const exp = message.protocolMessage.ephemeralExpiration
-    return getEphemeralMessageSettingChangedText(exp, 'sender')
+    return getEphemeralMessageSettingChangedText(exp!, 'sender')
   }
   const paymentMessage = message?.sendPaymentMessage || message?.requestPaymentMessage || message?.cancelPaymentRequestMessage || message?.declinePaymentRequestMessage
   if (paymentMessage) {
@@ -308,7 +309,7 @@ function messageText(message: WAMessageContent, messageInner: any) {
       const etm = paymentMessage?.noteMessage?.extendedTextMessage
       const note = etm?.text
       const jids = etm?.contextInfo?.mentionedJid
-      if (note) return replaceJids(jids, note)
+      if (note) return replaceJids(jids!, note)
     }
   }
   const loc = message?.locationMessage || message?.liveLocationMessage
@@ -317,7 +318,7 @@ function messageText(message: WAMessageContent, messageInner: any) {
   }
   const product = message?.productMessage?.product
   if (product) {
-    const price = typeof product.priceAmount1000 === 'number' ? +product.priceAmount1000 : product.priceAmount1000.low
+    const price = typeof product.priceAmount1000 === 'number' ? +product.priceAmount1000 : product.priceAmount1000!.low
     return [
       product.title,
       product.description,
@@ -338,24 +339,25 @@ function messageText(message: WAMessageContent, messageInner: any) {
   return message?.conversation
 }
 
-function messageLink(message: WAMessageContent): MessageLink {
+function messageLink(message: WAMessageContent): MessageLink | undefined {
   const mess = message?.extendedTextMessage
-  if (!mess?.matchedText) return null
-  const jpgThumb = mess.jpegThumbnail && Buffer.from(mess.jpegThumbnail)
-  return {
-    url: mess.matchedText,
-    img: jpgThumb && jpgThumb.length > 0 ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
-    imgSize: {
-      width: 90,
-      height: 90,
-    },
-    title: mess.title,
-    summary: mess.description,
+  if (mess?.matchedText) {
+    const jpgThumb = mess.jpegThumbnail && Buffer.from(mess.jpegThumbnail)
+    return {
+      url: mess.matchedText,
+      img: jpgThumb && jpgThumb.length > 0 ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
+      imgSize: {
+        width: 90,
+        height: 90,
+      },
+      title: mess.title!,
+      summary: mess.description!,
+    }
   }
 }
 function messageStubText(message: WAMessage) {
-  const mapped = PRE_DEFINED_MESSAGES[message.messageStubType] || null
-  let txt: string = typeof mapped === 'function' ? mapped(message) : mapped
+  const mapped = PRE_DEFINED_MESSAGES[message.messageStubType]
+  let txt = typeof mapped === 'function' ? mapped(message) : mapped
   if (txt) {
     message.messageStubParameters.forEach((p, i) => {
       txt = txt.replace(`{{${i}}}`, whatsappID(p))
@@ -370,7 +372,7 @@ function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date 
       seenMap[whatsappID(info.jid)] = new Date(+info.t * 1000)
     })
   } else if (message.status === WAMessageStatus.READ) {
-    const pid = whatsappID(message.key.remoteJid)
+    const pid = whatsappID(message.key!.remoteJid!)
     if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
   }
   return seenMap
@@ -378,7 +380,7 @@ function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date 
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
     const key = Object.keys(WAMessageStatus).find(k => k === status)
-    return WAMessageStatus[key]
+    return WAMessageStatus[key!]
   }
   return status
 }
@@ -419,14 +421,15 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
 
   function mapThreadParticipants(chat: Partial<WAChat>): Paginated<Participant> {
     let participants: Participant[]
-    if (isGroupID(chat.jid) || isBroadcastID(chat.jid)) {
-      const parts = store.groupMetadata[chat.jid]?.participants || []
+    const jid = chat.jid!
+    if (isGroupID(jid) || isBroadcastID(jid)) {
+      const parts = store.groupMetadata[jid]?.participants || []
       participants = mapContacts(
         parts.map(p => ({ ...(store.contacts[p.jid] || {}), ...p })),
       )
     } else {
       participants = mapContacts([
-        { jid: chat.jid, name: chat.name, imgUrl: store.contacts[chat.jid]?.imgUrl },
+        { jid, name: chat.name, imgUrl: store.contacts[jid]?.imgUrl },
         store.state.user!,
       ])
     }
@@ -438,7 +441,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
 
   const mapMessagePartial = (message: Partial<WACompleteMessage>): Pick<Message, 'id' | 'seen'> => (
     {
-      id: message.key.id,
+      id: message.key!.id!,
       seen: (message.info || message.status) ? messageSeen(message) : undefined,
     }
   )
@@ -446,17 +449,17 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
   const mapMessages = (messages: WACompleteMessage[]) => (
     messages.map(
       message => {
-        const currentUserID = meJid()
+        const currentUserID = meJid()!
         const isEphemeral = !!message.message?.ephemeralMessage
         const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
         const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
-        const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid)
+        const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)
         const stubBasedMessage = messageStubText(message)
-        const { attachments } = messageAttachments(messageContent, messageInner, message.key.remoteJid, message.key.id)
+        const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
         const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
         const linked = messageQuoted(messageInner)
-        const link = messageLink(messageContent)
+        const link = messageLink(messageContent!)
         const action = messageAction(message)
         const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
@@ -467,21 +470,21 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
           _original: safeJSONStringify([message, currentUserID]),
           ...mapMessagePartial(message),
           cursor: message.key.id + '_' + Number(message.key.fromMe),
-          threadID: message.key.remoteJid,
+          threadID: message.key.remoteJid!,
           textHeading: [...messageHeading(message)].join('\n'),
-          text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent, messageInner) ?? stubBasedMessage),
+          text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
           textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
           timestamp: new Date(timestamp * 1000),
           forwardedCount: messageInner?.contextInfo?.forwardingScore,
           senderID,
-          isSender: message.key.fromMe,
+          isSender: !!message.key.fromMe,
           isDeleted,
           attachments,
-          buttons: messageButtons(messageContent),
+          buttons: messageButtons(messageContent!),
           isDelivered: message.key.fromMe ? messageStatus(message.status) >= WAMessageStatus.SERVER_ACK : true,
           linkedMessage: linked,
           links: link ? [link] : undefined,
-          parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message),
+          parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
           isAction,
           action,
           // todo: review logic, this is incorrect:
@@ -491,7 +494,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
           sortKey: (5000 + ((message as any).epoch || 0)).toString(16) + toNumber(message.messageTimestamp).toString(16).padStart(8, '0'),
         }
         if (mapped.text) {
-          const { text, textAttributes } = mapTextAttributes(mapped.text, store.contacts)
+          const { text, textAttributes } = mapTextAttributes(mapped.text, store.contacts)!
           if (textAttributes) {
             mapped.text = text
             mapped.textAttributes = textAttributes
@@ -504,10 +507,10 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
 
   const mapChatPartial = (chat: Partial<WAChat>): Omit<Thread, 'participants' | 'messages' | 'type'> => {
     const mapped = {
-      id: chat.jid,
-      title: chat.name || contactNameFromJid(chat.jid),
-      description: store.groupMetadata[chat.jid]?.desc || '',
-      imgURL: store.contacts[chat.jid]?.imgUrl,
+      id: chat.jid!,
+      title: chat.name || contactNameFromJid(chat.jid!),
+      description: store.groupMetadata[chat.jid!]?.desc || '',
+      imgURL: store.contacts[chat.jid!]?.imgUrl,
       isUnread: typeof chat.count !== 'undefined' ? !!chat.count : undefined,
       isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
       isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
@@ -519,7 +522,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
         delete mapped[key]
       }
     }
-    return mapped
+    return mapped as any
   }
 
   return {
@@ -550,9 +553,9 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     mapPresenceUpdate: (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
       const [participantID] = Object.keys(presenceUpdates)
       const presence = presenceUpdates[participantID]
-      const lastActive = presence.lastSeen && new Date(presence.lastSeen * 1000)
+      const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : new Date(0)
       const events: ServerEvent[] = []
-      if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence)) {
+      if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence!)) {
         events.push(
           {
             type: ServerEventType.USER_PRESENCE_UPDATED,
@@ -584,7 +587,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
           },
         )
       }
-      if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence)) {
+      if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence!)) {
         events.push({ type: ServerEventType.USER_ACTIVITY, activityType: ActivityType.NONE, threadID, participantID })
       }
       return events
