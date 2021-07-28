@@ -520,7 +520,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const chat = this.getChat(threadID)
     const opts = {
-      ephemeralOptions: chat.ephemeral ? { expiration: chat.ephemeral, eph_setting_ts: chat.eph_setting_ts } : undefined,
+      ephemeralOptions: chat?.ephemeral ? { expiration: chat.ephemeral, eph_setting_ts: chat.eph_setting_ts } : undefined,
       waitForAck: true,
     }
 
