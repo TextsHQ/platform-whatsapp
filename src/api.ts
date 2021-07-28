@@ -258,7 +258,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.Sentry.captureMessage(msg)
 
       if (this.hasSomeChats) {
-        const events = contacts.map(
+        const events = contacts.map<ServerEvent>(
           c => (
             {
               type: ServerEventType.STATE_SYNC,
@@ -267,7 +267,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               mutationType: 'update',
               entries: [{ id: c.jid, title: this.mappers.contactName(c) }],
             }
-          ) as ServerEvent,
+          ),
         )
         this.evCallback(events)
       }
@@ -313,13 +313,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('messages.upsert', ({ messages, type }) => {
       let list: ServerEvent[] = []
       if (type === 'notify' || type === 'append') {
-        list = messages.map(msg => ({
+        list = messages.map<ServerEvent>(msg => ({
           type: ServerEventType.STATE_SYNC,
           mutationType: 'upsert',
-          objectIDs: { threadID: msg.key.remoteJid },
+          objectIDs: { threadID: msg.key.remoteJid as string },
           objectName: 'message',
           entries: this.mappers.mapMessages([msg]),
-        })) as ServerEvent[]
+        }))
       } else if (type === 'last') {
         list = messages.flatMap(
           msg => {
