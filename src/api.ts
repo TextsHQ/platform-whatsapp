@@ -277,17 +277,22 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.Sentry.captureMessage(msg)
 
       if (this.hasSomeChats) {
-        const events = contacts.map<ServerEvent>(
-          c => (
-            {
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'thread',
-              objectIDs: { threadID: c.jid },
-              mutationType: 'update',
-              entries: [{ id: c.jid, title: this.mappers.contactName(c) }],
-            }
-          ),
-        )
+        const events: ServerEvent[] = []
+        for (const c of contacts) {
+          const chat = this.store.chats.get(c.jid)
+          if (!chat.name) {
+            const title = this.mappers.contactName(c)
+            events.push(
+              {
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID: c.jid },
+                mutationType: 'update',
+                entries: [{ id: c.jid, title }],
+              },
+            )
+          }
+        }
         this.evCallback(events)
       }
     })
@@ -508,7 +513,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       const exists = await this.client!.isOnWhatsApp(jid)
       if (exists) return { id: jid, phoneNumber } as User
     }
-    throw new Error('user does not exist')
   }
 
   sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
