@@ -6,7 +6,7 @@ import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxNam
 
 import P from 'pino'
 import mappers from './mappers'
-import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP } from './util'
+import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
@@ -56,6 +56,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private lastConnect: Date
 
   private chatsRecvCallback: () => void
+
+  private readonly mutex = makeMutex()
 
   init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo) => {
     this.accountID = accountID
@@ -297,9 +299,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('contacts.upsert', contacts => {
-
-    })
+    ev.on('contacts.upsert', contacts => { })
 
     ev.on('chats.update', chatUpdateEvents)
 
@@ -515,65 +515,67 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  sendMessage = async (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
-    await this.client!.waitForConnection()
+  sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
+    this.mutex.mutex(async () => {
+      await this.client!.waitForConnection()
 
-    let content: AnyRegularMessageContent
-    let { text, mimeType } = msgContent
-    let sendAdditionalTextMessage = false
+      let content: AnyRegularMessageContent
+      let { text, mimeType } = msgContent
+      let sendAdditionalTextMessage = false
 
-    const chat = this.getChat(threadID)
-    const opts = {
-      ephemeralOptions: chat?.ephemeral ? { expiration: chat.ephemeral, eph_setting_ts: +chat.eph_setting_ts! } : undefined,
-      waitForAck: true,
-    }
-
-    msgContent.mentionedUserIDs?.forEach(userID => {
-      const phoneNumber = removeServer(userID)
-      // @+14151231234 => @14151231234
-      text = text!.replace('@+' + phoneNumber, '@' + phoneNumber)
-    })
-    const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
-
-    if (buffer) {
-      let media: AnyMediaMessageContent
-      if (mimeType?.endsWith('/webp')) media = { sticker: buffer }
-      else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif }
-      else if (mimeType?.includes('image/')) media = { image: buffer, caption: text }
-      else if (mimeType?.includes('audio/')) media = { audio: buffer, pttAudio: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
-      else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
-
-      media.mimetype = mimeType || 'application/octet-stream'
-      content = media
-      if (!!text && !('caption' in media)) {
-        sendAdditionalTextMessage = true
+      const chat = this.getChat(threadID)
+      const opts = {
+        ephemeralOptions: chat?.ephemeral ? { expiration: chat.ephemeral, eph_setting_ts: +chat.eph_setting_ts! } : undefined,
+        waitForAck: true,
       }
-    } else {
-      content = {
-        text: text!,
-        mentions: msgContent.mentionedUserIDs,
+
+      msgContent.mentionedUserIDs?.forEach(userID => {
+        const phoneNumber = removeServer(userID)
+        // @+14151231234 => @14151231234
+        text = text!.replace('@+' + phoneNumber, '@' + phoneNumber)
+      })
+      const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
+
+      if (buffer) {
+        let media: AnyMediaMessageContent
+        if (mimeType?.endsWith('/webp')) media = { sticker: buffer }
+        else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif }
+        else if (mimeType?.includes('image/')) media = { image: buffer, caption: text }
+        else if (mimeType?.includes('audio/')) media = { audio: buffer, pttAudio: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
+        else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
+
+        media.mimetype = mimeType || 'application/octet-stream'
+        content = media
+        if (!!text && !('caption' in media)) {
+          sendAdditionalTextMessage = true
+        }
+      } else {
+        content = {
+          text: text!,
+          mentions: msgContent.mentionedUserIDs,
+        }
       }
-    }
-    const messages: WAMessage[] = []
-    messages.push(
-      await this.client!.sendWAMessage(
-        threadID,
-        content,
-        {
-          quoted: options?.quotedMessageID
-            ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID, this.client)
-            : undefined,
-          ...opts,
-        },
-      ),
-    )
-    if (sendAdditionalTextMessage) {
+      const messages: WAMessage[] = []
       messages.push(
-        await this.client!.sendWAMessage(threadID, { text: text! }, opts),
+        await this.client!.sendWAMessage(
+          threadID,
+          content,
+          {
+            quoted: options?.quotedMessageID
+              ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID, this.client)
+              : undefined,
+            ...opts,
+          },
+        ),
       )
-    }
-    return this.mappers.mapMessages(messages)
-  }
+      if (sendAdditionalTextMessage) {
+        messages.push(
+          await this.client!.sendWAMessage(threadID, { text: text! }, opts),
+        )
+      }
+      return this.mappers.mapMessages(messages)
+    })
+  )
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
     const forward = await this.store.loadMessage(threadID, messageID, this.client)

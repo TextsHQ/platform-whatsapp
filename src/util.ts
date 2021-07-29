@@ -54,3 +54,17 @@ export function safeJSONStringify(obj: any) {
     // swallow
   }
 }
+
+export const makeMutex = () => {
+  let task = Promise.resolve() as Promise<any>
+  return {
+    mutex<T>(code: () => Promise<T>):Promise<T> {
+      task = (async () => {
+        try { await task } catch { }
+        const result = await code()
+        return result
+      })()
+      return task
+    },
+  }
+}
