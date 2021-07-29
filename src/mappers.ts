@@ -1,8 +1,7 @@
-import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, MessageStatusUpdate, makeInMemoryStore, toNumber } from '@adiwajshing/baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType } from '@textshq/platform-sdk'
+import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber } from '@adiwajshing/baileys'
+import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
-import type { WACompleteMessage } from './types'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -138,22 +137,6 @@ function threadType(jid: string): ThreadType {
   if (isGroupID(jid)) return 'group'
   if (isBroadcastID(jid)) return 'broadcast'
   return 'single'
-}
-
-export function updateReadReceipts(messages: WAMessage[], update: MessageStatusUpdate) {
-  for (const msg of messages) {
-    if (!update.ids.includes(msg.key.id!)) return
-    const status = update.type
-    const waMsg = msg as WACompleteMessage
-
-    if (!waMsg.info) waMsg.info = { reads: [], deliveries: [] }
-
-    const person = { jid: update.participant!, t: (Date.now() / 1000).toString() }
-    if (status >= WAMessageStatus.READ) waMsg.info.reads.push(person)
-    else if (status >= WAMessageStatus.DELIVERY_ACK) waMsg.info.deliveries.push(person)
-
-    waMsg.status = WAMessageStatus.SERVER_ACK
-  }
 }
 
 function messageAction(message: WAMessage): MessageAction | undefined {
@@ -366,18 +349,9 @@ function messageStubText(message: WAMessage) {
   }
   return txt
 }
-function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date } {
-  const seenMap: { [id: string]: Date } = {}
-  if (message.info) {
-    message.info.reads.forEach(info => {
-      seenMap[whatsappID(info.jid)] = new Date(+info.t * 1000)
-    })
-  } else if (message.status === WAMessageStatus.READ) {
-    const pid = whatsappID(message.key!.remoteJid!)
-    if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
-  }
-  return seenMap
-}
+/* function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date } {
+
+} */
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
     const key = Object.keys(WAMessageStatus).find(k => k === status)
@@ -442,14 +416,24 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     }
   }
 
-  const mapMessagePartial = (message: Partial<WACompleteMessage>): Pick<Message, 'id' | 'seen'> => (
-    {
-      id: message.key!.id!,
-      seen: (message.info || message.status) ? messageSeen(message) : undefined,
+  const mapMessagePartial = (message: Partial<WAMessage>): Pick<Message, 'id' | 'seen'> => {
+    const seenMap: MessageSeen = {}
+    const msgInfo = store.messageInfos[message.key!.id!]
+    if (msgInfo) {
+      for (const jid in msgInfo.reads) {
+        seenMap[jid] = msgInfo.reads[jid]
+      }
+    } else if (message.status === WAMessageStatus.READ) {
+      const pid = whatsappID(message.key!.remoteJid!)
+      if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
     }
-  )
+    return {
+      id: message.key!.id!,
+      seen: (msgInfo || message.status) ? seenMap : undefined,
+    }
+  }
 
-  const mapMessage = (message: WACompleteMessage) => {
+  const mapMessage = (message: WAMessage) => {
     const currentUserID = meJid()!
     const isEphemeral = !!message.message?.ephemeralMessage
     const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
@@ -504,7 +488,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     return mapped
   }
 
-  const mapMessages = (messages: WACompleteMessage[]) =>
+  const mapMessages = (messages: WAMessage[]) =>
     messages.map(mapMessage)
 
   const mapChatPartial = (chat: Partial<WAChat>) => {

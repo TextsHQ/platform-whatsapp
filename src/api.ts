@@ -1,13 +1,12 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
-import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay } from '@adiwajshing/baileys'
+import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
 
 import P from 'pino'
 import mappers from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP } from './util'
-import type { WACompleteMessage } from './types'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
@@ -215,6 +214,26 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
       !!list.length && this.evCallback(list.flat())
     }
+    const messageUpdateEvents = (updates: WAMessageUpdate[] | MessageInfoUpdate[]) => {
+      texts.log('msg update', updates)
+      const list = updates.map(
+        ({ update, key }) => {
+          const items = this.store.messages[key!.remoteJid!]
+          // if the key has been updated, fetch that
+          // otherwise fetch the key we're supposed to fetch
+          const msg = items.get(update.key?.id || key.id!)
+          const ev: ServerEvent = {
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'message',
+            objectIDs: { threadID: msg.key.remoteJid!, messageID: msg.key.id! },
+            mutationType: 'update',
+            entries: [this.mappers.mapMessagePartial(msg)],
+          }
+          return ev
+        },
+      )
+      !!list.length && this.evCallback(list)
+    }
 
     ev.on('connection.update', update => {
       texts.log('connection update:', update)
@@ -291,25 +310,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       ])
     })
 
-    ev.on('messages.update', updates => {
-      const list = updates.map(
-        ({ update, key }) => {
-          const items = this.store.messages[key!.remoteJid!]
-          // if the key has been updated, fetch that
-          // otherwise fetch the key we're supposed to fetch
-          const msg = items.get(update.key?.id || key.id!)
-          const ev: ServerEvent = {
-            type: ServerEventType.STATE_SYNC,
-            objectName: 'message',
-            objectIDs: { threadID: msg.key.remoteJid! },
-            mutationType: 'update',
-            entries: this.mappers.mapMessages([msg]),
-          }
-          return ev
-        },
-      )
-      !!list.length && this.evCallback(list)
-    })
+    ev.on('messages.update', messageUpdateEvents)
+    ev.on('message-info.update', messageUpdateEvents)
+
     ev.on('messages.upsert', ({ messages, type }) => {
       let list: ServerEvent[] = []
       if (type === 'notify' || type === 'append') {
@@ -321,35 +324,26 @@ export default class WhatsAppAPI implements PlatformAPI {
           entries: this.mappers.mapMessages([msg]),
         }))
       } else if (type === 'last') {
-        list = messages.flatMap(
-          msg => {
-            const events: ServerEvent[] = []
-            const storeList = this.store.messages[msg.key.remoteJid!]
-            // no change in last message
-            if (storeList.array[storeList.array.length - 1]?.key.id === msg.key.id) {
-
-            } else { // recv more messages while disconnected
-              if (storeList.array.length) {
-                list.push({
-                  type: ServerEventType.STATE_SYNC,
-                  mutationType: 'delete-all',
-                  objectName: 'message',
-                  objectIDs: { threadID: msg.key.remoteJid! },
-                })
-              }
-              list.push({
-                type: ServerEventType.STATE_SYNC,
-                mutationType: 'upsert',
-                objectIDs: { threadID: msg.key.remoteJid! },
-                objectName: 'message',
-                entries: this.mappers.mapMessages([msg]),
-              })
-            }
-            return events
-          },
-        )
+        for (const msg of messages) {
+          const storeList = this.store.messages[msg.key.remoteJid!]
+          if (storeList.array.length) {
+            list.push({
+              type: ServerEventType.STATE_SYNC,
+              mutationType: 'delete-all',
+              objectName: 'message',
+              objectIDs: { threadID: msg.key.remoteJid! },
+            })
+          }
+          list.push({
+            type: ServerEventType.STATE_SYNC,
+            mutationType: 'upsert',
+            objectIDs: { threadID: msg.key.remoteJid! },
+            objectName: 'message',
+            entries: this.mappers.mapMessages([msg]),
+          })
+        }
       }
-      list = list.filter(Boolean)
+      console.log('msg upserts', list.length, messages.length)
       list.length && this.evCallback(list)
     })
 
@@ -461,22 +455,20 @@ export default class WhatsAppAPI implements PlatformAPI {
   // }
 
   private lazyLoadReadReceipts = async (messages: WAMessage[], threadID: string) => {
-    const updatedMessages = await bluebird.map(messages, async (m: WACompleteMessage) => {
-      if (m.key.fromMe && !m.info) {
-        m.info = await this.client!.messageInfo(m.key.remoteJid!, m.key.id!)
-          .catch(() => ({ reads: [], deliveries: [] }))
-
-        return this.mappers.mapMessagePartial(m)
+    const messageUpdates: Partial<Message>[] = []
+    await bluebird.map(messages, async m => {
+      if (m.key.fromMe) {
+        await this.store!.fetchMessageInfo(m.key, this.client)
+        messageUpdates.push(this.mappers.mapMessagePartial(m))
       }
     })
-    const entries = updatedMessages.filter(Boolean)
-    if (entries.length) {
+    if (messageUpdates.length) {
       this.evCallback([{
         type: ServerEventType.STATE_SYNC,
         mutationType: 'update',
         objectIDs: { threadID },
         objectName: 'message',
-        entries: entries as Partial<Message>[],
+        entries: messageUpdates,
       }])
     }
   }
