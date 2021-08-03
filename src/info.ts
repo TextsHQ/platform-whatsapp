@@ -1,7 +1,5 @@
 import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
-import { removeServer } from './util'
-
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
   version: '2021.07.26',
@@ -60,7 +58,7 @@ const info: PlatformInfo = {
       if (participantID && participantID.endsWith('s.whatsapp.net')) {
         return {
           id: participantID,
-          phoneNumber: '+' + removeServer(participantID),
+          phoneNumber: '+' + participantID.split('@').shift(),
         }
       }
     },
