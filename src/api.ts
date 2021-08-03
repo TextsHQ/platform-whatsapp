@@ -182,7 +182,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
-      // console.log(updates)
       const list = await Promise.all(
         updates.map(async update => {
           update = { ...update }
@@ -348,7 +347,6 @@ export default class WhatsAppAPI implements PlatformAPI {
           })
         }
       }
-      console.log('msg upserts', list.length, messages.length)
       list.length && this.evCallback(list)
     })
 
@@ -498,8 +496,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
     }
-
-    // console.log('msg cursor', cursor, 'hasMore', hasMore, 'count', messageLen)
 
     return {
       items: this.mappers.mapMessages(messages),
