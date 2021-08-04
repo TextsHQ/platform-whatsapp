@@ -539,7 +539,7 @@ export default (store: ReturnType<typeof makeInMemoryStore>) => {
     mapPresenceUpdate: (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
       const [participantID] = Object.keys(presenceUpdates)
       const presence = presenceUpdates[participantID]
-      const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : new Date(0)
+      const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : undefined
       const events: ServerEvent[] = []
       if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence!)) {
         events.push(
