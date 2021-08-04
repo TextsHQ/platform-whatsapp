@@ -2,7 +2,7 @@ import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@text
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
-  version: '2021.07.26',
+  version: '2021.08.04',
   displayName: 'WhatsApp',
   icon: `
 <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
