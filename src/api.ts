@@ -281,7 +281,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         const events: ServerEvent[] = []
         for (const c of contacts) {
           const chat = this.store.chats.get(c.jid)
-          if (!chat.name) {
+          if (!!chat && !chat.name) {
             const title = this.mappers.contactName(c)
             events.push(
               {
