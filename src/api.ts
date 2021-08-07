@@ -458,7 +458,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   // }
 
   private lazyLoadReadReceipts = async (messages: WAMessage[], threadID: string) => {
-    const messageUpdates: Partial<Message>[] = []
+    const messageUpdates: Partial<Message> & { id: string }[] = []
     await bluebird.map(messages, async m => {
       if (m.key.fromMe) {
         await this.store!.fetchMessageInfo(m.key, this.client)
