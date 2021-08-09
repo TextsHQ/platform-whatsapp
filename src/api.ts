@@ -543,7 +543,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         // @+14151231234 => @14151231234
         text = text!.replace('@+' + phoneNumber, '@' + phoneNumber)
       })
-      const buffer = msgContent.fileBuffer || (msgContent.filePath ? await fs.readFile(msgContent.filePath) : undefined)
+      const buffer = msgContent.fileBuffer || (msgContent.filePath ? { url: msgContent.filePath! } : undefined)
 
       if (buffer) {
         let media: AnyMediaMessageContent
@@ -552,6 +552,10 @@ export default class WhatsAppAPI implements PlatformAPI {
         else if (mimeType?.includes('image/')) media = { image: buffer, caption: text }
         else if (mimeType?.includes('audio/')) media = { audio: buffer, pttAudio: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
         else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
+
+        if (mimeType?.endsWith('/ogg')) {
+          mimeType = 'audio/ogg; codecs=opus'
+        }
 
         media.mimetype = mimeType || 'application/octet-stream'
         content = media
