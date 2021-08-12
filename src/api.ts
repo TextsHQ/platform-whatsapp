@@ -1,7 +1,7 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import { promises as fs } from 'fs'
-import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions } from '@adiwajshing/baileys'
+import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
 
 import P from 'pino'
@@ -338,15 +338,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('message-info.update', messageUpdateEvents)
 
     ev.on('messages.upsert', ({ messages, type }) => {
-      let list: ServerEvent[] = []
+      const list: ServerEvent[] = []
       if (type === 'notify' || type === 'append') {
-        list = messages.map<ServerEvent>(msg => ({
-          type: ServerEventType.STATE_SYNC,
-          mutationType: 'upsert',
-          objectIDs: { threadID: msg.key.remoteJid as string },
-          objectName: 'message',
-          entries: this.mappers.mapMessages([msg]),
-        }))
+        for (const msg of messages) {
+          if (msg.key.remoteJid !== STORIES_JID) {
+            list.push({
+              type: ServerEventType.STATE_SYNC,
+              mutationType: 'upsert',
+              objectIDs: { threadID: msg.key.remoteJid as string },
+              objectName: 'message',
+              entries: this.mappers.mapMessages([msg]),
+            })
+          }
+        }
       } else if (type === 'last') {
         for (const msg of messages) {
           const storeList = this.store.messages[msg.key.remoteJid!]
@@ -453,7 +457,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const { chats } = this.store
     const result = chats.paginated(cursor || null, THREAD_PAGE_SIZE)
-    await bluebird.map(result, chat => this.loadChat(chat.jid))
+
+    const chatLoads: Promise<void>[] = []
+    for (const chat of result) {
+      if (chat.jid !== STORIES_JID) {
+        chatLoads.push(this.loadChat(chat.jid))
+      }
+    }
+    await bluebird.all(chatLoads)
 
     const items = this.mappers.mapChats(result)
 
