@@ -224,7 +224,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         // if the key has been updated, fetch that
         // otherwise fetch the key we're supposed to fetch
         const keyId = (update as Partial<WAMessage>).key?.id || key.id!
-        const msg = items.get(keyId)
+        const msg = items?.get(keyId)
         // messsage ID has changed
         // delete and reinsert
         if (keyId !== key.id) {
