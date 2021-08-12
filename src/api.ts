@@ -217,22 +217,42 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
     const messageUpdateEvents = (updates: WAMessageUpdate[] | MessageInfoUpdate[]) => {
       texts.log('msg update', updates)
-      const list = updates.map(
-        ({ update, key }) => {
-          const items = this.store.messages[key!.remoteJid!]
-          // if the key has been updated, fetch that
-          // otherwise fetch the key we're supposed to fetch
-          const msg = items.get(update.key?.id || key.id!)
-          const ev: ServerEvent = {
+      const list: ServerEvent[] = []
+      for (const { update, key } of updates) {
+        const items = this.store.messages[key!.remoteJid!]
+        // if the key has been updated, fetch that
+        // otherwise fetch the key we're supposed to fetch
+        const keyId = (update as Partial<WAMessage>).key?.id || key.id!
+        const msg = items.get(keyId)
+        // messsage ID has changed
+        // delete and reinsert
+        if (keyId !== key.id) {
+          list.push({
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'message',
+            objectIDs: { threadID: key.remoteJid!, messageID: key.id! },
+            mutationType: 'delete',
+            entries: [key.id!],
+          })
+          if (msg) {
+            list.push({
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'message',
+              objectIDs: { threadID: msg.key.remoteJid!, messageID: msg.key.id! },
+              mutationType: 'upsert',
+              entries: this.mappers.mapMessages([msg]),
+            })
+          }
+        } else if (msg) {
+          list.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'message',
             objectIDs: { threadID: msg.key.remoteJid!, messageID: msg.key.id! },
             mutationType: 'update',
             entries: [this.mappers.mapMessagePartial(msg)],
-          }
-          return ev
-        },
-      )
+          })
+        }
+      }
       !!list.length && this.evCallback(list)
     }
 
