@@ -1,6 +1,5 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
-import { promises as fs } from 'fs'
 import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
 
@@ -22,7 +21,7 @@ const AUTO_RECONNECT_CODES = new Set([
 ])
 
 const config: Partial<SocketConfig> = {
-  version: [2, 2126, 11],
+  version: [2, 2130, 9],
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 150_000,
@@ -219,6 +218,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('msg update', updates)
       const list: ServerEvent[] = []
       for (const { update, key } of updates) {
+        if (key.remoteJid === STORIES_JID) continue
+
         const items = this.store.messages[key!.remoteJid!]
         // if the key has been updated, fetch that
         // otherwise fetch the key we're supposed to fetch
@@ -265,6 +266,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           const statusCode = update.lastDisconnect!.error?.output?.statusCode || 1
           const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
           isReplaced = statusCode === DisconnectReason.connectionReplaced
+
           texts.log('disconnected, reconnecting: ', isReconnecting)
           // auto reconnect logic
           if (isReconnecting) {
@@ -353,6 +355,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       } else if (type === 'last') {
         for (const msg of messages) {
+          if (msg.key.remoteJid === STORIES_JID) continue
+
           const storeList = this.store.messages[msg.key.remoteJid!]
           if (storeList.array.length) {
             list.push({
