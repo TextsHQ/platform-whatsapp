@@ -294,11 +294,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.set', ({ contacts }) => {
-      const time = (Date.now() - this.lastConnect.getTime()) / 1000
-      const msg = `received ${contacts.length} contacts, after ${time}s`
-      texts.log(msg)
-      texts.Sentry.captureMessage(msg)
-
       if (this.hasSomeChats) {
         const events: ServerEvent[] = []
         for (const c of contacts) {
