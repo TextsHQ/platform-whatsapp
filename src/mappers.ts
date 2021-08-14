@@ -2,8 +2,7 @@ import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMe
 import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
-
-const CHAT_MUTE_DURATION_S = 64092211200
+import { CHAT_MUTE_DURATION_S, ONE_THOUSAND_YEARS_IN_SECONDS } from './constants'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -496,10 +495,10 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
       isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
       timestamp: chat.t ? new Date(+chat.t * 1000) : undefined,
-      mutedUntil: undefined,
+      mutedUntil: UNKNOWN_DATE,
     }
     if (chat.mute) {
-      if (+chat.mute === CHAT_MUTE_DURATION_S) mapped.mutedUntil = 'forever'
+      if (+chat.mute > ONE_THOUSAND_YEARS_IN_SECONDS) mapped.mutedUntil = 'forever'
       else mapped.mutedUntil = new Date(+chat.mute * 1000)
     }
     for (const key of Object.keys(mapped)) {

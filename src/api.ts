@@ -6,10 +6,10 @@ import P from 'pino'
 
 import getMappers from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
+import { CHAT_MUTE_DURATION_S } from './constants'
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
-const CHAT_MUTE_DURATION_S = 64092211200
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
