@@ -181,11 +181,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
-      const list = await Promise.all(
-        updates.map(async update => {
-          update = { ...update }
+      const list: ServerEvent[] = []
+      await Promise.all(
+        updates.map(async _update => {
+          const update = { ..._update }
           const jid = update.jid!
-          const list: ServerEvent[] = []
           if (jid !== 'status@broadcast') {
             if (update.presences) {
               const mapped = this.mappers.mapPresenceUpdate(jid, update.presences)
@@ -209,10 +209,9 @@ export default class WhatsAppAPI implements PlatformAPI {
               )
             }
           }
-          return list
         }),
       )
-      !!list.length && this.evCallback(list.flat())
+      if (list.length) this.evCallback(list)
     }
     const messageUpdateEvents = (updates: WAMessageUpdate[] | MessageInfoUpdate[]) => {
       texts.log('msg update', updates)

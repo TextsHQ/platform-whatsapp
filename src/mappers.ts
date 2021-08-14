@@ -1,7 +1,9 @@
 import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber } from '@adiwajshing/baileys'
-import { ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen } from '@textshq/platform-sdk'
+import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
+
+const CHAT_MUTE_DURATION_S = 64092211200
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -168,7 +170,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
 
   if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
-    response.attachments = contacts.map(c => ({
+    response.attachments = contacts.map<MessageAttachment>(c => ({
       id: `${id}_${c!.displayName}`,
       type: MessageAttachmentType.UNKNOWN,
       data: Buffer.from(c!.vcard!, 'utf-8'),
@@ -179,19 +181,17 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
 
-    response.attachments = [
-      {
-        id,
-        size: { width: messageInner?.width, height: messageInner?.height },
-        type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
-        isGif: !!message.videoMessage?.gifPlayback,
-        isSticker: message.stickerMessage ? true : undefined,
-        mimeType: messageInner.mimetype,
-        posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
-        srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
-        fileName: fileName || undefined,
-      },
-    ]
+    response.attachments = [{
+      id,
+      size: { width: messageInner?.width, height: messageInner?.height },
+      type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
+      isGif: !!message.videoMessage?.gifPlayback,
+      isSticker: message.stickerMessage ? true : undefined,
+      mimeType: messageInner.mimetype,
+      posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
+      srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
+      fileName: fileName || undefined,
+    }]
     response.media = true
   } else if (message.productMessage?.product?.productImage) {
     const img = message.productMessage?.product?.productImage
@@ -349,9 +349,7 @@ function messageStubText(message: WAMessage) {
   }
   return txt
 }
-/* function messageSeen(message: Partial<WACompleteMessage>): { [id: string]: Date } {
 
-} */
 function messageStatus(status: number | string) {
   if (typeof status === 'string') {
     const key = Object.keys(WAMessageStatus).find(k => k === status)
@@ -359,8 +357,6 @@ function messageStatus(status: number | string) {
   }
   return status
 }
-
-type PartialThread = Omit<Thread, 'participants' | 'messages' | 'type'>
 
 export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) {
   const meJid = () => store.state.user?.jid
@@ -374,7 +370,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
   }
 
   const mapContacts = (contacts: (WAContact | WAGroupParticipant)[]): Participant[] => (
-    contacts.map(
+    contacts.map<Participant>(
       contact => {
         if (isGroupID(contact.jid)) {
           throw new Error('mapContact: cannot map a group')
@@ -382,7 +378,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
         if (isBroadcastID(contact.jid)) {
           throw new Error('mapContact: cannot map a broadcast list')
         }
-        const mapped: Participant = {
+        return {
           id: contact.jid,
           isSelf: contact.jid === meJid(),
           fullName: contactName(contact),
@@ -391,7 +387,6 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
           imgURL: contact.imgUrl,
           isAdmin: (contact as WAGroupParticipant).isAdmin,
         }
-        return mapped
       },
     )
   )
@@ -420,7 +415,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     const seenMap: MessageSeen = {}
     const msgInfo = store.messageInfos[message.key!.id!]
     if (msgInfo) {
-      for (const jid in msgInfo.reads) {
+      for (const jid of Object.keys(msgInfo.reads)) {
         seenMap[jid] = msgInfo.reads[jid]
       }
     } else if (message.status === WAMessageStatus.READ) {
@@ -491,8 +486,8 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
   const mapMessages = (messages: WAMessage[]) =>
     messages.map(mapMessage)
 
-  const mapChatPartial = (chat: Partial<WAChat>) => {
-    const mapped = {
+  const mapChatPartial = (chat: Partial<WAChat>): PartialWithID<Thread> => {
+    const mapped: PartialWithID<Thread> = {
       id: chat.jid!,
       title: chat.name || contactNameFromJid(chat.jid!),
       description: store.groupMetadata[chat.jid!]?.desc || '',
@@ -501,14 +496,18 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
       isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
       timestamp: chat.t ? new Date(+chat.t * 1000) : undefined,
-      mutedUntil: typeof chat.mute !== 'undefined' ? (chat.mute === null ? null : new Date(+chat.mute * 1000)) : undefined,
+      mutedUntil: undefined,
+    }
+    if (chat.mute) {
+      if (+chat.mute === CHAT_MUTE_DURATION_S) mapped.mutedUntil = 'forever'
+      else mapped.mutedUntil = new Date(+chat.mute * 1000)
     }
     for (const key of Object.keys(mapped)) {
       if (typeof mapped[key] === 'undefined') {
         delete mapped[key]
       }
     }
-    return mapped as PartialThread
+    return mapped
   }
 
   return {
@@ -516,21 +515,18 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     contactNameFromJid,
     mapChatPartial,
     mapChats: (chats: WAChat[]) => (
-      chats.map(
-        chat => {
-          const result: Thread = {
-            _original: safeJSONStringify([chat, meJid()]),
-            ...mapChatPartial(chat),
-            type: threadType(chat.jid),
-            createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
-            participants: mapThreadParticipants(chat),
-            messages: {
-              items: mapMessages(store.messages[chat.jid]?.array || []),
-              hasMore: true,
-            },
-          }
-          return result
-        },
+      chats.map<Thread>(
+        chat => ({
+          _original: safeJSONStringify([chat, meJid()]),
+          ...mapChatPartial(chat) as PartialWithID<Thread> & { isUnread: boolean, isReadOnly: boolean },
+          type: threadType(chat.jid),
+          createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
+          participants: mapThreadParticipants(chat),
+          messages: {
+            items: mapMessages(store.messages[chat.jid]?.array || []),
+            hasMore: true,
+          },
+        }),
       )
     ),
     mapMessagePartial,
