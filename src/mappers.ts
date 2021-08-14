@@ -362,7 +362,7 @@ function messageStatus(status: number | string) {
 
 type PartialThread = Omit<Thread, 'participants' | 'messages' | 'type'>
 
-export default (store: ReturnType<typeof makeInMemoryStore>) => {
+export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) {
   const meJid = () => store.state.user?.jid
 
   const contactName = (c: WAContact) => (

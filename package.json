@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "link:../../../Node/Baileys",
+    "@textshq/platform-sdk": "link:../platform-sdk",
     "@adiwajshing/keyed-db": "^0.2.4",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
@@ -23,7 +24,6 @@
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
-    "@textshq/platform-sdk": "link:../platform-sdk",
     "@types/bluebird": "^3.5.33",
     "@types/eslint": "^7.2.5",
     "@types/jest": "^26.0.19",
