@@ -2,8 +2,8 @@ import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
 import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
-
 import P from 'pino'
+
 import mappers from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
 
@@ -681,6 +681,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         { },
       )
     }
+    if ('mutedUntil' in updates) {
+      await this.modThread(threadID, updates.mutedUntil === 'forever', 'mute')
+    }
     return true
   }
 
@@ -690,12 +693,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     await this.client!.updateProfilePicture(threadID, imageBuffer)
   }
-
-  pinThread = (threadID: string, pinned: boolean) =>
-    this.modThread(threadID, pinned, 'pin')
-
-  muteThread = (threadID: string, muted: boolean) =>
-    this.modThread(threadID, muted, 'mute')
 
   archiveThread = (threadID: string, archived: boolean) =>
     this.modThread(threadID, archived, 'archive')
