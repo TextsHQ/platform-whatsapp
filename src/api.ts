@@ -372,10 +372,25 @@ export default class WhatsAppAPI implements PlatformAPI {
       list.length && this.evCallback(list)
     })
 
-    ev.on('messages.delete', ({ jid }) => {
-      this.evCallback([
-        { type: ServerEventType.THREAD_MESSAGES_REFRESH, threadID: jid },
-      ])
+    ev.on('messages.delete', result => {
+      const list: ServerEvent[] = []
+      if ('ids' in result) {
+        list.push({
+          type: ServerEventType.STATE_SYNC,
+          mutationType: 'delete',
+          objectName: 'message',
+          objectIDs: { threadID: result.jid },
+          entries: result.ids,
+        })
+      } else {
+        list.push({
+          type: ServerEventType.STATE_SYNC,
+          mutationType: 'delete-all',
+          objectName: 'message',
+          objectIDs: { threadID: result.jid },
+        })
+      }
+      this.evCallback(list)
     })
   }
 
