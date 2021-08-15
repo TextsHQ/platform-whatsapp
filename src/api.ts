@@ -426,7 +426,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         const chat = this.store.chats.get(jid)
         if (!!chat && !chat.read_only) {
-          const isSelfAdmin = meta.participants.find(({ jid }) => jid === this.store.state.user?.jid)?.isAdmin
+          const isSelfAdmin = meta.participants.find(p => p.jid === this.store.state.user?.jid)?.isAdmin
           chat.read_only = (meta.announce !== 'true' || isSelfAdmin) ? 'false' : 'true'
         }
       })(),
@@ -730,15 +730,16 @@ export default class WhatsAppAPI implements PlatformAPI {
   getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
     let update: (messages: BaileysEventMap['messages.update']) => void
     switch (category) {
-      case 'profile-picture':
-        let url: string = ''
+      case 'profile-picture': {
+        let url = ''
         const item = this.store.contacts[jid]
         if (!item?.imgUrl || item.imgUrl?.startsWith('asset://')) {
           delete item?.imgUrl
           url = await this.store.fetchImageUrl(jid, this.client)
         }
         return url
-      case 'attachment':
+      }
+      case 'attachment': {
         const m = await this.store.loadMessage(jid, msgID, this.client)
         if (!hasUrl(m)) {
           texts.log('url not present yet for ', m.key, ', waiting...')
@@ -761,6 +762,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         const stream = await this.client!.downloadMediaMessage(m, 'stream')
         return stream
+      }
       default:
         throw new Error('Unexpected attachment: ' + category)
     }
