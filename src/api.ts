@@ -525,20 +525,17 @@ export default class WhatsAppAPI implements PlatformAPI {
     const getCursor = () => {
       if (!cursor) return undefined
       const [id, fromMe] = cursor.split('_')
-      return {
-        id,
-        fromMe: !!+fromMe,
-      }
+      return { id, fromMe: !!+fromMe }
     }
-    const messageStore = this.store.messages[threadID]
-    const messageLen = Math.max(
-      !!cursor || !messageStore ? MESSAGE_PAGE_SIZE : messageStore?.array.length,
-      1,
-    )
-    const messages = await this.mutex.mutex(() => (
-      this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
-    ))
-    const hasMore = (messages.length >= MESSAGE_PAGE_SIZE) || !cursor
+    const messages = await this.mutex.mutex(() => {
+      const messageStore = this.store.messages[threadID]
+      const messageLen = Math.max(
+        !!cursor || !messageStore ? MESSAGE_PAGE_SIZE : messageStore?.array.length,
+        1,
+      )
+      return this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
+    })
+    const hasMore = messages.length >= MESSAGE_PAGE_SIZE || !cursor
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
     }
@@ -750,7 +747,9 @@ export default class WhatsAppAPI implements PlatformAPI {
               for (const message of messages) {
                 if (message.key.id === m.key.id) {
                   Object.assign(m, message)
-                  resolve()
+                  if (hasUrl(m)) {
+                    resolve()
+                  }
                 }
               }
             }

@@ -498,7 +498,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       mutedUntil: undefined,
     }
     if (chat.mute) {
-      if (+chat.mute > TEN_YEARS_IN_SECONDS) mapped.mutedUntil = 'forever'
+      if (+chat.mute > TEN_YEARS_IN_SECONDS || chat.mute === '-1') mapped.mutedUntil = 'forever'
       else mapped.mutedUntil = new Date(+chat.mute * 1000)
     }
     for (const key of Object.keys(mapped)) {
