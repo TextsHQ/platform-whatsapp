@@ -520,7 +520,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       !!cursor || !messageStore ? MESSAGE_PAGE_SIZE : messageStore?.array.length,
       1,
     )
-    const messages = await this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
+    const messages = await this.mutex.mutex(() => (
+      this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
+    ))
     const hasMore = (messages.length >= MESSAGE_PAGE_SIZE) || !cursor
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
@@ -576,9 +578,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (buffer) {
         let media: AnyMediaMessageContent
-        if (mimeType?.endsWith('/webp')) media = { sticker: buffer }
-        else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif }
-        else if (mimeType?.includes('image/')) media = { image: buffer, caption: text }
+        if (mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
+        else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
+        else if (mimeType?.includes('image/')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
         else if (mimeType?.includes('audio/')) media = { audio: buffer, pttAudio: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
         else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
 
