@@ -1,6 +1,6 @@
 import bluebird from 'bluebird'
 import matchSorter from 'match-sorter'
-import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID } from '@adiwajshing/baileys'
+import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID, generateMessageID } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
 import P from 'pino'
 
@@ -39,6 +39,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   })
 
   private readonly mappers = getMappers(this.store)
+
+  private readonly sendingMessageIDs = new Set<string>()
 
   private session?: AnyAuthenticationCredentials
 
@@ -338,13 +340,18 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (type === 'notify' || type === 'append') {
         for (const msg of messages) {
           if (msg.key.remoteJid !== STORIES_JID) {
-            list.push({
-              type: ServerEventType.STATE_SYNC,
-              mutationType: 'upsert',
-              objectIDs: { threadID: msg.key.remoteJid as string },
-              objectName: 'message',
-              entries: this.mappers.mapMessages([msg]),
-            })
+            const mapped = this.mappers.mapMessage(msg)
+            if (this.sendingMessageIDs.has(mapped.id)) {
+              this.sendingMessageIDs.delete(mapped.id)
+            } else {
+              list.push({
+                type: ServerEventType.STATE_SYNC,
+                mutationType: 'upsert',
+                objectIDs: { threadID: msg.key.remoteJid as string },
+                objectName: 'message',
+                entries: [mapped],
+              })
+            }
           }
         }
       } else if (type === 'last') {
@@ -612,11 +619,14 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       }
       const messages: WAMessage[] = []
+      const firstMessageID = generateMessageID()
+      this.sendingMessageIDs.add(firstMessageID)
       messages.push(
         await this.client!.sendWAMessage(
           threadID,
           content,
           {
+            messageId: firstMessageID,
             quoted: options?.quotedMessageID
               ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID, this.client)
               : undefined,
@@ -625,8 +635,13 @@ export default class WhatsAppAPI implements PlatformAPI {
         ),
       )
       if (sendAdditionalTextMessage) {
+        const secondMessageID = generateMessageID()
+        this.sendingMessageIDs.add(secondMessageID)
         messages.push(
-          await this.client!.sendWAMessage(threadID, { text: text! }, opts),
+          await this.client!.sendWAMessage(threadID, { text: text! }, {
+            messageId: secondMessageID,
+            ...opts,
+          }),
         )
       }
       return this.mappers.mapMessages(messages)

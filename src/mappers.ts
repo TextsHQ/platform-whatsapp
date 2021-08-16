@@ -529,6 +529,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       )
     ),
     mapMessagePartial,
+    mapMessage,
     mapMessages,
     mapContacts,
     mapPresenceUpdate: (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
