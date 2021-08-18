@@ -52,7 +52,6 @@ const info: PlatformInfo = {
     supportsCaption: true,
   },
   extra: {
-    // customSortKey: true,
     mentionsSupported: true,
     getUnknownParticipant(participantID: string): Participant | undefined {
       if (participantID && participantID.endsWith('s.whatsapp.net')) {
