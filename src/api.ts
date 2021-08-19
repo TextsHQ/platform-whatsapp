@@ -118,8 +118,15 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (this.store.state.connection === 'open') {
           break
         }
-        if (this.store.state.connection === 'close' && !this.store.state.lastDisconnect?.error) {
-          break
+        if (this.store.state.connection === 'close') {
+          if (!this.store.state.lastDisconnect?.error) {
+            break
+          }
+          // @ts-expect-error
+          const statusCode = this.store.state.lastDisconnect.error.output?.statusCode
+          if (UNAUTHORIZED_CODES.includes(statusCode)) {
+            throw this.store.state.lastDisconnect.error
+          }
         }
       }
       if (this.store.state.connection === 'close') {
