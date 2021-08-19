@@ -54,8 +54,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private hasSomeChats = false
 
-  private lastConnect: Date
-
   private chatsRecvCallback: () => void
 
   private readonly mutex = makeMutex()
@@ -188,7 +186,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         updates.map(async _update => {
           const update = { ..._update }
           const jid = update.jid!
-          if (jid !== 'status@broadcast') {
+          if (jid !== STORIES_JID) {
             if (update.presences) {
               const mapped = this.mappers.mapPresenceUpdate(jid, update.presences)
               // texts.log(update.presences, mapped)
@@ -274,8 +272,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             update.connection = 'connecting'
             this.connectInternal(2000)
           }
-        } else if (update.connection === 'open') {
-          this.lastConnect = new Date()
         }
         this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[update.connection] })
       }
@@ -299,7 +295,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         const events: ServerEvent[] = []
         for (const c of contacts) {
           const chat = this.store.chats.get(c.jid)
-          if (!!chat && !chat.name) {
+          if (!!chat && !chat.name && chat.jid !== STORIES_JID) {
             const title = this.mappers.contactName(c)
             events.push(
               {
