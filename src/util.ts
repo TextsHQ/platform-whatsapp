@@ -1,5 +1,5 @@
+import { ActivityType, ConnectionStatus } from '@textshq/platform-sdk'
 import { Chat, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
-import { ActivityType, ConnectionStatus } from '../../platform-sdk/dist'
 
 export const textsWAKey = {
   key: (c: Chat) => c.t.toString(16).padStart(8, '0') + c.jid,

@@ -1,5 +1,5 @@
-import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber } from '@adiwajshing/baileys'
-import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen } from '@textshq/platform-sdk'
+import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID } from '@adiwajshing/baileys'
+import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen, texts } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
 import { TEN_YEARS_IN_SECONDS } from './constants'
@@ -508,24 +508,29 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     return mapped
   }
 
+  const mapChat = (chat: WAChat) => {
+    if (chat.jid === STORIES_JID) {
+      texts.Sentry.captureException(new Error('stories thread being mapped'))
+    }
+    return {
+      _original: safeJSONStringify([chat, meJid()]),
+      ...mapChatPartial(chat) as PartialWithID<Thread> & { isUnread: boolean, isReadOnly: boolean },
+      type: threadType(chat.jid),
+      createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
+      participants: mapThreadParticipants(chat),
+      messages: {
+        items: mapMessages(store.messages[chat.jid]?.array || []),
+        hasMore: true,
+      },
+    }
+  }
+
   return {
     contactName,
     contactNameFromJid,
     mapChatPartial,
     mapChats: (chats: WAChat[]) => (
-      chats.map<Thread>(
-        chat => ({
-          _original: safeJSONStringify([chat, meJid()]),
-          ...mapChatPartial(chat) as PartialWithID<Thread> & { isUnread: boolean, isReadOnly: boolean },
-          type: threadType(chat.jid),
-          createdAt: store.groupMetadata[chat.jid] ? new Date(store.groupMetadata[chat.jid].creation * 1000) : undefined,
-          participants: mapThreadParticipants(chat),
-          messages: {
-            items: mapMessages(store.messages[chat.jid]?.array || []),
-            hasMore: true,
-          },
-        }),
-      )
+      chats.map<Thread>(mapChat)
     ),
     mapMessagePartial,
     mapMessage,
