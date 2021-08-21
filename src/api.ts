@@ -144,7 +144,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (!!this.client && this.client.getState().connection !== 'close') {
       throw new Error('already connecting!')
     }
-    texts.log('connecting...')
     delayMs && await delay(delayMs)
     this.client = makeConnection({ ...config, credentials: this.session })
     this.store.listen(this.client!.ev)
@@ -524,20 +523,22 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getMessages = async (threadID: string, pagination: PaginationArg) => {
-    const { cursor } = pagination || { cursor: null, direction: null }
-    const getCursor = () => {
-      if (!cursor) return undefined
-      const [id, fromMe] = cursor.split('_')
+    const cursor = (() => {
+      if (!pagination?.cursor) return undefined
+
+      const [id, fromMe] = pagination!.cursor.split('_')
       return { id, fromMe: !!+fromMe }
-    }
+    })()
+
     const messages = await this.mutex.mutex(() => {
       const messageStore = this.store.messages[threadID]
       const messageLen = Math.max(
         !!cursor || !messageStore ? MESSAGE_PAGE_SIZE : messageStore?.array.length,
         1,
       )
-      return this.store.loadMessages(threadID, messageLen, { before: getCursor() }, this.client)
+      return this.store.loadMessages(threadID, messageLen, { before: cursor }, this.client)
     })
+
     const hasMore = messages.length >= MESSAGE_PAGE_SIZE || !cursor
     if (isGroupID(threadID)) {
       this.lazyLoadReadReceipts(messages, threadID)
