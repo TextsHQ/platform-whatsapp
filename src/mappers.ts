@@ -182,7 +182,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
 
     response.attachments = [{
       id,
-      size: { width: messageInner?.width, height: messageInner?.height },
+      size: message.stickerMessage ? { width: 100, height: 100 } : { width: messageInner?.width, height: messageInner?.height },
       type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
       isGif: !!message.videoMessage?.gifPlayback,
       isSticker: message.stickerMessage ? true : undefined,
