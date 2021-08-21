@@ -469,7 +469,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const { cursor } = pagination || { cursor: null, direction: null }
 
     while (!this.hasSomeChats) {
-      await delay(100)
+      await delay(50)
     }
 
     const { chats } = this.store
