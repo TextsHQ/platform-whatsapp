@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID, WAMessageKey } from '@adiwajshing/baileys'
 import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen, texts } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
@@ -180,9 +180,10 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
 
+    const size = { width: messageInner?.width, height: messageInner?.height }
     response.attachments = [{
       id,
-      size: message.stickerMessage ? { width: 100, height: 100 } : { width: messageInner?.width, height: messageInner?.height },
+      size: (size.width && size.height) ? size : undefined,
       type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
       isGif: !!message.videoMessage?.gifPlayback,
       isSticker: message.stickerMessage ? true : undefined,
@@ -356,6 +357,18 @@ function messageStatus(status: number | string) {
   }
   return status
 }
+// whatsapp allows two messages with the same ID to exist
+// one that is from you and the other person
+// to de-dupe, we add the fromMe flag to the message ID
+export const mapMessageID = (key: WAMessageKey) => `${key!.id!}|${key?.fromMe ? 1 : 0}`
+
+export const unmapMessageID = (id: string) => {
+  const [_id, _fromMe] = id.split('|')
+  return {
+    id: _id,
+    fromMe: _fromMe !== '0',
+  }
+}
 
 export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) {
   const meJid = () => store.state.user?.jid
@@ -422,7 +435,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       if (!isGroupID(pid)) seenMap[pid] = UNKNOWN_DATE
     }
     return {
-      id: message.key!.id!,
+      id: mapMessageID(message.key!),
       seen: (msgInfo || message.status) ? seenMap : undefined,
     }
   }
@@ -436,7 +449,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)
     const stubBasedMessage = messageStubText(message)
     const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
-    const timestamp = typeof message.messageTimestamp === 'number' ? +message.messageTimestamp : message.messageTimestamp.low
+    const timestamp = toNumber(message.messageTimestamp)
     const linked = messageQuoted(messageInner)
     const link = messageLink(messageContent!)
     const action = messageAction(message)

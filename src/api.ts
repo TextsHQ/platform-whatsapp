@@ -4,7 +4,7 @@ import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAut
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
 import P from 'pino'
 
-import getMappers from './mappers'
+import getMappers, { mapMessageID, unmapMessageID } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
 import { CHAT_MUTE_DURATION_S } from './constants'
 
@@ -18,6 +18,7 @@ const AUTO_RECONNECT_CODES = new Set([
   DisconnectReason.connectionClosed,
   DisconnectReason.connectionLost,
   DisconnectReason.timedOut,
+  599,
 ])
 
 const config: Partial<SocketConfig> = {
@@ -53,8 +54,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   private lastConnStatus: ConnectionStatus
 
   private hasSomeChats = false
-
-  private chatsRecvCallback: () => void
 
   private readonly mutex = makeMutex()
 
@@ -229,15 +228,15 @@ export default class WhatsAppAPI implements PlatformAPI {
           list.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'message',
-            objectIDs: { threadID: key.remoteJid!, messageID: key.id! },
+            objectIDs: { threadID: key.remoteJid!, messageID: mapMessageID(key) },
             mutationType: 'delete',
-            entries: [key.id!],
+            entries: [mapMessageID(key)],
           })
           if (msg) {
             list.push({
               type: ServerEventType.STATE_SYNC,
               objectName: 'message',
-              objectIDs: { threadID: msg.key.remoteJid!, messageID: msg.key.id! },
+              objectIDs: { threadID: msg.key.remoteJid!, messageID: mapMessageID(msg.key) },
               mutationType: 'upsert',
               entries: this.mappers.mapMessages([msg]),
             })
@@ -246,7 +245,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           list.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'message',
-            objectIDs: { threadID: msg.key.remoteJid!, messageID: msg.key.id! },
+            objectIDs: { threadID: msg.key.remoteJid!, messageID: mapMessageID(msg.key) },
             mutationType: 'update',
             entries: [this.mappers.mapMessagePartial(msg)],
           })
@@ -272,6 +271,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.connectInternal(2000)
           }
         }
+
         this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[update.connection] })
       }
 
@@ -280,9 +280,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('chats.set', ({ chats }) => {
+    ev.on('chats.set', () => {
       this.hasSomeChats = true
-      this.chatsRecvCallback && this.chatsRecvCallback()
     })
 
     ev.on('chats.upsert', chats => {
@@ -382,7 +381,12 @@ export default class WhatsAppAPI implements PlatformAPI {
           mutationType: 'delete',
           objectName: 'message',
           objectIDs: { threadID: result.jid },
-          entries: result.ids,
+          entries: result.ids.flatMap(id => (
+            [
+              mapMessageID({ remoteJid: result.jid, id, fromMe: true }),
+              mapMessageID({ remoteJid: result.jid, id, fromMe: false }),
+            ]
+          )),
         })
       } else {
         list.push({
@@ -464,10 +468,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
     const { cursor } = pagination || { cursor: null, direction: null }
 
-    if (!this.hasSomeChats) {
-      await new Promise<void>(resolve => {
-        this.chatsRecvCallback = resolve
-      })
+    while (!this.hasSomeChats) {
+      await delay(100)
     }
 
     const { chats } = this.store
@@ -479,13 +481,15 @@ export default class WhatsAppAPI implements PlatformAPI {
         chatLoads.push(this.loadChat(chat.jid))
       }
     }
+
     await bluebird.all(chatLoads)
 
     const items = this.mappers.mapChats(result)
+    const hasMore = chats.length >= THREAD_PAGE_SIZE
 
     return {
       items,
-      hasMore: chats.length >= THREAD_PAGE_SIZE,
+      hasMore,
       oldestCursor: result.length ? textsWAKey.key(result.slice(-1)[0]) : undefined,
     }
   }
@@ -646,6 +650,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
+    messageID = unmapMessageID(messageID).id
     const forward = await this.store.loadMessage(threadID, messageID, this.client)
     await bluebird.map(
       threadIDs!,
@@ -657,6 +662,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
+    messageID = unmapMessageID(messageID).id
     const message = await this.store.loadMessage(threadID, messageID, this.client)
     if (forEveryone) {
       await this.client!.sendWAMessage(threadID, { delete: message.key }, {})
@@ -678,6 +684,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
     await this.client!.waitForConnection()
+    messageID = messageID ? unmapMessageID(messageID).id : messageID
 
     const chat = this.store.chats.get(threadID)
     const count = chat.count < 0 ? 1 : chat.count
