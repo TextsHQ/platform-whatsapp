@@ -525,59 +525,53 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     }
   }
 
+  const mapPresenceUpdate = (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
+    const [participantID] = Object.keys(presenceUpdates)
+    const presence = presenceUpdates[participantID]
+    const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : undefined
+    const events: ServerEvent[] = []
+    if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence!)) {
+      events.push({
+        type: ServerEventType.USER_PRESENCE_UPDATED,
+        presence: {
+          userID: participantID,
+          isActive: presence.lastKnownPresence === Presence.available,
+          lastActive,
+        },
+      })
+    } else if (presence.lastKnownPresence === Presence.composing) {
+      events.push({
+        type: ServerEventType.USER_ACTIVITY,
+        activityType: ActivityType.TYPING,
+        threadID,
+        participantID,
+        durationMs: 120_000,
+      })
+    } else if (presence.lastKnownPresence === Presence.recording) {
+      events.push({
+        type: ServerEventType.USER_ACTIVITY,
+        activityType: ActivityType.RECORDING_VOICE,
+        threadID,
+        participantID,
+        durationMs: 120_000,
+      })
+    }
+    if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence!)) {
+      events.push({ type: ServerEventType.USER_ACTIVITY, activityType: ActivityType.NONE, threadID, participantID })
+    }
+    return events
+  }
+
   return {
     contactName,
     contactNameFromJid,
     mapChatPartial,
-    mapChats: (chats: WAChat[]) => (
-      chats.map<Thread>(mapChat)
-    ),
+    mapChats: (chats: WAChat[]) =>
+      chats.map<Thread>(mapChat),
     mapMessagePartial,
     mapMessage,
     mapMessages,
     mapContacts,
-    mapPresenceUpdate: (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
-      const [participantID] = Object.keys(presenceUpdates)
-      const presence = presenceUpdates[participantID]
-      const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : undefined
-      const events: ServerEvent[] = []
-      if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence!)) {
-        events.push(
-          {
-            type: ServerEventType.USER_PRESENCE_UPDATED,
-            presence: {
-              userID: participantID,
-              isActive: presence.lastKnownPresence === Presence.available,
-              lastActive,
-            },
-          },
-        )
-      } else if (presence.lastKnownPresence === Presence.composing) {
-        events.push(
-          {
-            type: ServerEventType.USER_ACTIVITY,
-            activityType: ActivityType.TYPING,
-            threadID,
-            participantID,
-            durationMs: 120_000,
-          },
-        )
-      } else if (presence.lastKnownPresence === Presence.recording) {
-        events.push(
-          {
-            type: ServerEventType.USER_ACTIVITY,
-            activityType: ActivityType.RECORDING_VOICE,
-            threadID,
-            participantID,
-            durationMs: 120_000,
-          },
-        )
-      }
-      if ([Presence.available, Presence.unavailable, Presence.paused].includes(presence.lastKnownPresence!)) {
-        events.push({ type: ServerEventType.USER_ACTIVITY, activityType: ActivityType.NONE, threadID, participantID })
-      }
-      return events
-    },
-
+    mapPresenceUpdate,
   }
 }
