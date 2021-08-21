@@ -180,7 +180,7 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
 
-    const size = { width: messageInner?.width, height: messageInner?.height }
+    const size = message.stickerMessage ? { width: 100, height: 100 } : { width: messageInner?.width, height: messageInner?.height }
     response.attachments = [{
       id,
       size: (size.width && size.height) ? size : undefined,
