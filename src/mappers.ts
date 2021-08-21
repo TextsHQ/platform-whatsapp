@@ -412,10 +412,10 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
         parts.map(p => ({ ...(store.contacts[p.jid] || {}), ...p })),
       )
     } else {
-      participants = mapContacts([
-        { jid, name: chat.name, imgUrl: store.contacts[jid]?.imgUrl },
-        store.state.user!,
-      ])
+      const recipient = { jid, name: chat.name, imgUrl: store.contacts[jid]?.imgUrl }
+      participants = mapContacts(store.state.user!.jid === jid
+        ? [recipient]
+        : [recipient, store.state.user!])
     }
     return {
       items: participants || [],
