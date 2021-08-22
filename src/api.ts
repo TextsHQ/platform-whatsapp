@@ -473,16 +473,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const { chats } = this.store
-    const result = chats.paginated(cursor || null, THREAD_PAGE_SIZE)
+    const result = chats.paginated(
+      cursor || null,
+      THREAD_PAGE_SIZE,
+      // load all except the stories jid
+      k => k.jid !== STORIES_JID,
+    )
 
-    const chatLoads: Promise<void>[] = []
-    for (const chat of result) {
-      if (chat.jid !== STORIES_JID) {
-        chatLoads.push(this.loadChat(chat.jid))
-      }
-    }
-
-    await bluebird.all(chatLoads)
+    await bluebird.all(
+      result.map(({ jid }) => this.loadChat(jid)),
+    )
 
     const items = this.mappers.mapChats(result)
     const hasMore = chats.length >= THREAD_PAGE_SIZE
