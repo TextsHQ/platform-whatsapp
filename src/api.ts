@@ -621,7 +621,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       const messages: WAMessage[] = []
       const firstMessageID = generateMessageID()
-      this.sendingMessageIDs.add(firstMessageID)
+      this.sendingMessageIDs.add(`${firstMessageID}|1`)
       messages.push(
         await this.client!.sendWAMessage(
           threadID,
@@ -637,7 +637,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
       if (sendAdditionalTextMessage) {
         const secondMessageID = generateMessageID()
-        this.sendingMessageIDs.add(secondMessageID)
+        this.sendingMessageIDs.add(`${secondMessageID}|1`)
         messages.push(
           await this.client!.sendWAMessage(threadID, { text: text! }, {
             messageId: secondMessageID,
