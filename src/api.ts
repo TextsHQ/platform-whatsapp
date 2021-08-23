@@ -8,6 +8,8 @@ import getMappers, { mapMessageID, unmapMessageID } from './mappers'
 import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
 import { CHAT_MUTE_DURATION_S } from './constants'
 
+type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
+
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 const DELAY_CONN_STATUS_CHANGE = 20_000
@@ -56,6 +58,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   private lastChatsRecv: Date | undefined = undefined
 
   private readonly mutex = makeMutex()
+
+  private connectionLifetimeTransaction: Transaction | undefined = undefined
+
+  private connectionTransaction: Transaction | undefined = undefined
 
   init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo) => {
     this.accountID = accountID
@@ -256,11 +262,42 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('connection.update', update => {
       texts.log('connection update:', update)
-      if (update.connection) {
+      const { connection, lastDisconnect } = update
+
+      if (connection) {
+        // transactions
+        switch (connection) {
+          case 'open':
+            this.connectionLifetimeTransaction = texts.Sentry.startTransaction({
+              name: 'Lifetime',
+            })
+            if (this.connectionTransaction) {
+              texts.log('finished connect transaction')
+              this.connectionTransaction!.data = { }
+              this.connectionTransaction!.finish()
+            }
+            break
+          case 'connecting':
+            texts.log('connect transaction started')
+            this.connectionTransaction = texts.Sentry.startTransaction({
+              name: 'Connect',
+            })
+            console.log(this.connectionTransaction)
+            break
+          case 'close':
+            if (this.connectionLifetimeTransaction) {
+              this.connectionLifetimeTransaction!.data = {
+                reason: lastDisconnect,
+              }
+              this.connectionLifetimeTransaction!.finish()
+            }
+            break
+        }
+
         let isReplaced = false
-        if (update.connection === 'close') {
+        if (connection === 'close') {
           // @ts-expect-error
-          const statusCode = update.lastDisconnect!.error?.output?.statusCode || 1
+          const statusCode = lastDisconnect!.error?.output?.statusCode || 1
           const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
           isReplaced = statusCode === DisconnectReason.connectionReplaced
 
@@ -272,7 +309,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
 
-        this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[update.connection] })
+        this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[connection] })
       }
 
       if (typeof update.phoneConnected !== 'undefined') {
