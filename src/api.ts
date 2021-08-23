@@ -53,7 +53,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastConnStatus: ConnectionStatus
 
-  private hasSomeChats = false
+  private lastChatsRecv: Date | undefined = undefined
 
   private readonly mutex = makeMutex()
 
@@ -281,7 +281,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('chats.set', () => {
-      this.hasSomeChats = true
+      const now = new Date()
+      if (this.lastChatsRecv) {
+        const oldTimestamp = this.lastChatsRecv.getTime() / 1000
+        const chats = this.store.chats.all()
+        const idx = chats.findIndex(c => +c.t <= oldTimestamp)
+        if (idx >= 0) {
+          chatUpdateEvents(chats.slice(0, idx + 1), 'upsert')
+        }
+      }
+      this.lastChatsRecv = now
     })
 
     ev.on('chats.upsert', chats => {
@@ -289,7 +298,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.set', ({ contacts }) => {
-      if (this.hasSomeChats) {
+      if (this.lastChatsRecv) {
         const events: ServerEvent[] = []
         for (const c of contacts) {
           const chat = this.store.chats.get(c.jid)
@@ -468,7 +477,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
     const { cursor } = pagination || { cursor: null, direction: null }
 
-    while (!this.hasSomeChats) {
+    while (!this.lastChatsRecv) {
       await delay(50)
     }
 
@@ -629,7 +638,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           {
             messageId: firstMessageID,
             quoted: options?.quotedMessageID
-              ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, options.quotedMessageID, this.client)
+              ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, unmapMessageID(options.quotedMessageID).id, this.client)
               : undefined,
             ...opts,
           },
