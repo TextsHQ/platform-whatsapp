@@ -658,13 +658,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
   )
 
-  forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[], userIDs?: string[]) => {
+  forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
     messageID = unmapMessageID(messageID).id
     const forward = await this.store.loadMessage(threadID, messageID, this.client)
-    await bluebird.map(
-      threadIDs!,
-      tid => (
-        this.client!.sendWAMessage(tid, { forward }, { })
+    await bluebird.all(
+      threadIDs!.map(
+        async tid => (
+          this.client!.sendWAMessage(
+            tid,
+            { forward },
+            { waitForAck: true, ephemeralOptions: await this.ephemeralOptions(threadID) },
+          )
+        ),
       ),
     )
     return true
