@@ -86,7 +86,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   login = async ({ jsCodeResult }: LoginCreds): Promise<LoginResult> => {
-    console.log(jsCodeResult)
     if (!jsCodeResult) {
       return { type: 'error', errorMessage: "Didn't get any data from login page" }
     }
