@@ -187,16 +187,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
       const list: ServerEvent[] = []
       await Promise.all(
-        updates.map(async _update => {
-          const update = { ..._update }
+        updates.map(async update => {
           const jid = update.jid!
           if (jid !== STORIES_JID) {
-            if (update.presences) {
-              const mapped = this.mappers.mapPresenceUpdate(jid, update.presences)
-              // texts.log(update.presences, mapped)
-              list.push(...mapped)
-              delete update.presences
-            }
             // load in the chat if it's new
             if (type === 'upsert') {
               await this.loadChat(jid)
@@ -332,6 +325,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('chats.upsert', chats => {
       chatUpdateEvents(chats, 'upsert')
+    })
+
+    ev.on('presence.update', ({ jid, presences }) => {
+      const mapped = this.mappers.mapPresenceUpdate(jid, presences)
+      this.evCallback(mapped)
     })
 
     ev.on('contacts.set', ({ contacts }) => {
