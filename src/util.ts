@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus } from '@textshq/platform-sdk'
-import { Chat, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
+import { Chat, DisconnectReason, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
 
 export const textsWAKey = {
   key: (c: Chat) => c.t.toString(16).padStart(8, '0') + c.jid,
@@ -52,6 +52,24 @@ export function safeJSONStringify(obj: any) {
     return JSON.stringify(obj)
   } catch (err) {
     // swallow
+  }
+}
+
+const AUTO_RECONNECT_CODES = new Set([
+  DisconnectReason.badSession,
+  DisconnectReason.connectionClosed,
+  DisconnectReason.connectionLost,
+  DisconnectReason.timedOut,
+  599,
+])
+
+export const canReconnect = (error?: Error) => {
+  // @ts-expect-error
+  const statusCode: number = error?.output?.statusCode || 0
+  const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
+  return {
+    isReconnecting,
+    statusCode,
   }
 }
 

@@ -5,7 +5,7 @@ import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxNam
 import P from 'pino'
 
 import getMappers, { mapMessageID, unmapMessageID } from './mappers'
-import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex } from './util'
+import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex, canReconnect } from './util'
 import { CHAT_MUTE_DURATION_S } from './constants'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
@@ -14,14 +14,6 @@ const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
-
-const AUTO_RECONNECT_CODES = new Set([
-  DisconnectReason.badSession,
-  DisconnectReason.connectionClosed,
-  DisconnectReason.connectionLost,
-  DisconnectReason.timedOut,
-  599,
-])
 
 const config: Partial<SocketConfig> = {
   version: [2, 2130, 9],
@@ -94,6 +86,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   login = async ({ jsCodeResult }: LoginCreds): Promise<LoginResult> => {
+    console.log(jsCodeResult)
     if (!jsCodeResult) {
       return { type: 'error', errorMessage: "Didn't get any data from login page" }
     }
@@ -119,11 +112,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       const start = Date.now()
       while ((Date.now() - start) < config.connectTimeoutMs!) {
         await delay(500)
-
-        if (this.store.state.connection === 'open') {
+        const { connection, lastDisconnect } = this.store.state
+        if (connection === 'open') {
           break
         }
-        if (this.store.state.connection === 'close' && !this.store.state.lastDisconnect?.error) {
+        if (connection === 'close' && !canReconnect(lastDisconnect?.error).isReconnecting) {
           break
         }
       }
@@ -289,9 +282,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         let isReplaced = false
         if (connection === 'close') {
-          // @ts-expect-error
-          const statusCode = lastDisconnect!.error?.output?.statusCode || 1
-          const isReconnecting = AUTO_RECONNECT_CODES.has(statusCode)
+          const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error)
           isReplaced = statusCode === DisconnectReason.connectionReplaced
 
           texts.log('disconnected, reconnecting: ', isReconnecting)

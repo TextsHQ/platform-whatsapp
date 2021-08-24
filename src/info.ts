@@ -16,6 +16,7 @@ const info: PlatformInfo = {
     windowHeight: 550,
     runJSOnClose: 'storageString',
     runJSOnLaunch: `
+      localStorage.clear()
       let storageString = ""
       function poll() {
         if (localStorage.getItem('WASecretBundle')) {
