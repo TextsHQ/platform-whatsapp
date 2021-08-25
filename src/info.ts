@@ -20,6 +20,10 @@ const info: PlatformInfo = {
       let storageString = ""
       function poll() {
         if (localStorage.getItem('WASecretBundle')) {
+          if(!localStorage.getItem('WABrowserId')) {
+            window.location.reload()
+            return
+          }
           storageString = JSON.stringify(localStorage)
           setTimeout(() => window.close(), 100)
           clearInterval(interval)
