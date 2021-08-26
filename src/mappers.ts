@@ -207,20 +207,6 @@ function messageAttachments(message: WAMessageContent, messageInner: any, jid: s
   }
   return response
 }
-function messageQuoted(messageInner: any): MessagePreview | undefined {
-  if (messageInner) {
-    const contextInfo = messageInner?.contextInfo as WAContextInfo
-    const quoted = contextInfo?.quotedMessage
-    if (quoted) {
-      return {
-        id: contextInfo.stanzaId!,
-        threadID: whatsappID(contextInfo.remoteJid!),
-        senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid!),
-        text: messageText(contextInfo.quotedMessage!, Object.values(contextInfo.quotedMessage!)[0]) || '',
-      }
-    }
-  }
-}
 function* messageHeading(message: WAMessage) {
   if (message.broadcast) yield 'Broadcast'
   const m = message.message
@@ -440,6 +426,21 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     }
   }
 
+  const mapMessageQuoted = (messageInner: any): MessagePreview | undefined => {
+    if (messageInner) {
+      const contextInfo = messageInner?.contextInfo as WAContextInfo
+      const quoted = contextInfo?.quotedMessage
+      if (quoted) {
+        return {
+          id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: contextInfo.participant === meJid() }),
+          threadID: whatsappID(contextInfo.remoteJid!),
+          senderID: whatsappID(contextInfo.participant || contextInfo.remoteJid!),
+          text: messageText(contextInfo.quotedMessage!, Object.values(contextInfo.quotedMessage!)[0]) || '',
+        }
+      }
+    }
+  }
+
   const mapMessage = (message: WAMessage) => {
     const currentUserID = meJid()!
     const messageContent = extractMessageContent(message.message)
@@ -449,7 +450,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     const stubBasedMessage = messageStubText(message)
     const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
     const timestamp = toNumber(message.messageTimestamp)
-    const linked = messageQuoted(messageInner)
+    const linked = mapMessageQuoted(messageInner)
     const link = messageLink(messageContent!)
     const action = messageAction(message)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
