@@ -20,7 +20,7 @@ const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 150_000,
-  phoneResponseTimeMs: 90_000,
+  phoneResponseTimeMs: 15_000,
 }
 
 export default class WhatsAppAPI implements PlatformAPI {

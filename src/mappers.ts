@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID, WAMessageKey, extractMessageContent } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, STORIES_JID, WAMessageKey, extractMessageContent } from '@adiwajshing/baileys'
 import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen, texts } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
