@@ -1,4 +1,4 @@
-import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID, WAMessageKey } from '@adiwajshing/baileys'
+import { WAMessage, MessageType, Presence, WAMessageStatus, WAMessageProto, WAMessageContent, whatsappID, isGroupID, WAMessageStubType, PresenceData, Chat as WAChat, Contact as WAContact, GroupParticipant as WAGroupParticipant, WAContextInfo, makeInMemoryStore, toNumber, Chat, STORIES_JID, WAMessageKey, extractMessageContent } from '@adiwajshing/baileys'
 import { PartialWithID, ServerEventType, ServerEvent, Participant, Message, Thread, MessageAttachment, MessageAttachmentType, MessagePreview, ThreadType, MessageLink, MessageActionType, MessageAction, UNKNOWN_DATE, Paginated, MessageButton, ActivityType, MessageSeen, texts } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, isBroadcastID, numberFromJid, removeServer, safeJSONStringify } from './util'
 import { mapTextAttributes } from './text-attributes'
@@ -442,8 +442,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
 
   const mapMessage = (message: WAMessage) => {
     const currentUserID = meJid()!
-    const isEphemeral = !!message.message?.ephemeralMessage
-    const messageContent = isEphemeral ? message.message?.ephemeralMessage?.message : message.message
+    const messageContent = extractMessageContent(message.message)
     const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
     const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)

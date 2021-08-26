@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus } from '@textshq/platform-sdk'
-import { Chat, DisconnectReason, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
+import { Chat, DisconnectReason, extractMessageContent, Presence, WAConnectionState, WAGenericMediaMessage, WAMessage } from '@adiwajshing/baileys'
 
 export const textsWAKey = {
   key: (c: Chat) => c.t.toString(16).padStart(8, '0') + c.jid,
@@ -39,7 +39,7 @@ export const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') =>
   `data:${mimeType};base64,${buff.toString('base64')}`
 
 export const hasUrl = (msg: WAMessage) => {
-  const content = (msg.message?.ephemeralMessage || msg)?.message
+  const content = extractMessageContent(msg.message)
   if (!content) return false
 
   const key = Object.keys(content)[0]
