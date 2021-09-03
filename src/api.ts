@@ -164,7 +164,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   serializeSession = () => (
-    base64EncodedAuthenticationCredentials(this.session!)
+    base64EncodedAuthenticationCredentials(this.client!.getAuthInfo())
   )
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
