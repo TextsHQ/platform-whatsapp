@@ -340,6 +340,28 @@ export default class WhatsAppAPI implements PlatformAPI {
             )
           }
         }
+        // update participants
+        const metadatas = Object.values(this.store.groupMetadata)
+        for (const item of metadatas) {
+          for (const participant of item.participants) {
+            const contact = this.store.contacts[participant.jid]
+            if (contact) {
+              events.push(
+                {
+                  type: ServerEventType.STATE_SYNC,
+                  objectName: 'participant',
+                  objectIDs: { threadID: item.id },
+                  mutationType: 'update',
+                  entries: [{ id: participant.jid, title: this.mappers.contactName(contact) }],
+                },
+              )
+            }
+            events.push({
+              type: ServerEventType.THREAD_MESSAGES_REFRESH,
+              threadID: item.id,
+            })
+          }
+        }
         this.evCallback(events)
       }
     })
