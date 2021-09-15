@@ -16,7 +16,7 @@ const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
 const config: Partial<SocketConfig> = {
-  version: [2, 2132, 6],
+  version: [2, 2136, 9],
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 150_000,
@@ -51,13 +51,18 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private readonly mutex = makeMutex()
 
+  private readonly pictureMutex = makeMutex()
+
   private connectionLifetimeTransaction: Transaction | undefined = undefined
 
   private connectionTransaction: Transaction | undefined = undefined
 
-  init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo) => {
+  private mutexProfilePictureFetch = false
+
+  init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo, prefs: { [_: string]: any }) => {
     this.accountID = accountID
     this.session = session
+    this.mutexProfilePictureFetch = !!prefs.expirementalWAStabilityFix
 
     if (session) {
       await this.connect()
@@ -146,6 +151,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.store.listen(this.client!.ev)
     this.registerCallbacks(this.client!.ev)
     this.client!.ev.emit('connection.update', { connection: 'connecting' })
+
+    if (this.mutexProfilePictureFetch) {
+      // mutex the fetchimage url function
+      // to prevent 599 errors
+      const { fetchImageUrl } = this.client!
+      this.client!.fetchImageUrl = (...args) => (
+        this.pictureMutex.mutex(() => fetchImageUrl(...args))
+      )
+    }
   }
 
   getCurrentUser = (): CurrentUser => {
