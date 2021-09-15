@@ -381,7 +381,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
           isSelf: contact.jid === meJid(),
           fullName: contactName(contact),
           phoneNumber: numberFromJid(contact.jid),
-          isVerified: contact.verify === '2',
+          isVerified: contact.verify === '2' || !!contact.vname,
           imgURL: contact.imgUrl,
           isAdmin: (contact as WAGroupParticipant).isAdmin,
         }
