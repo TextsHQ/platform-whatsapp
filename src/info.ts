@@ -67,6 +67,13 @@ const info: PlatformInfo = {
       }
     },
   },
+  prefs: {
+    expirementalWAStabilityFix: {
+      label: 'Experimental stability fix',
+      type: 'checkbox',
+      default: false,
+    },
+  },
 }
 
 export default info
