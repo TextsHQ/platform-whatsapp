@@ -1,14 +1,16 @@
-import React, { Component } from 'react'
+import React from 'react'
 import QRCode from 'qrcode.react'
+
 import type WhatsAppAPI from './api'
 
-export default class WhatsAppAuth extends Component {
+type Props = { api: WhatsAppAPI, login: () => void }
+
+export default class WhatsAppAuth extends React.Component<Props> {
   state: { qrValue?: string } = { }
 
-  constructor(props) {
+  constructor(props: Props) {
     super(props)
-    const { api, login } = this.props as { api: WhatsAppAPI, login: () => void }
-    console.log('here lmao')
+    const { api, login } = this.props
     api.onLoginEvent(({ qr: qrValue, isOpen }) => {
       this.setState({ qrValue })
       if (isOpen) {
