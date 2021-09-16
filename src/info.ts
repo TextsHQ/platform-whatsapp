@@ -1,5 +1,4 @@
-import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
-import auth from './auth'
+import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
@@ -53,7 +52,7 @@ const info: PlatformInfo = {
       default: false,
     },
   },
-  auth,
+  auth: texts.React?.lazy(() => import('./AuthForm')),
 }
 
 export default info
