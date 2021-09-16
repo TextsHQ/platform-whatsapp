@@ -27,7 +27,7 @@ export default class WhatsAppAuth extends React.Component<Props> {
           <li>Open WhatsApp app on your phone</li>
           <li>Go to Settings or Menu</li>
           {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-          <li>{'Tap on "WhatsApp Web/Desktop", then "Scan QR Code"'}</li>
+          <li>{'Tap on "Linked Devices", then "Link a Device"'}</li>
           <li>Point your phone to this screen:</li>
         </ol>
         <div className="text-center">
