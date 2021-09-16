@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "link:../../../Node/Baileys",
+    "@adiwajshing/baileys": "link:../baileys-core",
     "@adiwajshing/keyed-db": "^0.2.4",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "bluebird": "^3.7.2",
@@ -22,7 +22,7 @@
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
     "qrcode.react": "^1.0.1",
-    "react": "^17.0.2"
+    "react": "https://github.com/TextsHQ/react-global-shim#3aa861a"
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
