@@ -43,6 +43,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
+  private loginCallback?: (data: { qr: string | undefined, isOpen: boolean }) => void
+
   private connStatusTimeout: NodeJS.Timeout
 
   private lastConnStatus: ConnectionStatus
@@ -64,9 +66,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.session = session
     this.mutexProfilePictureFetch = !!prefs.expirementalWAStabilityFix
 
-    if (session) {
-      await this.connect()
-    }
+    const connectPromise = this.connect()
+    if (session) await connectPromise
   }
 
   dispose = () => {
@@ -90,23 +91,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     }, delay)
   }
 
-  login = async ({ jsCodeResult }: LoginCreds): Promise<LoginResult> => {
-    if (!jsCodeResult) {
-      return { type: 'error', errorMessage: "Didn't get any data from login page" }
-    }
-
-    const ls = JSON.parse(jsCodeResult)
-    if (!ls || !('WASecretBundle' in ls)) {
-      return { type: 'error', errorMessage: 'Unable to retrieve authentication token' }
-    }
-
-    this.session = ls
-    await this.connect()
-    return { type: 'success' }
-  }
+  login = async (): Promise<LoginResult> => ({ type: 'success' })
 
   logout = async () => {
     await this.client?.logout()
+  }
+
+  onLoginEvent = callback => {
+    this.loginCallback = callback
   }
 
   private connect = async () => {
@@ -261,7 +253,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('connection.update', update => {
       texts.log('connection update:', update)
-      const { connection, lastDisconnect } = update
+      const { connection, lastDisconnect, qr } = update
+
+      if (qr) {
+        this.loginCallback && this.loginCallback({ qr, isOpen: false })
+      }
 
       if (connection) {
         // transactions
@@ -275,13 +271,13 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.connectionTransaction!.data = { }
               this.connectionTransaction!.finish()
             }
+            this.loginCallback && this.loginCallback({ qr: undefined, isOpen: true })
             break
           case 'connecting':
             texts.log('connect transaction started')
             this.connectionTransaction = texts.Sentry.startTransaction({
               name: 'Connect',
             })
-            console.log(this.connectionTransaction)
             break
           case 'close':
             if (this.connectionLifetimeTransaction) {
@@ -290,6 +286,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               }
               this.connectionLifetimeTransaction!.finish()
             }
+            this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
             break
         }
 

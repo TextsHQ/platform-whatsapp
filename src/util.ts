@@ -60,6 +60,7 @@ const AUTO_RECONNECT_CODES = new Set([
   DisconnectReason.connectionClosed,
   DisconnectReason.connectionLost,
   DisconnectReason.timedOut,
+  429, // too many QRs
   599,
 ])
 

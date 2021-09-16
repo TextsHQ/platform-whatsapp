@@ -20,7 +20,9 @@
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
     "match-sorter": "^4.2.1",
-    "mem": "^8.0.0"
+    "mem": "^8.0.0",
+    "qrcode.react": "^1.0.1",
+    "react": "^17.0.2"
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
