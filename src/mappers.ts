@@ -503,18 +503,23 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       title: chat.name || contactNameFromJid(chat.jid!),
       description: store.groupMetadata[chat.jid!]?.desc || '',
       imgURL: store.contacts[chat.jid!]?.imgUrl,
-      isUnread: typeof chat.count !== 'undefined' ? !!chat.count : undefined,
-      isArchived: typeof chat.archive !== 'undefined' ? chat.archive === 'true' : undefined,
-      isReadOnly: typeof chat.read_only !== 'undefined' ? chat.read_only === 'true' : undefined,
-      timestamp: chat.t ? new Date(+chat.t * 1000) : undefined,
-      mutedUntil: undefined,
     }
-    if (chat.mute) {
-      if (+chat.mute > TEN_YEARS_IN_SECONDS || chat.mute === '-1') mapped.mutedUntil = 'forever'
-      else mapped.mutedUntil = new Date(+chat.mute * 1000)
+    if (typeof chat.count !== 'undefined') { mapped.isUnread = !!chat.count }
+    if (typeof chat.archive !== 'undefined') { mapped.isArchived = chat.archive === 'true' }
+    if (typeof chat.read_only !== 'undefined') { mapped.isReadOnly = chat.read_only === 'true' }
+    if (chat.t) {
+      mapped.timestamp = new Date(+chat.t * 1000)
+    }
+    if ('mute' in chat) {
+      if (chat.mute) {
+        if (+chat.mute > TEN_YEARS_IN_SECONDS || chat.mute === '-1') mapped.mutedUntil = 'forever'
+        else mapped.mutedUntil = new Date(+chat.mute * 1000)
+      } else {
+        mapped.mutedUntil = undefined
+      }
     }
     for (const key of Object.keys(mapped)) {
-      if (key !== 'mutedUntil' && typeof mapped[key] === 'undefined') {
+      if (key !== 'mutedUntil' && typeof mapped[key] === 'undefined') { // don't delete mutedUntil even if undefined
         delete mapped[key]
       }
     }

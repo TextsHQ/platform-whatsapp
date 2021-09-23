@@ -192,7 +192,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             if (type === 'upsert') {
               await this.loadChat(jid)
             }
-            if (Object.keys(update).length > 1) { // more keys than just "jid"
+            if (Object.keys(update).filter(k => k !== 't').length > 1) { // more keys than just "jid"
               list.push(
                 {
                   type: ServerEventType.STATE_SYNC,
