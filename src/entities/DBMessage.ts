@@ -1,4 +1,4 @@
-import { extractMessageContent, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
+import { extractMessageContent, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
 import type { Message, MessageAction, MessageAttachment, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import type { MappingContext } from '../types'
@@ -107,14 +107,12 @@ export default class DBMessage implements Message {
     const messageContent = extractMessageContent(message.message)
     const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
-    const senderID = message.key.fromMe ? currentUserID : (message.key.participant || message.participant || message.key.remoteJid!)
+    let senderID = message.key.fromMe ? currentUserID : (message.key.participant || message.participant || message.key.remoteJid!)
+    senderID = jidNormalizedUser(senderID)
+
     const stubBasedMessage = messageStubText(message)
     const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
     const timestamp = toNumber(message.messageTimestamp!)
-
-    if (!message.key) {
-      console.log(message)
-    }
 
     const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
     const link = messageLink(messageContent!)

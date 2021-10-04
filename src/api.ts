@@ -2,11 +2,11 @@ import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, Authentic
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber } from '@textshq/platform-sdk'
 import P from 'pino'
 import { writeFileSync, readFileSync } from 'fs'
-import { Connection, In } from 'typeorm'
+import type { Connection } from 'typeorm'
 import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, makeMutex, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID, updateItems } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -262,8 +262,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.getRepository(DBUser).save(items, { chunk: 500 })
     })
 
-    ev.on('chats.update', async () => {
-
+    ev.on('chats.update', async updates => {
+      const updated = await updateItems(updates, this.db.getRepository(DBThread))
+      texts.log(`updating ${updated.length}/${updates.length} chats`)
     })
 
     ev.on('chats.delete', () => {
@@ -271,21 +272,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.update', async updates => {
-      const contactMap: { [jid: string]: Partial<Contact> } = { }
-      const jids = updates.map(c => {
-        const id = jidNormalizedUser(c.id!)
-        contactMap[id] = c
-        return id
-      })
-      const repo = this.db.getRepository(DBUser)
-      const dbContacts = await repo.find({
-        where: { id: In(jids) },
-      })
-      for (const contact of dbContacts) {
-        contact.update(contactMap[contact.id])
-      }
-      texts.log(`updating ${dbContacts.length}/${jids.length} contacts`)
-      await repo.save(dbContacts)
+      const updated = await updateItems(updates, this.db.getRepository(DBUser))
+      texts.log(`updating ${updated.length}/${updates.length} contacts`)
     })
 
     ev.on('messages.upsert', async ({ messages }) => {

@@ -1,6 +1,6 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey } from '@adiwajshing/baileys-md'
-import { jidDecode } from '@adiwajshing/baileys-md/lib/WABinary'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode } from '@adiwajshing/baileys-md'
+import { In, Repository } from 'typeorm'
 
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
   open: ConnectionStatus.CONNECTED,
@@ -98,12 +98,23 @@ export const unmapMessageID = (id: string) => {
   }
 }
 
-export const prepareForSerialization = (obj: any) => {
-  for (const prop in obj) {
-    if (typeof obj[prop] === 'function') {
-      delete obj[prop]
-    } else if (typeof obj[prop] === 'object' && !!obj[prop]) {
-      prepareForSerialization(obj[prop])
-    }
+export async function updateItems<
+  T extends { id: string },
+  D extends { id: string, update: (t: Partial<T>) => void },
+  >(updates: Partial<T>[], repo: Repository<D>) {
+  const map: { [jid: string]: Partial<T> } = { }
+  const jids = updates.map(c => {
+    const id = jidNormalizedUser(c.id!)
+    map[id] = c
+    return id
+  })
+  const dbItems = await repo.find({
+    where: { id: In(jids) },
+  })
+  for (const contact of dbItems) {
+    contact.update(map[contact.id!])
   }
+  await repo.save(dbItems as any[])
+
+  return dbItems
 }
