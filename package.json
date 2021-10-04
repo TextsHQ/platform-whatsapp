@@ -1,5 +1,5 @@
 {
-  "name": "@textshq/platform-whatsapp",
+  "name": "@textshq/platform-whatsapp-md",
   "version": "0.2.6",
   "main": "dist/index.js",
   "scripts": {
@@ -14,15 +14,17 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "link:../baileys-core",
-    "@adiwajshing/keyed-db": "^0.2.4",
+    "@adiwajshing/baileys-md": "git+https://github.com/adiwajshing/baileys#multi-device",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
     "qrcode.react": "^1.0.1",
-    "react": "https://github.com/TextsHQ/react-global-shim#3aa861a"
+    "react": "^17.0.2",
+    "sqlite3": "^5.0.2",
+    "typeorm": "^0.2.37",
+    "typeorm-naming-strategies": "^2.0.0"
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",

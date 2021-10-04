@@ -11,7 +11,6 @@
 
 import emojiRegex from 'emoji-regex'
 import type { TextEntity } from '@textshq/platform-sdk'
-import type { Contact as WAContact } from '@adiwajshing/baileys'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
@@ -69,7 +68,7 @@ const findClosingIndex = (input: string[], curToken: string) => {
   return closingIndex
 }
 
-export function mapTextAttributes(src: string, contacts: Record<string, WAContact>) {
+export function mapTextAttributes(src: string, contactUsername: (id: string) => string) {
   const entities: TextEntity[] = []
   let output = ''
   let prevToken: string | null = null
@@ -118,7 +117,7 @@ export function mapTextAttributes(src: string, contacts: Record<string, WAContac
         // See if we can find nested entities.
         let nestedAttributes = { text: '', textAttributes: undefined } as ReturnType<typeof mapTextAttributes>
         if (curToken !== '```') {
-          nestedAttributes = mapTextAttributes(content, contacts)
+          nestedAttributes = mapTextAttributes(content, contactUsername)
         }
         const from = Array.from(output).length
         let to = from + closingIndex
@@ -155,8 +154,7 @@ export function mapTextAttributes(src: string, contacts: Record<string, WAContac
             entity.code = true
             break
           case '@{{': {
-            const contact = contacts[content]
-            const username = contact?.name || contact?.notify || contact?.vname || content.split('@')[0]
+            const username = contactUsername(content)
             output += `@${username}`
             entity.to = from + username.length + 1
             entity.mentionedUser = {

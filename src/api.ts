@@ -1,43 +1,33 @@
-import bluebird from 'bluebird'
-import matchSorter from 'match-sorter'
-import makeConnection, { Chat as WAChat, SocketConfig, makeInMemoryStore, AnyAuthenticationCredentials, BaileysEventEmitter, base64EncodedAuthenticationCredentials, Browsers, DisconnectReason, isGroupID, UNAUTHORIZED_CODES, WAMessage, AnyRegularMessageContent, AnyMediaMessageContent, promiseTimeout, BaileysEventMap, unixTimestampSeconds, ChatModification, GroupMetadata, delay, WAMessageUpdate, MessageInfoUpdate, MiscMessageGenerationOptions, STORIES_JID, generateMessageID } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, ConnectionState, ConnectionStatus, ServerEventType, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, LoginCreds, Thread, Paginated, User, PhoneNumber, ServerEvent, Message } from '@textshq/platform-sdk'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, jidNormalizedUser, Contact } from '@adiwajshing/baileys-md'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber } from '@textshq/platform-sdk'
 import P from 'pino'
-
-import getMappers, { mapMessageID, unmapMessageID } from './mappers'
-import { hasUrl, isBroadcastID, numberFromJid, textsWAKey, removeServer, CONNECTION_STATE_MAP, PARTICIPANT_ACTION_MAP, whatsappID, PRESENCE_MAP, makeMutex, canReconnect } from './util'
+import { writeFileSync, readFileSync } from 'fs'
+import { Connection, In } from 'typeorm'
+import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
+import getConnection from './utils/get-connection'
+import DBUser from './entities/DBUser'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID } from './utils/generics'
+import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
+import DBThread from './entities/DBThread'
+import AccountCredentials from './entities/AccountCredentials'
+import { makeDBKeyStore } from './utils/db-key-store'
+import DBParticipant from './entities/DBParticipant'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 const DELAY_CONN_STATUS_CHANGE = 20_000
-const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
 const config: Partial<SocketConfig> = {
-  version: [2, 2136, 9],
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
-  connectTimeoutMs: 150_000,
-  phoneResponseTimeMs: 15_000,
+  connectTimeoutMs: 120_000,
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
-  private accountID: string
-
-  private client?: ReturnType<typeof makeConnection> // TODO: make type
-
-  private readonly store = makeInMemoryStore({
-    logger: config.logger!.child({ class: 'texts-baileys-store' }),
-    chatKey: textsWAKey,
-  })
-
-  private readonly mappers = getMappers(this.store)
-
-  private readonly sendingMessageIDs = new Set<string>()
-
-  private session?: AnyAuthenticationCredentials
+  private client?: ReturnType<typeof makeSocket> // TODO: make type
 
   private evCallback: OnServerEventCallback = () => {}
 
@@ -45,50 +35,37 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loginCallback?: (data: { qr: string | undefined, isOpen: boolean }) => void
 
-  private connStatusTimeout: NodeJS.Timeout
-
-  private lastConnStatus: ConnectionStatus
-
-  private lastChatsRecv: Date | undefined = undefined
-
   private readonly mutex = makeMutex()
-
-  private readonly pictureMutex = makeMutex()
 
   private connectionLifetimeTransaction: Transaction | undefined = undefined
 
   private connectionTransaction: Transaction | undefined = undefined
 
-  private mutexProfilePictureFetch = false
+  private connState: ConnectionState = { connection: 'close' }
 
-  init = async (session: AnyAuthenticationCredentials, { accountID }: AccountInfo, prefs: { [_: string]: any }) => {
+  accountID: string
+
+  db: Connection
+
+  get auth(): AuthenticationCreds | undefined { return this.client?.authState?.creds }
+
+  init = async (session: { }, { accountID }: AccountInfo) => {
+    const dbPath = `/Users/adhirajsingh/${accountID}-db.sqlite`
+    texts.log(`init with DB path: ${dbPath}`)
+    this.db = await getConnection(accountID, dbPath)
+
     this.accountID = accountID
-    this.session = session
-    this.mutexProfilePictureFetch = !!prefs.expirementalWAStabilityFix
 
     const connectPromise = this.connect()
     if (session) await connectPromise
   }
 
-  dispose = () => {
+  dispose = async () => {
     if (this.client) {
+      await this.db.close()
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
     }
-    clearTimeout(this.connStatusTimeout)
-  }
-
-  private setConnStatus = (state: ConnectionState, immediate = false) => {
-    clearTimeout(this.connStatusTimeout)
-    const delay = (
-      immediate
-      || [ConnectionStatus.CONNECTED, ConnectionStatus.CONFLICT].includes(state.status)
-      || [ConnectionStatus.DISCONNECTED, ConnectionStatus.CONFLICT].includes(this.lastConnStatus)
-    ) ? 0 : DELAY_CONN_STATUS_CHANGE
-    this.connStatusTimeout = setTimeout(() => {
-      this.lastConnStatus = state.status
-      this.connCallback({ ...state, canRetry: state.status === ConnectionStatus.DISCONNECTED })
-    }, delay)
   }
 
   login = async (): Promise<LoginResult> => ({ type: 'success' })
@@ -108,7 +85,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       const start = Date.now()
       while ((Date.now() - start) < config.connectTimeoutMs!) {
         await delay(500)
-        const { connection, lastDisconnect } = this.store.state
+        const { connection, lastDisconnect } = this.connState
         if (connection === 'open') {
           break
         }
@@ -116,61 +93,66 @@ export default class WhatsAppAPI implements PlatformAPI {
           break
         }
       }
-      if (this.store.state.connection === 'close') {
-        throw this.store.state.lastDisconnect?.error || new ConnectionError('failed to open')
+      if (this.connState.connection === 'close') {
+        throw this.connState.lastDisconnect?.error || new ConnectionError('failed to open')
       }
     } catch (error) {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
       if (statusCode) {
         if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
-        else if (error.message === DisconnectReason.timedOut) throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       }
       // ensure cleanup
       // @ts-expect-error
       this.client!.end(undefined)
       throw error
     }
+
     texts.log('connected successfully')
   }
 
   private connectInternal = async (delayMs?: number) => {
-    if (!!this.client && this.client.getState().connection !== 'close') {
+    if (!!this.client && this.connState.connection !== 'close') {
       throw new Error('already connecting!')
     }
-    delayMs && await delay(delayMs)
-    this.client = makeConnection({ ...config, credentials: this.session })
-    this.store.listen(this.client!.ev)
-    this.registerCallbacks(this.client!.ev)
-    this.client!.ev.emit('connection.update', { connection: 'connecting' })
 
-    if (this.mutexProfilePictureFetch) {
-      // mutex the fetchimage url function
-      // to prevent 599 errors
-      const { fetchImageUrl } = this.client!
-      this.client!.fetchImageUrl = (...args) => (
-        this.pictureMutex.mutex(() => fetchImageUrl(...args))
-      )
+    delayMs && await delay(delayMs)
+    const creds = await this.db.getRepository(AccountCredentials).findOne({
+      accountID: this.accountID,
+    })
+    const auth = {
+      creds: creds?.credentials || initAuthState().creds,
+      keys: makeDBKeyStore(this.db),
     }
+    this.client = makeSocket({
+      ...config,
+      auth,
+    })
+    this.registerCallbacks(this.client!.ev)
+
+    /* const history = readFileSync('/Users/adhirajsingh/history.json', { encoding: 'utf-8' })
+    const msgs = JSON.parse(history).messages.map(m => DBMessage.fromOriginal(m, this))
+
+    await this.db.getRepository(DBMessage).save(msgs) */
   }
 
-  getCurrentUser = (): CurrentUser => {
-    const { user } = this.store.state
+  getCurrentUser = async (): Promise<CurrentUser> => {
+    let user = await this.db.getRepository(DBUser).findOne({ isSelf: true })
     if (!user) {
-      throw new Error('user is not available')
+      const u = this.client!.authState!.creds!.me!
+      if (!u) {
+        throw new Error('user is not available')
+      }
+      user = DBUser.fromOriginal(u, this)
     }
     return {
-      id: user.jid,
-      isSelf: true,
-      fullName: user.name,
-      displayText: numberFromJid(user.jid),
-      phoneNumber: numberFromJid(user.jid),
-      imgURL: this.ppUrl(user.jid),
+      ...user,
+      displayText: user.phoneNumber!,
     }
   }
 
   serializeSession = () => (
-    base64EncodedAuthenticationCredentials(this.client!.getAuthInfo())
+    { }
   )
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
@@ -182,76 +164,26 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
-    const chatUpdateEvents = async (updates: (Partial<WAChat> | WAChat)[], type: 'upsert' | 'update' = 'update') => {
-      const list: ServerEvent[] = []
-      await Promise.all(
-        updates.map(async update => {
-          const jid = update.jid!
-          if (jid !== STORIES_JID) {
-            // load in the chat if it's new
-            if (type === 'upsert') {
-              await this.loadChat(jid)
-            }
-            if (Object.keys(update).filter(k => k !== 't').length > 1) { // more keys than just "jid"
-              list.push(
-                {
-                  type: ServerEventType.STATE_SYNC,
-                  objectName: 'thread',
-                  objectIDs: { threadID: jid },
-                  mutationType: type,
-                  entries: type === 'update' ? [this.mappers.mapChatPartial(update)] : this.mappers.mapChats([update as WAChat]),
-                },
-              )
-            }
-          }
+    ev.on('auth-state.update', ({ creds }) => {
+      const repo = this.db.getRepository(AccountCredentials)
+      repo.save(
+        repo.create({
+          accountID: this.accountID,
+          credentials: creds,
         }),
       )
-      if (list.length) this.evCallback(list)
-    }
-    const messageUpdateEvents = (updates: WAMessageUpdate[] | MessageInfoUpdate[]) => {
-      texts.log('msg update', updates)
-      const list: ServerEvent[] = []
-      for (const { update, key } of updates) {
-        if (key.remoteJid === STORIES_JID) continue
+      if (creds.me) {
+        const meUser = DBUser.fromOriginal(creds.me!, this)
+        meUser.isSelf = true
+        meUser.imgURL = this.ppUrl(meUser.id)
 
-        const items = this.store.messages[key!.remoteJid!]
-        // if the key has been updated, fetch that
-        // otherwise fetch the key we're supposed to fetch
-        const keyId = (update as Partial<WAMessage>).key?.id || key.id!
-        const msg = items?.get(keyId)
-        // messsage ID has changed
-        // delete and reinsert
-        if (keyId !== key.id) {
-          list.push({
-            type: ServerEventType.STATE_SYNC,
-            objectName: 'message',
-            objectIDs: { threadID: key.remoteJid!, messageID: mapMessageID(key) },
-            mutationType: 'delete',
-            entries: [mapMessageID(key)],
-          })
-          if (msg) {
-            list.push({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'message',
-              objectIDs: { threadID: msg.key.remoteJid!, messageID: mapMessageID(msg.key) },
-              mutationType: 'upsert',
-              entries: this.mappers.mapMessages([msg]),
-            })
-          }
-        } else if (msg) {
-          list.push({
-            type: ServerEventType.STATE_SYNC,
-            objectName: 'message',
-            objectIDs: { threadID: msg.key.remoteJid!, messageID: mapMessageID(msg.key) },
-            mutationType: 'update',
-            entries: [this.mappers.mapMessagePartial(msg)],
-          })
-        }
+        this.db.getRepository(DBUser).save(meUser)
       }
-      !!list.length && this.evCallback(list)
-    }
+    })
 
     ev.on('connection.update', update => {
+      Object.assign(this.connState, update)
+
       texts.log('connection update:', update)
       const { connection, lastDisconnect, qr } = update
 
@@ -290,374 +222,206 @@ export default class WhatsAppAPI implements PlatformAPI {
             break
         }
 
-        let isReplaced = false
         if (connection === 'close') {
           const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error)
-          isReplaced = statusCode === DisconnectReason.connectionReplaced
-
           texts.log('disconnected, reconnecting: ', isReconnecting)
           // auto reconnect logic
           if (isReconnecting) {
             update.connection = 'connecting'
             this.connectInternal(2000)
+          } else if (statusCode === DisconnectReason.loggedOut) {
+            makeDBKeyStore(this.db).clear()
+            this.db.getRepository(AccountCredentials).delete({ accountID: this.accountID })
           }
         }
 
-        this.setConnStatus({ status: isReplaced ? ConnectionStatus.CONFLICT : CONNECTION_STATE_MAP[connection] })
-      }
-
-      if (typeof update.phoneConnected !== 'undefined') {
-        this.setConnStatus({ status: update.phoneConnected ? ConnectionStatus.CONNECTED : ConnectionStatus.DISCONNECTED })
+        this.connCallback({ status: CONNECTION_STATE_MAP[connection] })
       }
     })
 
-    ev.on('chats.set', () => {
-      const now = new Date()
-      if (this.lastChatsRecv) {
-        const oldTimestamp = this.lastChatsRecv.getTime() / 1000
-        const chats = this.store.chats.all()
-        const idx = chats.findIndex(c => +c.t <= oldTimestamp)
-        if (idx >= 0) {
-          chatUpdateEvents(chats.slice(0, idx + 1), 'upsert')
-        }
+    ev.on('chats.set', async ({ messages, chats }) => {
+      texts.log('got history')
+
+      const metadatas = await this.client!.groupFetchAllParticipating()
+      const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
+      await this.db.getRepository(DBThread).save(items, { chunk: 500 })
+      await this.db.getRepository(DBParticipant).save(items.flatMap(item => item.participantsList || []), { chunk: 500 })
+
+      texts.log('saved chats history')
+
+      const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
+      await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+
+      texts.log('saved message history')
+    })
+
+    ev.on('contacts.upsert', async contacts => {
+      texts.log('got contact history')
+
+      const items = contacts.map(item => DBUser.fromOriginal(item, this))
+      await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+    })
+
+    ev.on('chats.update', async () => {
+
+    })
+
+    ev.on('chats.delete', () => {
+
+    })
+
+    ev.on('contacts.update', async updates => {
+      const contactMap: { [jid: string]: Partial<Contact> } = { }
+      const jids = updates.map(c => {
+        const id = jidNormalizedUser(c.id!)
+        contactMap[id] = c
+        return id
+      })
+      const repo = this.db.getRepository(DBUser)
+      const dbContacts = await repo.find({
+        where: { id: In(jids) },
+      })
+      for (const contact of dbContacts) {
+        contact.update(contactMap[contact.id])
       }
-      this.lastChatsRecv = now
+      texts.log(`updating ${dbContacts.length}/${jids.length} contacts`)
+      await repo.save(dbContacts)
     })
 
-    ev.on('chats.upsert', chats => {
-      chatUpdateEvents(chats, 'upsert')
+    ev.on('messages.upsert', async ({ messages }) => {
+      await this.db.getRepository(DBMessage).save(
+        messages.map(m => DBMessage.fromOriginal(m, this)),
+        { chunk: 500 },
+      )
     })
 
-    ev.on('presence.update', ({ jid, presences }) => {
-      const mapped = this.mappers.mapPresenceUpdate(jid, presences)
-      this.evCallback(mapped)
+    ev.on('messages.update', async () => {
+
     })
 
-    ev.on('contacts.set', ({ contacts }) => {
-      if (this.lastChatsRecv) {
-        const events: ServerEvent[] = []
-        for (const c of contacts) {
-          const chat = this.store.chats.get(c.jid)
-          if (!!chat && !chat.name && chat.jid !== STORIES_JID) {
-            const title = this.mappers.contactName(c)
-            events.push(
-              {
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'thread',
-                objectIDs: { threadID: c.jid },
-                mutationType: 'update',
-                entries: [{ id: c.jid, title }],
-              },
-            )
-          }
-        }
-        // update participants
-        const metadatas = Object.values(this.store.groupMetadata)
-        for (const item of metadatas) {
-          for (const participant of item.participants) {
-            const contact = this.store.contacts[participant.jid]
-            if (contact) {
-              events.push(
-                {
-                  type: ServerEventType.STATE_SYNC,
-                  objectName: 'participant',
-                  objectIDs: { threadID: item.id },
-                  mutationType: 'update',
-                  entries: [{ id: participant.jid, title: this.mappers.contactName(contact) }],
-                },
-              )
-            }
-            events.push({
-              type: ServerEventType.THREAD_MESSAGES_REFRESH,
-              threadID: item.id,
-            })
-          }
-        }
-        this.evCallback(events)
-      }
-    })
+    ev.on('messages.delete', () => {
 
-    ev.on('contacts.upsert', contacts => { })
-
-    ev.on('chats.update', chatUpdateEvents)
-
-    ev.on('chats.delete', entries => {
-      this.evCallback([
-        {
-          type: ServerEventType.STATE_SYNC,
-          mutationType: 'delete',
-          objectIDs: { },
-          objectName: 'thread',
-          entries,
-        },
-      ])
-    })
-
-    ev.on('messages.update', messageUpdateEvents)
-    ev.on('message-info.update', messageUpdateEvents)
-
-    ev.on('messages.upsert', ({ messages, type }) => {
-      const list: ServerEvent[] = []
-      if (type === 'notify' || type === 'append') {
-        for (const msg of messages) {
-          if (msg.key.remoteJid !== STORIES_JID) {
-            const mapped = this.mappers.mapMessage(msg)
-            if (this.sendingMessageIDs.has(mapped.id)) {
-              this.sendingMessageIDs.delete(mapped.id)
-            } else {
-              list.push({
-                type: ServerEventType.STATE_SYNC,
-                mutationType: 'upsert',
-                objectIDs: { threadID: msg.key.remoteJid as string },
-                objectName: 'message',
-                entries: [mapped],
-              })
-            }
-          }
-        }
-      } else if (type === 'last') {
-        for (const msg of messages) {
-          if (msg.key.remoteJid === STORIES_JID) continue
-
-          const storeList = this.store.messages[msg.key.remoteJid!]
-          if (storeList.array.length) {
-            list.push({
-              type: ServerEventType.STATE_SYNC,
-              mutationType: 'delete-all',
-              objectName: 'message',
-              objectIDs: { threadID: msg.key.remoteJid! },
-            })
-          }
-          list.push({
-            type: ServerEventType.STATE_SYNC,
-            mutationType: 'upsert',
-            objectIDs: { threadID: msg.key.remoteJid! },
-            objectName: 'message',
-            entries: this.mappers.mapMessages([msg]),
-          })
-        }
-      }
-      list.length && this.evCallback(list)
-    })
-
-    ev.on('messages.delete', result => {
-      const list: ServerEvent[] = []
-      if ('ids' in result) {
-        list.push({
-          type: ServerEventType.STATE_SYNC,
-          mutationType: 'delete',
-          objectName: 'message',
-          objectIDs: { threadID: result.jid },
-          entries: result.ids.flatMap(id => (
-            [
-              mapMessageID({ remoteJid: result.jid, id, fromMe: true }),
-              mapMessageID({ remoteJid: result.jid, id, fromMe: false }),
-            ]
-          )),
-        })
-      } else {
-        list.push({
-          type: ServerEventType.STATE_SYNC,
-          mutationType: 'delete-all',
-          objectName: 'message',
-          objectIDs: { threadID: result.jid },
-        })
-      }
-      this.evCallback(list)
     })
   }
 
-  searchUsers = (typed: string) => {
-    const contacts = Object.values(this.store.contacts).filter(c => c && !(isGroupID(c.jid) || isBroadcastID(c.jid)))
-    const sorted = matchSorter(contacts, typed, { keys: ['name', 'notify', 'jid'] })
-    return this.mappers.mapContacts(sorted)
-  }
-
-  private loadChat = async (jid: string) => {
-    const isGroup = isGroupID(jid)
-    await Promise.all([
-      (async () => {
-        let contact = this.store.contacts[jid]
-        if (!contact) {
-          contact = { jid }
-          this.store.contacts[jid] = contact
-        }
-        if (!contact.imgUrl) {
-          // we're not using asset:// here because Texts cannot yet display the fallback group placeholder on asset 404
-          await this.store.fetchImageUrl(jid, this.client).catch(() => null)
-        }
-      })(),
-      (async () => {
-        let meta: GroupMetadata
-        if (isGroup) {
-          meta = await this.store.fetchGroupMetadata(jid, this.client)
-        } else if (isBroadcastID(jid)) {
-          meta = await this.store.fetchBroadcastListInfo(jid, this.client)
-        } else {
-          return
-        }
-
-        const chat = this.store.chats.get(jid)
-        if (!!chat && !chat.read_only) {
-          const isSelfAdmin = meta.participants.find(p => p.jid === this.store.state.user?.jid)?.isAdmin
-          chat.read_only = (meta.announce !== 'true' || isSelfAdmin) ? 'false' : 'true'
-        }
-      })(),
-    ])
+  searchUsers = async (typed: string) => {
+    const users = await this.db.getRepository(DBUser)
+      .createQueryBuilder()
+      .where('full_name LIKE :typed', { typed: `%${typed}%` })
+      .orderBy('full_name')
+      .addOrderBy('id')
+      .getMany()
+    return users
   }
 
   createThread = async (userIDs: string[], name: string) => {
-    let chat: WAChat
-    if (userIDs.length > 1) {
-      const meta = await this.client!.groupCreate(name, userIDs)
-      chat = this.getChat(meta.id)
-    } else if (userIDs.length === 1) {
-      const jid = whatsappID(userIDs[0])
-      chat = this.getChat(jid)
-      if (!chat) {
-        chat = {
-          name,
-          jid,
-          t: unixTimestampSeconds(),
-          count: 0,
-        }
-      }
-    } else throw new Error('no users provided')
-
-    return this.mappers.mapChats([chat])[0]
+    throw new Error('')
   }
 
   deleteThread = async (threadID: string) => {
-    await this.client!.modifyChat(threadID, { delete: true })
+    // thread deletes are local on WA multi-device
+    const repo = this.db.getRepository(DBThread)
+    const item = await repo.findOne({ id: threadID })
+    if (item) {
+      await this.db.getRepository(DBThread).remove(item)
+    }
   }
 
-  getThreads = async (inboxName: InboxName, pagination: PaginationArg): Promise<Paginated<Thread>> => {
+  getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
-    const { cursor } = pagination || { cursor: null, direction: null }
 
-    while (!this.lastChatsRecv) {
-      await delay(50)
+    const repo = this.db.getRepository(DBThread)
+    const cursor = (() => {
+      if (pagination?.cursor) {
+        const [date, id] = pagination?.cursor.split(',')
+        return [new Date(date), id]
+      }
+    })()
+    let qb = await repo
+      .createQueryBuilder('thread')
+      .leftJoinAndSelect('thread.participantsList', 'participants')
+      .leftJoinAndSelect('participants.user', 'user')
+      .orderBy('timestamp', 'DESC')
+      .limit(THREAD_PAGE_SIZE)
+    if (cursor) {
+      qb = qb.andWhere('(thread.timestamp, thread.id) < (:date, :id)', { date: cursor[0], id: cursor[1] })
     }
+    const items = await qb.getMany()
+    const oldestCursor = items.length ? `${items[items.length - 1].timestamp.toJSON()},${items[items.length - 1].id}` : undefined
 
-    const { chats } = this.store
-    const result = chats.paginated(
-      cursor || null,
-      THREAD_PAGE_SIZE,
-      // load all except the stories jid
-      k => k.jid !== STORIES_JID,
-    )
-
-    await bluebird.all(
-      result.map(({ jid }) => this.loadChat(jid)),
-    )
-
-    const items = this.mappers.mapChats(result)
-    const hasMore = chats.length >= THREAD_PAGE_SIZE
+    for (const item of items) {
+      delete item.participantsList
+      // @ts-ignore
+      delete item.unreadCount
+      if (item.type === 'single' && !item.title) {
+        const otherParticipant = item.participants.items.find(p => areJidsSameUser(p.id, item.id))
+        item.title = otherParticipant?.fullName || numberFromJid(item.title) || item.title
+      }
+    }
 
     return {
       items,
-      hasMore,
-      oldestCursor: result.length ? textsWAKey.key(result.slice(-1)[0]) : undefined,
-    }
-  }
-
-  // searchMessages = async (typed: string, pagination: PaginationArg, threadID?: string) => {
-  //   if (!typed) return { items: [], hasMore: false, oldestCursor: '0' }
-  //   const page = cursor ? (+cursor || 1) : 1
-  //   const nextPage = (page + 1).toString()
-  //   texts.log(`searching for ${typed} in ${threadID}, page: ${page}`)
-  //   const response = await this.client.searchMessages(typed, threadID || null, 10, page)
-  //   return {
-  //     items: mapMessages(response.messages, this.client.user.jid),
-  //     hasMore: !response.last,
-  //     oldestCursor: nextPage,
-  //   }
-  // }
-
-  private lazyLoadReadReceipts = async (messages: WAMessage[], threadID: string) => {
-    const messageUpdates: Partial<Message> & { id: string }[] = []
-    await bluebird.map([...messages], async m => {
-      if (m.key.fromMe) {
-        await this.store!.fetchMessageInfo(m.key, this.client)
-        messageUpdates.push(this.mappers.mapMessagePartial(m))
-      }
-    })
-    if (messageUpdates.length) {
-      this.evCallback([{
-        type: ServerEventType.STATE_SYNC,
-        mutationType: 'update',
-        objectIDs: { threadID },
-        objectName: 'message',
-        entries: messageUpdates,
-      }])
+      oldestCursor,
+      hasMore: items.length >= THREAD_PAGE_SIZE,
     }
   }
 
   getMessages = async (threadID: string, pagination: PaginationArg) => {
+    const repo = this.db.getRepository(DBMessage)
     const cursor = (() => {
-      if (!pagination?.cursor) return undefined
-
-      const [id, fromMe] = pagination!.cursor.split('_')
-      return { id, fromMe: !!+fromMe }
+      if (pagination?.cursor) {
+        const [date, id] = pagination.cursor.split(',')
+        return [new Date(date), id]
+      }
     })()
-
-    const messages = await this.mutex.mutex(() => {
-      const messageStore = this.store.messages[threadID]
-      const messageLen = Math.max(
-        !!cursor || !messageStore ? MESSAGE_PAGE_SIZE : messageStore?.array.length,
-        1,
-      )
-      return this.store.loadMessages(threadID, messageLen, { before: cursor }, this.client)
-    })
-
-    const hasMore = messages.length >= MESSAGE_PAGE_SIZE || !cursor
-    if (isGroupID(threadID)) {
-      this.lazyLoadReadReceipts(messages, threadID)
+    let qb = await repo
+      .createQueryBuilder()
+      .where('thread_id = :threadID', { threadID })
+      .orderBy('timestamp', 'DESC')
+      .limit(MESSAGE_PAGE_SIZE)
+    if (cursor) {
+      qb = qb.andWhere('(timestamp, id) < (:date, :id)', { date: cursor[0], id: cursor[1] })
     }
+    const items = (await qb.getMany()).reverse()
 
     return {
-      items: this.mappers.mapMessages(messages),
-      hasMore,
+      items: items.reverse(),
+      hasMore: items.length < MESSAGE_PAGE_SIZE,
+      oldestCursor: items[items.length - 1]?.cursor,
     }
   }
 
   getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }) => {
     if (phoneNumber) {
       const jid = phoneNumber.replace(/[^0-9]/g, '') + '@c.us'
-      const exists = await this.client!.isOnWhatsApp(jid)
-      if (exists) return { id: jid, phoneNumber } as User
+      const [exists] = await this.client!.onWhatsApp(jid)
+      if (exists?.exists) return { id: exists.jid, phoneNumber } as User
     }
   }
 
-  ephemeralOptions = async (jid: string) => {
-    if (isGroupID(jid)) {
-      const meta = await this.store.fetchGroupMetadata(jid, this.client!)
-      if (meta.ephemeralDuration) {
-        return { expiration: meta.ephemeralDuration, eph_setting_ts: undefined as any as string }
-      }
-    } else {
-      const chat = this.getChat(jid)
-      if (chat && chat.ephemeral) {
-        return { expiration: chat.ephemeral, eph_setting_ts: +chat.eph_setting_ts! }
-      }
+  ephemeralOptions = async (threadID: string): Promise<Partial<MiscMessageGenerationOptions>> => {
+    const item = await this.db.getRepository(DBThread).findOne({
+      id: threadID,
+    })
+    return {
+      ephemeralExpiration: item?.messageExpirySeconds,
     }
   }
 
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
-      await this.client!.waitForConnection()
+      if (this.connState.connection !== 'open') {
+        await this.client!.waitForConnectionUpdate(u => u.connection === 'open', 30_000)
+      }
 
       let content: AnyRegularMessageContent
       let { text, mimeType } = msgContent
       let sendAdditionalTextMessage = false
 
-      const opts: MiscMessageGenerationOptions & { waitForAck: boolean } = {
-        ephemeralOptions: await this.ephemeralOptions(threadID),
-        waitForAck: true,
-      }
+      const opts: MiscMessageGenerationOptions = await this.ephemeralOptions(threadID)
 
       msgContent.mentionedUserIDs?.forEach(userID => {
-        const phoneNumber = removeServer(userID)
+        const phoneNumber = numberFromJid(userID)
         // @+14151231234 => @14151231234
         text = text!.replace('@+' + phoneNumber, '@' + phoneNumber)
       })
@@ -688,44 +452,59 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       const messages: WAMessage[] = []
       const firstMessageID = generateMessageID()
-      this.sendingMessageIDs.add(`${firstMessageID}|1`)
+
+      let quotedMsg: WAMessage | undefined
+      if (options?.quotedMessageID) {
+        const msg = await this.db.getRepository(DBMessage).findOneOrFail({
+          id: options!.quotedMessageID,
+          threadID: options!.quotedMessageThreadID,
+        })
+        if (msg) {
+          quotedMsg = JSON.parse(msg._original!)
+        } else {
+          throw new Error('could not find message to quote')
+        }
+      }
+
       messages.push(
-        await this.client!.sendWAMessage(
+        await this.client!.sendMessage(
           threadID,
           content,
           {
             messageId: firstMessageID,
-            quoted: options?.quotedMessageID
-              ? await this.store.loadMessage(options.quotedMessageThreadID || threadID, unmapMessageID(options.quotedMessageID).id, this.client)
-              : undefined,
+            quoted: quotedMsg,
             ...opts,
           },
         ),
       )
+
       if (sendAdditionalTextMessage) {
         const secondMessageID = generateMessageID()
-        this.sendingMessageIDs.add(`${secondMessageID}|1`)
         messages.push(
-          await this.client!.sendWAMessage(threadID, { text: text! }, {
+          await this.client!.sendMessage(threadID, { text: text! }, {
             messageId: secondMessageID,
             ...opts,
           }),
         )
       }
-      return this.mappers.mapMessages(messages)
+
+      return messages.map(m => DBMessage.fromOriginal(m, this))
     })
   )
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
-    messageID = unmapMessageID(messageID).id
-    const forward = await this.store.loadMessage(threadID, messageID, this.client)
-    await bluebird.all(
+    const forwardMsg = await this.db.getRepository(DBMessage).findOneOrFail({
+      id: messageID,
+      threadID,
+    })
+    const forward: WAMessage = JSON.parse(forwardMsg._original!)
+    await Promise.all(
       threadIDs!.map(
         async tid => (
-          this.client!.sendWAMessage(
+          this.client!.sendMessage(
             tid,
             { forward },
-            { waitForAck: true, ephemeralOptions: await this.ephemeralOptions(threadID) },
+            { ...(await this.ephemeralOptions(threadID)) },
           )
         ),
       ),
@@ -734,52 +513,70 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    messageID = unmapMessageID(messageID).id
-    const message = await this.store.loadMessage(threadID, messageID, this.client)
-    if (forEveryone) {
-      await this.client!.sendWAMessage(threadID, { delete: message.key }, {})
-    } else {
-      await this.client!.modifyChat(
-        threadID,
-        {
-          clear: { messages: [{ id: messageID, fromMe: message.key.fromMe! }] },
-        },
-      )
+    const key = {
+      ...unmapMessageID(messageID),
+      remoteJid: threadID,
     }
-    return true
+    if (forEveryone) {
+      await this.client!.sendMessage(threadID, { delete: key })
+    } else {
+      await this.client!.chatModify({ clear: { message: key } }, threadID, [])
+    }
   }
 
   markAsUnread = async (threadID: string) => {
-    const msg = await this.store.mostRecentMessage(threadID, this.client)
-    await this.client!.chatRead(msg!.key, -1)
+    await this.modThread(threadID, true, 'isUnread')
   }
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
-    await this.client!.waitForConnection()
-    messageID = messageID ? unmapMessageID(messageID).id : messageID
+    const repo = this.db.getRepository(DBThread)
+    const item = await repo.findOne({
+      id: threadID,
+    })
+    if (item) {
+      if (item.unreadCount > 0) {
+        let msgs = await this.db.getRepository(DBMessage)
+          .find({
+            where: {
+              threadID,
+              isSender: false,
+            },
+            order: { timestamp: 'DESC' },
+            take: item.unreadCount,
+            select: ['id', 'senderID'],
+          })
+        if (!msgs.length) {
+          throw new Error('no messages to read. Resync required')
+        }
+        const msgIndex = messageID ? msgs.findIndex(m => m.id === messageID) : -1
+        if (msgIndex >= 0) {
+          msgs = msgs.slice(msgIndex)
+        }
+        const isGroup = isJidGroup(threadID)
+        const participant = isGroup ? msgs[0].senderID : undefined
 
-    const chat = this.store.chats.get(threadID)
-    const count = chat.count < 0 ? 1 : chat.count
-    const msg = await (
-      messageID
-        ? this.store.loadMessage(threadID, messageID, this.client)
-        : this.store.mostRecentMessage(threadID, this.client!)
-    )
-    await this.client!.chatRead(msg!.key, count)
+        await this.client!.sendReadReceipt(threadID, participant!, msgs.map(m => m.id.split('|')[0]))
+
+        item.unreadCount = 0
+        await repo.save(item)
+      } else if (item.unreadCount < 0) {
+        await this.modThread(threadID, false, 'isUnread')
+      }
+    }
   }
 
   sendActivityIndicator = async (type: ActivityType, threadID: string) => {
-    if (this.client!.getState().connection !== 'open') return
-    await this.client!.updatePresence(threadID, PRESENCE_MAP[type])
+    if (this.connState.connection !== 'open') return
+    await this.client!.sendPresenceUpdate(PRESENCE_MAP[type], threadID)
   }
 
   updateThread = async (threadID: string, updates: Partial<Thread>) => {
     if ('title' in updates) {
-      if (!isGroupID(threadID)) throw new Error('cannot change title of a individual chat')
+      if (!isJidGroup(threadID)) throw new Error('cannot change title of a individual chat')
       await this.client!.groupUpdateSubject(threadID, updates.title!)
     }
     if (typeof updates.messageExpirySeconds !== 'undefined') {
-      await this.client!.sendWAMessage(
+      await this.client!.sendMessage(
         threadID,
         { disappearingMessagesInChat: updates.messageExpirySeconds },
         { },
@@ -792,9 +589,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
-    const chat = this.getChat(threadID)
-    if (!chat) new Error('chat not present')
-
     await this.client!.updateProfilePicture(threadID, imageBuffer)
   }
 
@@ -802,13 +596,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.modThread(threadID, archived, 'archive')
 
   addParticipant = async (threadID: string, participantID: string) => {
-    if (!isGroupID(threadID)) throw new Error('cannot add more participants to a single chat')
+    if (!isJidGroup(threadID)) throw new Error('cannot add more participants to a single chat')
     await this.client!.groupParticipantsUpdate(threadID, [participantID], 'add')
     return true
   }
 
   removeParticipant = async (threadID: string, participantID: string) => {
-    if (!isGroupID(threadID)) throw new Error('cannot remove participants from a single chat')
+    if (!isJidGroup(threadID)) throw new Error('cannot remove participants from a single chat')
     await this.client!.groupParticipantsUpdate(threadID, [participantID], 'remove')
     return true
   }
@@ -819,40 +613,30 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
-    let update: (messages: BaileysEventMap['messages.update']) => void
     switch (category) {
       case 'profile-picture': {
-        let url = ''
-        const item = this.store.contacts[jid]
-        if (!item?.imgUrl || item.imgUrl?.startsWith('asset://')) {
-          delete item?.imgUrl
-          url = await this.store.fetchImageUrl(jid, this.client)
+        const repo = this.db.getRepository(DBUser)
+        const item = await repo.findOne({ id: jid })
+        let url = item?.imgURL
+        if (!url || url?.startsWith('asset://')) {
+          url = await this.client!.profilePictureUrl(jid).catch(() => '')
+          // update user
+          await repo.update({ id: jid }, { imgURL: url })
         }
         return url
       }
       case 'attachment': {
-        const m = await this.store.loadMessage(jid, msgID, this.client)
-        if (!hasUrl(m)) {
-          texts.log('url not present yet for ', m.key, ', waiting...')
-          await promiseTimeout(ATTACHMENT_UPDATE_WAIT_TIME_MS, resolve => {
-            update = (messages: BaileysEventMap['messages.update']) => {
-              for (const message of messages) {
-                if (message.key.id === m.key.id) {
-                  Object.assign(m, message)
-                  if (hasUrl(m)) {
-                    resolve()
-                  }
-                }
-              }
-            }
-            this.client!.ev.on('messages.update', update)
-          })
-            .finally(() => {
-              this.client!.ev.off('messages.update', update)
-            })
+        const m = await this.db.getRepository(DBMessage).findOne({
+          id: msgID,
+          threadID: jid,
+        })
+        const og: WAMessage = JSON.parse(m?._original!)
+        const content = extractMessageContent(og.message)
+        if (content) {
+          const [key] = Object.keys(content!)
+          const stream = await downloadContentFromMessage(content[key], key.replace('Message', '') as any)
+          return stream
         }
-        const stream = await this.client!.downloadMediaMessage(m, 'stream')
-        return stream
       }
       default:
         throw new Error('Unexpected attachment: ' + category)
@@ -866,20 +650,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     const jid = threadID
     // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
-    if (!isGroupID(jid) && !isBroadcastID(jid)) {
-      await this.client!.requestPresenceUpdate(jid)
+    if (!isJidBroadcast(jid)) {
+      await this.client!.presenceSubscribe(jid)
         .catch(err => console.error(`error in presence: ${err}`))
     }
   }
 
-  takeoverConflict = async () => {
-    this.setConnStatus({ status: ConnectionStatus.CONNECTING })
-    await this.connect()
-  }
-
-  private async modThread(_threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive') {
-    const threadID = whatsappID(_threadID)
-    const chat = this.getChat(threadID)
+  private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive' | 'isUnread') {
+    const chat = await this.getChat(threadID)
     if (!chat) throw new Error('modThread: thread not found')
 
     if (!!chat[key] === value) return // already done, nothing to do
@@ -889,16 +667,22 @@ export default class WhatsAppAPI implements PlatformAPI {
         mod = { archive: value }
         break
       case 'pin':
-        mod = { pin: value ? true : { remove: +chat.pin! } }
+        mod = { pin: value ? Date.now() : null }
         break
       case 'mute':
-        mod = { mute: value ? CHAT_MUTE_DURATION_S : { remove: +chat.mute! } }
+        mod = { mute: value ? CHAT_MUTE_DURATION_S : null }
+        break
+      case 'isUnread':
+        mod = { markRead: !value }
         break
     }
-    await this.client!.modifyChat(threadID, mod)
+    await this.client!.chatModify(mod, threadID, []) // todo
   }
 
   private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`
 
-  private getChat = (jid: string) => this.store.chats.get(jid)
+  private getChat = (threadID: string) => {
+    const repo = this.db.getRepository(DBThread)
+    return repo.findOne({ id: threadID })
+  }
 }
