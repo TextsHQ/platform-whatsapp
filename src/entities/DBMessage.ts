@@ -99,11 +99,19 @@ export default class DBMessage implements Message {
 
       }
     }
-    return update
+
+    if (partial.messageStubType) {
+      update.text = undefined
+      update.attachments = []
+      update.isDeleted = true
+    }
+    console.log(partial, update)
+    Object.assign(this, update)
   }
 
   static fromOriginal = (message: WAMessage, ctx: MappingContext) => {
     const currentUserID = ctx.auth!.me!.id
+    const id = mapMessageID(message.key)
     const messageContent = extractMessageContent(message.message)
     const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
 
@@ -111,8 +119,8 @@ export default class DBMessage implements Message {
     senderID = jidNormalizedUser(senderID)
 
     const stubBasedMessage = messageStubText(message)
-    const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
-    const timestamp = toNumber(message.messageTimestamp!)
+    const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, id)
+    const timestamp = toNumber(message.messageTimestamp!) * 1000
 
     const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
     const link = messageLink(messageContent!)
@@ -124,13 +132,13 @@ export default class DBMessage implements Message {
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
-      id: mapMessageID(message.key),
-      cursor: message.key.id + '_' + Number(message.key.fromMe),
+      id,
+      cursor: timestamp + ',' + id,
       threadID: message.key.remoteJid!,
       textHeading: [...messageHeading(message)].join('\n'),
       text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
       textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
-      timestamp: new Date(timestamp * 1000),
+      timestamp: new Date(timestamp),
       forwardedCount: messageInner?.contextInfo?.forwardingScore,
       senderID,
       isSender: !!message.key.fromMe,

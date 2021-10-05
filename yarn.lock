@@ -4,7 +4,7 @@
 
 "@adiwajshing/baileys-md@git+https://github.com/adiwajshing/baileys#multi-device":
   version "4.0.0"
-  resolved "git+https://github.com/adiwajshing/baileys#019e04fb742b066a3d6742d7c2e22504e30099ee"
+  resolved "git+https://github.com/adiwajshing/baileys#e6bc1916c2eef4d5c4b56853471bbcb0e77f9d22"
   dependencies:
     "@hapi/boom" "^9.1.3"
     got "^11.8.1"

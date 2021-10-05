@@ -1,18 +1,20 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, jidNormalizedUser, Contact } from '@adiwajshing/baileys-md'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber } from '@textshq/platform-sdk'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, jidNormalizedUser, Contact, WAProto, WAMessageUpdate } from '@adiwajshing/baileys-md'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import { writeFileSync, readFileSync } from 'fs'
-import type { Connection } from 'typeorm'
+import { Brackets, Connection, In } from 'typeorm'
 import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, makeMutex, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID, updateItems } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, unmapMessageID, updateItems } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
 import AccountCredentials from './entities/AccountCredentials'
 import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
+import { DBEventsPublisher } from './utils/db-events-publisher'
+import mapPresenceUpdate from './utils/map-presence-update'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
@@ -43,6 +45,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connState: ConnectionState = { connection: 'close' }
 
+  private pendingEvents: ServerEvent[] = []
+
+  private eventPushInterval: NodeJS.Timeout
+
   accountID: string
 
   db: Connection
@@ -52,7 +58,16 @@ export default class WhatsAppAPI implements PlatformAPI {
   init = async (session: { }, { accountID }: AccountInfo) => {
     const dbPath = `/Users/adhirajsingh/${accountID}-db.sqlite`
     texts.log(`init with DB path: ${dbPath}`)
+
     this.db = await getConnection(accountID, dbPath)
+    this.registerDBEvents()
+    this.eventPushInterval = setInterval(() => {
+      if (this.pendingEvents.length) {
+        texts.log(`pushing ${this.pendingEvents.length} events`)
+        this.evCallback(this.pendingEvents)
+        this.pendingEvents = []
+      }
+    }, 200)
 
     this.accountID = accountID
 
@@ -65,6 +80,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.close()
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
+      clearInterval(this.eventPushInterval)
     }
   }
 
@@ -132,7 +148,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     /* const history = readFileSync('/Users/adhirajsingh/history.json', { encoding: 'utf-8' })
     const msgs = JSON.parse(history).messages.map(m => DBMessage.fromOriginal(m, this))
-
+    console.log(msgs)
     await this.db.getRepository(DBMessage).save(msgs) */
   }
 
@@ -161,6 +177,90 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
     this.connCallback = onEvent
+  }
+
+  private registerDBEvents = () => {
+    this.db.subscribers.push(
+      new DBEventsPublisher(DBThread, {
+        publish: (event, item) => {
+          switch (event) {
+            case 'delete':
+              const { id } = item as DBThread
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID: id },
+                mutationType: 'delete',
+                entries: [id],
+              })
+              break
+            case 'insert':
+              const dbItem = item as DBThread
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID: dbItem.id },
+                mutationType: 'upsert',
+                entries: [dbItem],
+              })
+              break
+            case 'update':
+              const { key, update } = item as any
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID: key.threadID, messageID: key.id },
+                mutationType: 'update',
+                entries: [{ ...update, ...key }],
+              })
+              break
+          }
+        },
+      }),
+    )
+
+    this.db.subscribers.push(
+      new DBEventsPublisher(DBMessage, {
+        publish: (event, item) => {
+          switch (event) {
+            case 'delete':
+              const id = (item as Partial<DBMessage>)
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'message',
+                objectIDs: { threadID: id.threadID },
+                mutationType: 'delete',
+                entries: [id.id!],
+              })
+              break
+            case 'insert':
+              const dbItem = item as DBMessage
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'message',
+                objectIDs: { threadID: dbItem.id },
+                mutationType: 'upsert',
+                entries: [dbItem],
+              })
+              break
+            case 'update':
+              const { key, update } = item as any
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'message',
+                objectIDs: { threadID: key.threadID, messageID: key.id },
+                mutationType: 'update',
+                entries: [{ ...key, ...update }],
+              })
+              break
+          }
+        },
+      }),
+    )
+  }
+
+  private publishEvent(...events: ServerEvent[]) {
+    this.pendingEvents.push(...events)
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
@@ -267,8 +367,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log(`updating ${updated.length}/${updates.length} chats`)
     })
 
-    ev.on('chats.delete', () => {
-
+    ev.on('chats.delete', async ids => {
+      const repo = this.db.getRepository(DBThread)
+      const chats = await repo.find({ id: In(ids) })
+      await repo.remove(chats, { chunk: 500 })
     })
 
     ev.on('contacts.update', async updates => {
@@ -277,18 +379,60 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('messages.upsert', async ({ messages }) => {
-      await this.db.getRepository(DBMessage).save(
-        messages.map(m => DBMessage.fromOriginal(m, this)),
-        { chunk: 500 },
-      )
+      const mapped: DBMessage[] = []
+      for (const msg of messages) {
+        if (msg.message?.protocolMessage?.type !== WAProto.ProtocolMessage.ProtocolMessageType.REVOKE) {
+          mapped.push(DBMessage.fromOriginal(msg, this))
+        }
+      }
+      await this.db.getRepository(DBMessage).save(mapped, { chunk: 500 })
     })
 
-    ev.on('messages.update', async () => {
+    ev.on('messages.update', async updates => {
+      const repo = this.db.getRepository(DBMessage)
 
+      const map: { [id: string]: WAMessageUpdate } = { }
+      for (const update of updates) {
+        const msgId = mapMessageID(update.key)
+        const id = `${update.key.remoteJid!},${msgId}`
+        map[id] = update
+      }
+
+      const qb = repo
+        .createQueryBuilder()
+        .where(new Brackets(
+          qb => {
+            for (const { key } of updates) {
+              const msgId = mapMessageID(key)
+              qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+            }
+            return qb
+          },
+        ))
+      const dbItems = await qb.getMany()
+
+      for (const item of dbItems) {
+        const id = `${item.threadID},${item.id!}`
+        item.update(map[id].update)
+      }
+      console.log(dbItems)
+
+      await repo.save(dbItems as any[])
+      texts.log(`updating ${dbItems.length}/${updates.length} messages`)
     })
 
-    ev.on('messages.delete', () => {
+    ev.on('messages.delete', item => {
+      const repo = this.db.getRepository(DBMessage)
+      if ('all' in item) {
 
+      } else {
+
+      }
+    })
+
+    ev.on('presence.update', ({ id, presences }) => {
+      const events = mapPresenceUpdate(id, presences)
+      this.publishEvent(...events)
     })
   }
 
@@ -318,11 +462,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
+    if (!this.connState.receivedPendingNotifications) {
+      await this.client!.waitForConnectionUpdate(u => !!u.receivedPendingNotifications)
+    }
+
     const repo = this.db.getRepository(DBThread)
     const cursor = (() => {
       if (pagination?.cursor) {
         const [date, id] = pagination?.cursor.split(',')
-        return [new Date(date), id]
+        return [new Date(date), id] as const
       }
     })()
     let qb = await repo
@@ -332,9 +480,41 @@ export default class WhatsAppAPI implements PlatformAPI {
       .orderBy('timestamp', 'DESC')
       .limit(THREAD_PAGE_SIZE)
     if (cursor) {
-      qb = qb.andWhere('(thread.timestamp, thread.id) < (:date, :id)', { date: cursor[0], id: cursor[1] })
+      qb = qb.andWhere(`(thread.timestamp, thread.id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
     }
     const items = await qb.getMany()
+
+    if (items.length) {
+      const messageRepo = this.db.getRepository(DBMessage)
+      const messages = await messageRepo
+        .createQueryBuilder()
+        .where(
+          `(thread_id, timestamp) IN (
+            SELECT thread_id, MAX(timestamp) from db_message 
+            WHERE thread_id IN (:...chats)
+            GROUP BY thread_id  
+          )`,
+          { chats: items.map(c => c.id) },
+        )
+        .getMany()
+
+      const messageMap = messages.reduce((dict, message) => {
+        dict[message.threadID] = message
+        return dict
+      }, { } as { [_: string]: DBMessage })
+
+      for (const chat of items) {
+        const msg = messageMap[chat.id]
+        if (msg) {
+          chat.messages = {
+            hasMore: true,
+            items: [msg],
+            oldestCursor: msg.cursor,
+          }
+        }
+      }
+    }
+
     const oldestCursor = items.length ? `${items[items.length - 1].timestamp.toJSON()},${items[items.length - 1].id}` : undefined
 
     for (const item of items) {
@@ -359,21 +539,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     const cursor = (() => {
       if (pagination?.cursor) {
         const [date, id] = pagination.cursor.split(',')
-        return [new Date(date), id]
+        return [new Date(+date), id] as const
       }
     })()
+
     let qb = await repo
       .createQueryBuilder()
       .where('thread_id = :threadID', { threadID })
       .orderBy('timestamp', 'DESC')
+      .addOrderBy('id', 'DESC')
       .limit(MESSAGE_PAGE_SIZE)
     if (cursor) {
-      qb = qb.andWhere('(timestamp, id) < (:date, :id)', { date: cursor[0], id: cursor[1] })
+      qb = qb.andWhere(`(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
     }
     const items = (await qb.getMany()).reverse()
 
     return {
-      items: items.reverse(),
+      items,
       hasMore: items.length < MESSAGE_PAGE_SIZE,
       oldestCursor: items[items.length - 1]?.cursor,
     }
@@ -601,6 +783,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
+    jid = decodeURIComponent(jid)
+    msgID = msgID ? decodeURIComponent(msgID) : msgID
     switch (category) {
       case 'profile-picture': {
         const repo = this.db.getRepository(DBUser)
