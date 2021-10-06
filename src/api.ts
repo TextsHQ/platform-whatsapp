@@ -1,6 +1,7 @@
 import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, jidNormalizedUser, Contact, WAProto, WAMessageUpdate } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
+import path from 'path'
 import { writeFileSync, readFileSync } from 'fs'
 import { Brackets, Connection, In } from 'typeorm'
 import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
@@ -55,8 +56,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   get auth(): AuthenticationCreds | undefined { return this.client?.authState?.creds }
 
-  init = async (session: { }, { accountID }: AccountInfo) => {
-    const dbPath = `/Users/adhirajsingh/${accountID}-db.sqlite`
+  init = async (session: { }, { accountID, dataDirPath }: AccountInfo) => {
+    const dbPath = path.join(dataDirPath, 'db.sqlite')
     texts.log(`init with DB path: ${dbPath}`)
 
     this.db = await getConnection(accountID, dbPath)
@@ -146,7 +147,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
     this.registerCallbacks(this.client!.ev)
 
-    /* const history = readFileSync('/Users/adhirajsingh/history.json', { encoding: 'utf-8' })
+    /* const history = readFileSync(path.join(dataDirPath, 'history.json'), { encoding: 'utf-8' })
     const msgs = JSON.parse(history).messages.map(m => DBMessage.fromOriginal(m, this))
     console.log(msgs)
     await this.db.getRepository(DBMessage).save(msgs) */
