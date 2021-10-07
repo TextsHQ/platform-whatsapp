@@ -925,6 +925,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         break
       case 'pin':
         mod = { pin: value ? Date.now() : null }
+        throw new Error('not supported on multi-device')
         break
       case 'mutedUntil':
         mod = { mute: value ? CHAT_MUTE_DURATION_S + Date.now() : null }
