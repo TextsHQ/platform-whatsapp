@@ -559,17 +559,19 @@ export default class WhatsAppAPI implements PlatformAPI {
         return [new Date(date), id] as const
       }
     })()
-    let qb = await repo
+    let cursorClause: string | undefined
+    if (cursor) {
+      cursorClause = `(thread.timestamp, thread.id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`
+    }
+    const selectClause = `(SELECT id FROM db_thread ${cursorClause ? `WHERE ${cursorClause}` : ''} ORDER BY timestamp LIMIT ${THREAD_PAGE_SIZE})`
+    const items = await repo
       .createQueryBuilder('thread')
       .leftJoinAndSelect('thread.participantsList', 'participant')
       .leftJoinAndSelect('participant.user', 'user')
+      .innerJoin(selectClause, 't2', 't2.id = thread.id')
       .orderBy('timestamp', 'DESC')
       .addOrderBy('user.is_self', 'ASC')
-      .limit(THREAD_PAGE_SIZE)
-    if (cursor) {
-      qb = qb.andWhere(`(thread.timestamp, thread.id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
-    }
-    const items = await qb.getMany()
+      .getMany()
 
     if (items.length) {
       const messageRepo = this.db.getRepository(DBMessage)
