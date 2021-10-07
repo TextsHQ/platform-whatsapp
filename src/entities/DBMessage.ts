@@ -1,6 +1,7 @@
-import { extractMessageContent, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
+import { extractMessageContent, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
 import type { Message, MessageAction, MessageAttachment, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
+import { READ_STATUS } from '../constants'
 import type { MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
@@ -25,6 +26,9 @@ export default class DBMessage implements Message {
 
   @Column({ type: 'varchar', length: 64 })
   senderID: 'none' | '$thread' | string
+
+  @Column({ type: 'boolean', nullable: false })
+  isSender: boolean
 
   @Column({ type: 'text', nullable: true })
   text?: string
@@ -56,6 +60,9 @@ export default class DBMessage implements Message {
   @Column({ type: 'simple-json', nullable: true })
   action?: MessageAction
 
+  @Column({ type: 'boolean', nullable: false, default: false })
+  isAction: boolean
+
   @Column({ type: 'text' })
   _original?: string
 
@@ -65,8 +72,6 @@ export default class DBMessage implements Message {
 
   textAttributes?: TextAttributes
 
-  isSender: boolean
-
   linkedMessageThreadID?: string
 
   linkedMessageID?: string
@@ -75,11 +80,6 @@ export default class DBMessage implements Message {
 
   @AfterLoad()
   computeProperties() {
-    this.isSender = this.id.endsWith('1')
-    if (this.linkedMessage) {
-      this.linkedMessageThreadID = this.linkedMessage?.threadID
-      this.linkedMessageID = this.linkedMessage?.id
-    }
     if (this.text) {
       // TODO
       const { text, textAttributes } = mapTextAttributes(this.text, id => id.split('@')[0])!
@@ -92,11 +92,16 @@ export default class DBMessage implements Message {
 
   update(partial: Partial<WAMessage>) {
     const update: Partial<DBMessage> = { }
-    if (partial.status) {
-      if (typeof this.seen === 'object') {
-
+    if (partial.status && partial.key!.fromMe) {
+      if (isJidGroup(partial.key!.remoteJid!)) {
+        if (typeof this.seen === 'object') {
+          const p = jidNormalizedUser(partial.participant!)
+          this.seen[p] = new Date()
+        } else {
+          // cannot unambigously determine seen
+        }
       } else {
-
+        update.seen = READ_STATUS.includes(partial.status)
       }
     }
 
@@ -105,7 +110,7 @@ export default class DBMessage implements Message {
       update.attachments = []
       update.isDeleted = true
     }
-    console.log(partial, update)
+
     Object.assign(this, update)
   }
 
@@ -128,7 +133,7 @@ export default class DBMessage implements Message {
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
     const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-    const isAction = (!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting
+    const isAction = !!((!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting)
 
     const mapped: Message = {
       _original: safeJSONStringify(message),

@@ -1,4 +1,4 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, jidNormalizedUser, Contact, WAProto, WAMessageUpdate } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
@@ -7,7 +7,7 @@ import { Brackets, Connection, In } from 'typeorm'
 import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, unmapMessageID, updateItems } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID, updateItems } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -210,7 +210,46 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
-                objectIDs: { threadID: key.threadID, messageID: key.id },
+                objectIDs: { threadID: key.id },
+                mutationType: 'update',
+                entries: [{ ...update, ...key }],
+              })
+              break
+          }
+        },
+      }),
+    )
+
+    this.db.subscribers.push(
+      new DBEventsPublisher(DBParticipant, {
+        publish: (event, item) => {
+          switch (event) {
+            case 'delete':
+              const { id } = item as DBParticipant
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { threadID: id },
+                mutationType: 'delete',
+                entries: [id],
+              })
+              break
+            case 'insert':
+              const dbItem = item as DBParticipant
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { threadID: dbItem.id },
+                mutationType: 'upsert',
+                entries: [dbItem],
+              })
+              break
+            case 'update':
+              const { key, update } = item as any
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { threadID: key.threadID },
                 mutationType: 'update',
                 entries: [{ ...update, ...key }],
               })
@@ -249,7 +288,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'message',
-                objectIDs: { threadID: key.threadID, messageID: key.id },
+                objectIDs: { threadID: key.threadID },
                 mutationType: 'update',
                 entries: [{ ...key, ...update }],
               })
@@ -414,26 +453,54 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       for (const item of dbItems) {
         const id = `${item.threadID},${item.id!}`
-        item.update(map[id].update)
+        item.update({ ...map[id].update, key: map[id].key })
       }
-      console.log(dbItems)
 
       await repo.save(dbItems as any[])
       texts.log(`updating ${dbItems.length}/${updates.length} messages`)
     })
 
-    ev.on('messages.delete', item => {
+    ev.on('messages.delete', async item => {
       const repo = this.db.getRepository(DBMessage)
       if ('all' in item) {
-
+        // isn't supported yet
       } else {
-
+        const msgs = await repo.find({
+          id: In(item.keys.map(mapMessageID)),
+        })
+        await repo.remove(msgs)
       }
     })
 
     ev.on('presence.update', ({ id, presences }) => {
       const events = mapPresenceUpdate(id, presences)
       this.publishEvent(...events)
+    })
+
+    ev.on('groups.update', update => {
+
+    })
+
+    ev.on('group-participants.update', async ({ id: threadID, participants, action }) => {
+      const repo = this.db.getRepository(DBParticipant)
+      let dbParticipants: DBParticipant[]
+      switch (action) {
+        case 'add':
+          dbParticipants = participants.map(
+            id => (
+              DBParticipant.fromOriginal({ threadID, item: { id } })
+            ),
+          )
+          break
+        default:
+          dbParticipants = await repo.find({ id: In(participants) })
+          for (const participant of dbParticipants) {
+            if (action === 'remove') participant.hasExited = true
+            else participant.isAdmin = action === 'promote'
+          }
+          break
+      }
+      await repo.save(dbParticipants)
     })
   }
 
@@ -448,7 +515,29 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   createThread = async (userIDs: string[], name: string) => {
-    throw new Error('')
+    let thread: Thread
+    if (userIDs.length > 1) {
+      const metadata = await this.client!.groupCreate(name, userIDs)
+      const chat: WAChat = {
+        id: metadata.id,
+        conversationTimestamp: unixTimestampSeconds(),
+        unreadCount: 0,
+      }
+      const dbthread = DBThread.fromOriginal({ chat, metadata }, this)
+      await this.db.getRepository(DBThread).save(dbthread)
+      await this.db.getRepository(DBParticipant).save(dbthread.participantsList!)
+      thread = dbthread
+    } else if (userIDs.length === 1) {
+      const id = jidNormalizedUser(userIDs[0])
+      const chat: WAChat = {
+        name,
+        id,
+        conversationTimestamp: unixTimestampSeconds(),
+        unreadCount: 0,
+      }
+      thread = DBThread.fromOriginal({ chat, metadata: undefined }, this)
+    } else throw new Error('no users provided')
+    return thread
   }
 
   deleteThread = async (threadID: string) => {
@@ -463,10 +552,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
-    if (!this.connState.receivedPendingNotifications) {
-      await this.client!.waitForConnectionUpdate(u => !!u.receivedPendingNotifications)
-    }
-
     const repo = this.db.getRepository(DBThread)
     const cursor = (() => {
       if (pagination?.cursor) {
@@ -476,9 +561,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     })()
     let qb = await repo
       .createQueryBuilder('thread')
-      .leftJoinAndSelect('thread.participantsList', 'participants')
-      .leftJoinAndSelect('participants.user', 'user')
+      .leftJoinAndSelect('thread.participantsList', 'participant')
+      .leftJoinAndSelect('participant.user', 'user')
       .orderBy('timestamp', 'DESC')
+      .addOrderBy('user.is_self', 'ASC')
       .limit(THREAD_PAGE_SIZE)
     if (cursor) {
       qb = qb.andWhere(`(thread.timestamp, thread.id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
@@ -535,29 +621,22 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getMessages = async (threadID: string, pagination: PaginationArg) => {
+  getMessages = async (threadID: string, pagination?: PaginationArg) => {
     const repo = this.db.getRepository(DBMessage)
-    const cursor = (() => {
-      if (pagination?.cursor) {
-        const [date, id] = pagination.cursor.split(',')
-        return [new Date(+date), id] as const
-      }
-    })()
 
     let qb = await repo
       .createQueryBuilder()
       .where('thread_id = :threadID', { threadID })
-      .orderBy('timestamp', 'DESC')
-      .addOrderBy('id', 'DESC')
+      .orderBy('cursor', 'DESC')
       .limit(MESSAGE_PAGE_SIZE)
-    if (cursor) {
-      qb = qb.andWhere(`(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
+    if (pagination?.cursor) {
+      qb = qb.andWhere(`cursor < '${pagination.cursor}'`)
     }
     const items = (await qb.getMany()).reverse()
 
     return {
       items,
-      hasMore: items.length < MESSAGE_PAGE_SIZE,
+      hasMore: items.length >= MESSAGE_PAGE_SIZE,
       oldestCursor: items[items.length - 1]?.cursor,
     }
   }
@@ -716,6 +795,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             take: item.unreadCount,
             select: ['id', 'senderID'],
           })
+
         if (!msgs.length) {
           throw new Error('no messages to read. Resync required')
         }
@@ -726,13 +806,17 @@ export default class WhatsAppAPI implements PlatformAPI {
         const isGroup = isJidGroup(threadID)
         const participant = isGroup ? msgs[0].senderID : undefined
 
-        await this.client!.sendReadReceipt(threadID, participant!, msgs.map(m => m.id.split('|')[0]))
+        await this.client!.sendReadReceipt(threadID, participant!, msgs.map(m => unmapMessageID(m.id).id))
 
         item.unreadCount = 0
         await repo.save(item)
       } else if (item.unreadCount < 0) {
         await this.modThread(threadID, false, 'isUnread')
+      } else {
+        texts.log('reading already read thread', threadID)
       }
+    } else {
+      texts.log('thread not found')
     }
   }
 
@@ -754,7 +838,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
     }
     if ('mutedUntil' in updates) {
-      await this.modThread(threadID, updates.mutedUntil === 'forever', 'mute')
+      await this.modThread(threadID, updates.mutedUntil === 'forever', 'mutedUntil')
     }
     return true
   }
@@ -764,7 +848,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   archiveThread = (threadID: string, archived: boolean) =>
-    this.modThread(threadID, archived, 'archive')
+    this.modThread(threadID, archived, 'isArchived')
 
   addParticipant = async (threadID: string, participantID: string) => {
     if (!isJidGroup(threadID)) throw new Error('cannot add more participants to a single chat')
@@ -829,27 +913,34 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  private async modThread(threadID: string, value: boolean, key: 'pin' | 'mute' | 'archive' | 'isUnread') {
+  private async modThread(threadID: string, value: boolean, key: 'pin' | 'mutedUntil' | 'isArchived' | 'isUnread') {
     const chat = await this.getChat(threadID)
     if (!chat) throw new Error('modThread: thread not found')
 
     if (!!chat[key] === value) return // already done, nothing to do
     let mod: ChatModification
     switch (key) {
-      case 'archive':
+      case 'isArchived':
         mod = { archive: value }
         break
       case 'pin':
         mod = { pin: value ? Date.now() : null }
         break
-      case 'mute':
-        mod = { mute: value ? CHAT_MUTE_DURATION_S : null }
+      case 'mutedUntil':
+        mod = { mute: value ? CHAT_MUTE_DURATION_S + Date.now() : null }
         break
       case 'isUnread':
         mod = { markRead: !value }
         break
     }
-    await this.client!.chatModify(mod, threadID, []) // todo
+
+    const msgs = await this.db.getRepository(DBMessage).find({
+      where: { threadID },
+      order: { timestamp: 'DESC' },
+      take: 1,
+    })
+    const ogMsgs = msgs.map(m => WAProto.WebMessageInfo.fromObject(JSON.parse(m._original!)))
+    await this.client!.chatModify(mod, threadID, ogMsgs)
   }
 
   private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`

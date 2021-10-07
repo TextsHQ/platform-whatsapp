@@ -67,7 +67,14 @@ export default class DBThread implements Thread {
   }
 
   update(chat: Partial<Chat>) {
-    if (typeof chat.unreadCount !== 'undefined') { this.isUnread = !!chat.unreadCount }
+    if (typeof chat.unreadCount !== 'undefined') {
+      this.isUnread = !!chat.unreadCount
+      if (chat.unreadCount! > 0) {
+        this.unreadCount = (this.unreadCount || 0) + chat.unreadCount!
+      } else {
+        this.unreadCount = chat.unreadCount || 0
+      }
+    }
     if (typeof chat.archive !== 'undefined') { this.isArchived = chat.archive }
     if (typeof chat.readOnly !== 'undefined') { this.isReadOnly = !!chat.readOnly }
     if (typeof chat.conversationTimestamp !== 'undefined') {

@@ -2,6 +2,7 @@ import { jidNormalizedUser } from '@adiwajshing/baileys-md'
 import type { Participant } from '@textshq/platform-sdk'
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm'
 import type { FullChatParticipant } from '../types'
+import { numberFromJid } from '../utils/generics'
 import DBThread from './DBThread'
 import DBUser from './DBUser'
 
@@ -53,9 +54,12 @@ export default class DBParticipant {
       isAdmin: this.isAdmin,
     }
     if (this.user) {
-      participant.fullName = this.user.fullName
-      participant.imgURL = this.user.imgURL
-      participant.isVerified = this.user.isVerified
+      const u = { ...this.user }
+      // @ts-ignore
+      delete u.prototype
+      Object.assign(participant, u)
+    } else {
+      participant.phoneNumber = numberFromJid(this.id)
     }
     return participant
   }
