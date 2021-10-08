@@ -99,7 +99,6 @@ export default class DBThread implements Thread {
       item.isUnread = !!item.unreadCount
     }
     delete item.participantsList
-    // @ts-ignore
     delete item.unreadCount
     return item
   }

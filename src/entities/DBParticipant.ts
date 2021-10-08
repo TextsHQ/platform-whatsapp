@@ -55,7 +55,7 @@ export default class DBParticipant {
     }
     if (this.user) {
       const u = { ...this.user }
-      // @ts-ignore
+      // @ts-expect-error
       delete u.prototype
       Object.assign(participant, u)
     } else {
