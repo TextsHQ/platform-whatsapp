@@ -1,13 +1,12 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
 import { writeFileSync, readFileSync } from 'fs'
 import { Brackets, Connection, In } from 'typeorm'
-import { isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md/lib/WABinary'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, threadType, unmapMessageID, updateItems } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, shouldExcludeMessage, threadType, unmapMessageID, updateItems } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -49,6 +48,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private pendingEvents: ServerEvent[] = []
 
   private eventPushInterval: NodeJS.Timeout
+
+  private isAccountSetup = false
 
   accountID: string
 
@@ -301,7 +302,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private publishEvent(...events: ServerEvent[]) {
-    this.pendingEvents.push(...events)
+    if (this.isAccountSetup) {
+      this.pendingEvents.push(...events)
+    }
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
@@ -326,10 +329,14 @@ export default class WhatsAppAPI implements PlatformAPI {
       Object.assign(this.connState, update)
 
       texts.log('connection update:', update)
-      const { connection, lastDisconnect, qr } = update
+      const { connection, lastDisconnect, qr, receivedPendingNotifications } = update
 
       if (qr) {
         this.loginCallback && this.loginCallback({ qr, isOpen: false })
+      }
+
+      if (receivedPendingNotifications) {
+        this.isAccountSetup = true
       }
 
       if (connection) {
@@ -422,11 +429,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('messages.upsert', async ({ messages }) => {
       const mapped: DBMessage[] = []
       for (const msg of messages) {
-        if (msg.message?.protocolMessage?.type !== WAProto.ProtocolMessage.ProtocolMessageType.REVOKE) {
+        if (!shouldExcludeMessage(msg)) {
           mapped.push(DBMessage.fromOriginal(msg, this))
         }
       }
       await this.db.getRepository(DBMessage).save(mapped, { chunk: 500 })
+
+      this.isAccountSetup = true
     })
 
     ev.on('messages.update', async updates => {
@@ -552,6 +561,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
+
+    while (!this.isAccountSetup) {
+      await delay(50)
+    }
 
     const repo = this.db.getRepository(DBThread)
     const cursor = (() => {
