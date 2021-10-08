@@ -93,6 +93,17 @@ export default class DBThread implements Thread {
     }
   }
 
+  static prepareForSending<T extends Partial<DBThread>>(item: T): T {
+    item = { ...item }
+    if (typeof item.unreadCount !== 'undefined') {
+      item.isUnread = !!item.unreadCount
+    }
+    delete item.participantsList
+    // @ts-ignore
+    delete item.unreadCount
+    return item
+  }
+
   static fromOriginal = (raw: FullBaileysChat, ctx: MappingContext): DBThread => {
     const { chat, metadata } = raw
     const threadID = jidNormalizedUser(chat.id)

@@ -196,7 +196,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
               break
             case 'insert':
-              const dbItem = item as DBThread
+              const dbItem = DBThread.prepareForSending(item as DBThread)
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
@@ -207,12 +207,13 @@ export default class WhatsAppAPI implements PlatformAPI {
               break
             case 'update':
               const { key, update } = item as any
+              const processedUpdate = DBThread.prepareForSending(update)
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
                 objectIDs: { threadID: key.id },
                 mutationType: 'update',
-                entries: [{ ...update, ...key }],
+                entries: [{ ...processedUpdate, ...key }],
               })
               break
           }
@@ -392,7 +393,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
       await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
-      texts.log('saved message history')
+      texts.log('saved last message history')
     })
 
     ev.on('contacts.upsert', async contacts => {
@@ -605,19 +606,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const oldestCursor = items.length ? `${items[items.length - 1].timestamp.toJSON()},${items[items.length - 1].id}` : undefined
-
-    for (const item of items) {
-      delete item.participantsList
-      // @ts-ignore
-      delete item.unreadCount
-      if (item.type === 'single' && !item.title) {
-        const otherParticipant = item.participants.items.find(p => areJidsSameUser(p.id, item.id))
-        item.title = otherParticipant?.fullName || numberFromJid(item.title) || item.title
-      }
-    }
-
+    const processedItems = items.map(
+      item => {
+        const result = DBThread.prepareForSending(item)
+        if (result.type === 'single' && !result.title) {
+          const otherParticipant = result.participants.items.find(p => areJidsSameUser(p.id, item.id))
+          item.title = otherParticipant?.fullName || numberFromJid(item.title) || item.title
+        }
+        return result
+      },
+    )
     return {
-      items,
+      items: processedItems,
       oldestCursor,
       hasMore: items.length >= THREAD_PAGE_SIZE,
     }
