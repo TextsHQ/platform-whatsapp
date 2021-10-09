@@ -443,8 +443,23 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       const metadatas = await this.client!.groupFetchAllParticipating()
       const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
+      const totalParticipantList: DBParticipant[] = []
+
+      const addedParticipants = new Set<string>()
+      for (const { participantsList } of items) {
+        for (const item of participantsList!) {
+          const id = `${item.threadID},${item.id}`
+          if (!addedParticipants.has(id)) {
+            totalParticipantList.push(item)
+            addedParticipants.add(id)
+          } else {
+            texts.log('duplicate participant: ' + id, participantsList)
+          }
+        }
+      }
+
       await this.db.getRepository(DBThread).save(items, { chunk: 500 })
-      await this.db.getRepository(DBParticipant).save(items.flatMap(item => item.participantsList || []), { chunk: 500 })
+      await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
 
       texts.log('saved chats history')
 
