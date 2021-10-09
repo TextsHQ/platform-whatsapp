@@ -2,7 +2,6 @@ import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, Authentic
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
-import { writeFileSync, readFileSync } from 'fs'
 import { Brackets, Connection, In } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
@@ -50,6 +49,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   private eventPushInterval: NodeJS.Timeout
 
   private isAccountSetup = false
+
+  private isNewLogin: boolean | undefined = undefined
+
+  // need a counter to track all that we need to fully establish a new connection
+  // we need 3 things -- initial chat history, remaining stuff & contact push names
+  private newLoginCounter = 3
 
   accountID: string
 
@@ -133,11 +138,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (!!this.client && this.connState.connection !== 'close') {
       throw new Error('already connecting!')
     }
-
     delayMs && await delay(delayMs)
     const creds = await this.db.getRepository(AccountCredentials).findOne({
       accountID: this.accountID,
     })
+    // set on app start only
+    if (typeof this.isNewLogin === 'undefined') {
+      this.isNewLogin = !creds?.credentials?.me?.id
+      texts.log('connecting, new login: ' + this.isNewLogin)
+    }
+
     const auth = {
       creds: creds?.credentials || initAuthState().creds,
       keys: makeDBKeyStore(this.db),
@@ -260,6 +270,35 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       }),
     )
+    // uncomment on user updates
+    /* this.db.subscribers.push(
+      new DBEventsPublisher(DBUser, {
+        publish: (event, item) => {
+          switch (event) {
+            case 'insert':
+              const dbItem = item as DBUser
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { },
+                mutationType: 'upsert',
+                entries: [dbItem],
+              })
+              break
+            case 'update':
+              const { key, update } = item as any
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { },
+                mutationType: 'update',
+                entries: [{ ...update, ...key }],
+              })
+              break
+          }
+        },
+      }),
+    ) */
 
     this.db.subscribers.push(
       new DBEventsPublisher(DBMessage, {
@@ -307,6 +346,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
+  private markAccountSetup() {
+    texts.log('account setup, sending events...')
+    this.isAccountSetup = true
+  }
+
+  private decrementNewLoginCounter() {
+    this.newLoginCounter -= 1
+    if (this.newLoginCounter === 0) {
+      this.markAccountSetup()
+    }
+  }
+
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     ev.on('auth-state.update', ({ creds }) => {
       const repo = this.db.getRepository(AccountCredentials)
@@ -335,8 +386,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.loginCallback && this.loginCallback({ qr, isOpen: false })
       }
 
-      if (receivedPendingNotifications) {
-        this.isAccountSetup = true
+      if (receivedPendingNotifications && !this.isNewLogin) {
+        this.markAccountSetup()
       }
 
       if (connection) {
@@ -401,6 +452,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
       texts.log('saved last message history')
+
+      this.decrementNewLoginCounter()
     })
 
     ev.on('contacts.upsert', async contacts => {
@@ -408,6 +461,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       const items = contacts.map(item => DBUser.fromOriginal(item, this))
       await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+
+      this.decrementNewLoginCounter()
     })
 
     ev.on('chats.update', async updates => {
@@ -426,7 +481,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log(`updating ${updated.length}/${updates.length} contacts`)
     })
 
-    ev.on('messages.upsert', async ({ messages }) => {
+    ev.on('messages.upsert', async ({ messages, type }) => {
       const mapped: DBMessage[] = []
       for (const msg of messages) {
         if (!shouldExcludeMessage(msg)) {
@@ -434,8 +489,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       }
       await this.db.getRepository(DBMessage).save(mapped, { chunk: 500 })
-
-      this.isAccountSetup = true
+      if (type === 'prepend') {
+        this.decrementNewLoginCounter()
+      }
     })
 
     ev.on('messages.update', async updates => {

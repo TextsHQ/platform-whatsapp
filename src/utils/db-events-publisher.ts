@@ -53,7 +53,7 @@ export class DBEventsPublisher<T> implements EntitySubscriberInterface<T> {
     this.eventPublish('insert', event.entity)
   }
 
-  beforeUpdate(event: UpdateEvent<T>) {
+  afterUpdate(event: UpdateEvent<T>) {
     if (!event.entity) return
 
     const key = this.getId(event.entity as T, event.metadata)
@@ -65,7 +65,7 @@ export class DBEventsPublisher<T> implements EntitySubscriberInterface<T> {
     this.eventPublish('update', { key, update })
   }
 
-  beforeRemove(event: RemoveEvent<T>) {
+  afterRemove(event: RemoveEvent<T>) {
     if (!event.entity && !event.databaseEntity) return
 
     const entity = event.entity || event.databaseEntity
