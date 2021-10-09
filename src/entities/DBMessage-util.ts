@@ -1,4 +1,4 @@
-import { areJidsSameUser, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
+import { areJidsSameUser, extractMessageContent, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview } from '@textshq/platform-sdk'
 import { getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -132,8 +132,10 @@ const PAYMENT_STATUS_MAP = {
 export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserId: string): MessagePreview | undefined => {
   if (messageInner) {
     const contextInfo = messageInner?.contextInfo as WAContextInfo
-    const quoted = contextInfo?.quotedMessage
+    let quoted = contextInfo?.quotedMessage
     if (quoted) {
+      // in case quoted is ephemeral
+      quoted = extractMessageContent(quoted)
       chatId = contextInfo.remoteJid! || chatId
       return {
         id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }),
