@@ -141,7 +141,7 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
         id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }),
         threadID: jidNormalizedUser(chatId),
         senderID: jidNormalizedUser(contextInfo.participant || chatId),
-        text: messageText(contextInfo.quotedMessage!, Object.values(contextInfo.quotedMessage!)[0]) || '',
+        text: messageText(quoted!, Object.values(quoted!)[0]) || '',
       }
     }
   }
