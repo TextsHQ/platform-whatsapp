@@ -50,11 +50,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private isAccountSetup = false
 
+  private fetchedAllMessages = false
+
   private isNewLogin: boolean | undefined = undefined
 
   // need a counter to track all that we need to fully establish a new connection
-  // we need 3 things -- initial chat history, remaining stuff & contact push names
-  private newLoginCounter = 3
+  // we need 2 things -- initial chat history & contact push names
+  private newLoginCounter = 2
 
   accountID: string
 
@@ -388,6 +390,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (receivedPendingNotifications && !this.isNewLogin) {
         this.markAccountSetup()
+        this.fetchedAllMessages = true
       }
 
       if (connection) {
@@ -505,7 +508,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       await this.db.getRepository(DBMessage).save(mapped, { chunk: 500 })
       if (type === 'prepend') {
-        this.decrementNewLoginCounter()
+        this.fetchedAllMessages = true
       }
     })
 
@@ -709,6 +712,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
     const repo = this.db.getRepository(DBMessage)
+
+    while (!this.fetchedAllMessages) {
+      await delay(50)
+    }
 
     let qb = await repo
       .createQueryBuilder()
