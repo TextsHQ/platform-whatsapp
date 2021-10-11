@@ -16,13 +16,13 @@
   "dependencies": {
     "@adiwajshing/baileys-md": "git+https://github.com/adiwajshing/baileys#multi-device",
     "@textshq/platform-sdk": "link:../platform-sdk",
+    "better-sqlite3": "^7.4.3",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
     "qrcode.react": "^1.0.1",
     "react": "^17.0.2",
-    "sqlite3": "^5.0.2",
     "typeorm": "^0.2.37",
     "typeorm-naming-strategies": "^2.0.0"
   },

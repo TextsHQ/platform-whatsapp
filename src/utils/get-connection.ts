@@ -7,7 +7,7 @@ const getConnection = async (name: string, sqlitePath: string) => {
     {
       name,
       database: sqlitePath,
-      type: 'sqlite',
+      type: 'better-sqlite3',
       synchronize: true,
       logging: false,
       entities,
