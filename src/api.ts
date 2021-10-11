@@ -321,7 +321,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'message',
-                objectIDs: { threadID: dbItem.id },
+                objectIDs: { threadID: dbItem.threadID },
                 mutationType: 'upsert',
                 entries: [dbItem],
               })
