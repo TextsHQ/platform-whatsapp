@@ -1,11 +1,13 @@
 import type { Connection } from 'typeorm'
 import type { SignalKeyStore } from '@adiwajshing/baileys-md'
 import AccountKeyValue from '../entities/AccountKeyValue'
+import { makeMutex } from './generics'
 
 type DBKeyStore = SignalKeyStore & { clear: () => Promise<void> }
 
 export const makeDBKeyStore = (db: Connection): DBKeyStore => {
   const repo = db.getRepository(AccountKeyValue)
+  const mutex = makeMutex()
   const getItem = async (category: string, id: string | number) => {
     const item = await repo.findOne({
       category,
@@ -14,15 +16,17 @@ export const makeDBKeyStore = (db: Connection): DBKeyStore => {
     return item?.data
   }
   const setItem = async (category: string, id: string | number, item: any | null) => {
-    if (item) {
-      await repo.save({
-        category,
-        id: id.toString(),
-        data: item,
-      }, { transaction: false })
-    } else {
-      await repo.delete({ category, id: id.toString() })
-    }
+    await mutex.mutex(async() => {
+      if (item) {
+        await repo.save({
+          category,
+          id: id.toString(),
+          data: item,
+        }, { transaction: false })
+      } else {
+        await repo.delete({ category, id: id.toString() })
+      }
+    })
   }
 
   return {
