@@ -16,7 +16,7 @@ export const makeDBKeyStore = (db: Connection): DBKeyStore => {
     return item?.data
   }
   const setItem = async (category: string, id: string | number, item: any | null) => {
-    await mutex.mutex(async() => {
+    await mutex.mutex(async () => {
       if (item) {
         await repo.save({
           category,
