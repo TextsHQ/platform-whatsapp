@@ -1,4 +1,4 @@
-import type { Platform } from '@textshq/platform-sdk'
+import { texts, Platform } from '@textshq/platform-sdk'
 
 export default {
   get info() {
