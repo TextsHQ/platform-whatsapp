@@ -19,6 +19,7 @@ type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
+const MAX_OFFLINE_MESSAGES_WAIT_MS = 5_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 
 const config: Partial<SocketConfig> = {
@@ -57,6 +58,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   // need a counter to track all that we need to fully establish a new connection
   // we need 2 things -- initial chat history & contact push names
   private newLoginCounter = 2
+
+  // sometimes WA does not let us know when all offline messages are received
+  // as a patch, we mark "isAccountSetup" as true to prevent getThreads from hanging infinitely
+  private fetchedAllOfflineMessagesTimeout: NodeJS.Timeout
 
   accountID: string
 
@@ -391,6 +396,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (receivedPendingNotifications && !this.isNewLogin) {
         this.markAccountSetup()
         this.fetchedAllMessages = true
+        clearTimeout(this.fetchedAllOfflineMessagesTimeout)
       }
 
       if (connection) {
@@ -404,6 +410,12 @@ export default class WhatsAppAPI implements PlatformAPI {
               texts.log('finished connect transaction')
               this.connectionTransaction!.data = { }
               this.connectionTransaction!.finish()
+            }
+            if (!this.isNewLogin) {
+              this.fetchedAllOfflineMessagesTimeout = setTimeout(() => {
+                this.markAccountSetup()
+                this.fetchedAllMessages = true
+              }, MAX_OFFLINE_MESSAGES_WAIT_MS)
             }
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: true })
             break
@@ -420,6 +432,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               }
               this.connectionLifetimeTransaction!.finish()
             }
+            clearTimeout(this.fetchedAllOfflineMessagesTimeout)
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
             break
         }
