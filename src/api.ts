@@ -263,7 +263,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         // transactions
         switch (connection) {
           case 'open':
-            this.connectionLifetimeTransaction = texts.Sentry.startTransaction({
+            this.connectionLifetimeTransaction = texts.Sentry.startTransaction?.({
               name: 'Lifetime',
             })
             if (this.connectionTransaction) {
@@ -275,7 +275,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             break
           case 'connecting':
             texts.log('connect transaction started')
-            this.connectionTransaction = texts.Sentry.startTransaction({
+            this.connectionTransaction = texts.Sentry.startTransaction?.({
               name: 'Connect',
             })
             break
