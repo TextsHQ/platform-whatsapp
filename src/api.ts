@@ -403,7 +403,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         // transactions
         switch (connection) {
           case 'open':
-            this.connectionLifetimeTransaction = texts.Sentry.startTransaction({
+            this.connectionLifetimeTransaction = texts.Sentry.startTransaction?.({
               name: 'Lifetime',
             })
             if (this.connectionTransaction) {
@@ -421,7 +421,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             break
           case 'connecting':
             texts.log('connect transaction started')
-            this.connectionTransaction = texts.Sentry.startTransaction({
+            this.connectionTransaction = texts.Sentry.startTransaction?.({
               name: 'Connect',
             })
             break
@@ -680,9 +680,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         .createQueryBuilder()
         .where(
           `(thread_id, timestamp) IN (
-            SELECT thread_id, MAX(timestamp) from db_message 
+            SELECT thread_id, MAX(timestamp) from db_message
             WHERE thread_id IN (:...chats)
-            GROUP BY thread_id  
+            GROUP BY thread_id
           )`,
           { chats: items.map(c => c.id) },
         )
