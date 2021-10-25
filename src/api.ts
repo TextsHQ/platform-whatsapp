@@ -5,7 +5,7 @@ import path from 'path'
 import { Brackets, Connection, In } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, shouldExcludeMessage, threadType, unmapMessageID, updateItems } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, shouldExcludeMessage, threadType, unmapMessageID, updateItems } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -62,6 +62,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   // sometimes WA does not let us know when all offline messages are received
   // as a patch, we mark "isAccountSetup" as true to prevent getThreads from hanging infinitely
   private fetchedAllOfflineMessagesTimeout: NodeJS.Timeout
+
+  private profilePictureUrlCache: { [id: string]: string } = {}
 
   accountID: string
 
@@ -214,7 +216,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
               break
             case 'insert':
-              const dbItem = DBThread.prepareForSending(item as DBThread)
+              const dbItem = DBThread.prepareForSending(item as DBThread, this.accountID)
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
@@ -225,7 +227,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               break
             case 'update':
               const { key, update } = item as any
-              const processedUpdate = DBThread.prepareForSending(update)
+              const processedUpdate = DBThread.prepareForSending(update, this.accountID)
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
@@ -254,13 +256,15 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
               break
             case 'insert':
-              const dbItem = item as DBParticipant
+              const participant = (item as DBParticipant).toParticipant()
+              DBUser.prepareForSending(participant, this.accountID)
+
               this.publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'participant',
-                objectIDs: { threadID: dbItem.id },
+                objectIDs: { threadID: participant.id },
                 mutationType: 'upsert',
-                entries: [dbItem],
+                entries: [participant],
               })
               break
             case 'update':
@@ -377,7 +381,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (creds.me) {
         const meUser = DBUser.fromOriginal(creds.me!, this)
         meUser.isSelf = true
-        meUser.imgURL = this.ppUrl(meUser.id)
+        meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
 
         this.db.getRepository(DBUser).save(meUser)
       }
@@ -708,7 +712,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     const oldestCursor = items.length ? `${items[items.length - 1].timestamp.toJSON()},${items[items.length - 1].id}` : undefined
     const processedItems = items.map(
       item => {
-        const result = DBThread.prepareForSending(item)
+        const result = DBThread.prepareForSending(item, this.accountID)
+        for (const participant of item.participants?.items || []) {
+          DBUser.prepareForSending(participant, this.accountID)
+        }
         if (result.type === 'single' && !result.title) {
           const otherParticipant = result.participants.items.find(p => areJidsSameUser(p.id, item.id))
           item.title = otherParticipant?.fullName || numberFromJid(item.title) || item.title
@@ -716,6 +723,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         return result
       },
     )
+
     return {
       items: processedItems,
       oldestCursor,
@@ -978,15 +986,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     msgID = msgID ? decodeURIComponent(msgID) : msgID
     switch (category) {
       case 'profile-picture': {
-        const repo = this.db.getRepository(DBUser)
-        const item = await repo.findOne({ id: jid })
-        let url = item?.imgURL
-        if (!url || url?.startsWith('asset://')) {
-          url = await this.client!.profilePictureUrl(jid).catch(() => '')
-          // update user
-          await repo.update({ id: jid }, { imgURL: url })
+        if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
+          this.profilePictureUrlCache[jid] = await this.client!.profilePictureUrl(jid)
+            .catch(() => '')
         }
-        return url
+        return this.profilePictureUrlCache[jid]
       }
       case 'attachment': {
         const m = await this.db.getRepository(DBMessage).findOne({
@@ -1049,8 +1053,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     const ogMsgs = msgs.map(m => WAProto.WebMessageInfo.fromObject(JSON.parse(m._original!)))
     await this.client!.chatModify(mod, threadID, ogMsgs)
   }
-
-  private ppUrl = (jid: string) => `asset://${this.accountID}/profile-picture/${jid}`
 
   private getChat = (threadID: string) => {
     const repo = this.db.getRepository(DBThread)

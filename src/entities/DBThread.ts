@@ -32,9 +32,6 @@ export default class DBThread implements Thread {
   @Column({ type: 'datetime', nullable: false })
   timestamp: Date
 
-  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
-  imgURL?: string
-
   @Column({ type: 'datetime', nullable: true, default: null })
   createdAt?: Date
 
@@ -46,6 +43,8 @@ export default class DBThread implements Thread {
 
   @Column({ type: 'text' })
   _original?: string
+
+  imgURL?: string
 
   isUnread: boolean
 
@@ -93,13 +92,14 @@ export default class DBThread implements Thread {
     }
   }
 
-  static prepareForSending<T extends Partial<DBThread>>(item: T): T {
+  static prepareForSending<T extends Partial<DBThread>>(item: T, accountID: string): T {
     item = { ...item }
     if (typeof item.unreadCount !== 'undefined') {
       item.isUnread = !!item.unreadCount
     }
     delete item.participantsList
     delete item.unreadCount
+    item.imgURL = profilePictureUrl(accountID, item.id!)
     return item
   }
 
@@ -134,9 +134,9 @@ export default class DBThread implements Thread {
       type,
       createdAt: metadata ? new Date(metadata.creation * 1000) : undefined,
       participantsList: participants,
-      imgURL: profilePictureUrl(ctx.accountID, threadID),
     }
     Object.assign(item, partial)
+
     item.update(chat)
     item.computeProperties()
 

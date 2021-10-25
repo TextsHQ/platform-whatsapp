@@ -21,7 +21,6 @@ export default class DBUser implements User {
   @Column({ type: 'boolean', nullable: false })
   isVerified: boolean
 
-  @Column({ type: 'varchar', length: 512, nullable: true })
   imgURL?: string
 
   static fromOriginal = (item: Contact | Chat, ctx: MappingContext): DBUser => {
@@ -31,8 +30,11 @@ export default class DBUser implements User {
     user.phoneNumber = numberFromJid(user.id)!
     user.isVerified = 'verifiedName' in item ? !!item.verifiedName : false
     user.isSelf = areJidsSameUser(item.id, ctx.auth!.me!.id)
-    user.imgURL = profilePictureUrl(ctx.accountID, user.id)
     return user
+  }
+
+  static prepareForSending(item: DBUser | User, accountID: string) {
+    item.imgURL = profilePictureUrl(accountID, item.id)
   }
 
   update(partial: Partial<Contact>) {
