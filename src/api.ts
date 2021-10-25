@@ -326,14 +326,16 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
               break
             case 'insert':
-              const dbItem = item as DBMessage
-              this.publishEvent({
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'message',
-                objectIDs: { threadID: dbItem.threadID },
-                mutationType: 'upsert',
-                entries: [dbItem],
-              })
+              if (this.fetchedAllMessages) {
+                const dbItem = item as DBMessage
+                this.publishEvent({
+                  type: ServerEventType.STATE_SYNC,
+                  objectName: 'message',
+                  objectIDs: { threadID: dbItem.threadID },
+                  mutationType: 'upsert',
+                  entries: [dbItem],
+                })
+              }
               break
             case 'update':
               const { key, update } = item as any

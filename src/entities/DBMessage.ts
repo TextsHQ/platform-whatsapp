@@ -1,5 +1,5 @@
 import { extractMessageContent, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
-import type { Message, MessageAction, MessageAttachment, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
+import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { READ_STATUS } from '../constants'
 import type { MappingContext } from '../types'
@@ -69,6 +69,8 @@ export default class DBMessage implements Message {
   @Column({ type: 'varchar', length: 64 })
   @Index()
   cursor?: string
+
+  behavior?: MessageBehavior
 
   textAttributes?: TextAttributes
 
@@ -158,7 +160,7 @@ export default class DBMessage implements Message {
       action,
       // todo: review logic, this is incorrect:
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
-      silent: isSilentMessage(message, currentUserID),
+      behavior: isSilentMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
       expiresInSeconds: messageInner?.contextInfo?.expiration,
     }
 

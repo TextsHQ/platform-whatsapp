@@ -183,9 +183,13 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 }
 
 export function isSilentMessage(message: WAMessage, currentUserId: string) {
-  return message.broadcast
-		|| !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType!)
-		&& !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))))
+  return !!message.broadcast
+		|| !(
+		  !!message.message || (
+		    NOTIFYING_STUB_TYPES.has(message.messageStubType!)
+		    && !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))
+		  )
+		)
 }
 
 export function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
