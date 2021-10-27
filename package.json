@@ -14,7 +14,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "https://github.com/adiwajshing/Baileys#27041b11df29626a705e16d82b9764fec96cb7f1",
+    "@adiwajshing/baileys": "https://github.com/adiwajshing/Baileys#e651945d18d1f887b71e92230723b47d799171be",
     "@adiwajshing/keyed-db": "^0.2.4",
     "@textshq/platform-sdk": "link:../platform-sdk",
     "bluebird": "^3.7.2",
