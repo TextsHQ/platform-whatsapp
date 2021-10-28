@@ -106,7 +106,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client?.logout()
   }
 
-  onLoginEvent = callback => {
+  onLoginEvent = (callback: (data: { qr: string | undefined, isOpen: boolean }) => void) => {
     this.loginCallback = callback
   }
 
