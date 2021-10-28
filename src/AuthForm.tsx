@@ -23,6 +23,7 @@ export default class WhatsAppAuth extends React.Component<Props> {
       this.setState({ qrValue })
       if (isOpen) {
         login()
+        api.onLoginEvent(() => { })
       }
     })
   }
