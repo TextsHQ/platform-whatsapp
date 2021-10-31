@@ -3,6 +3,7 @@
   "version": "0.2.6",
   "main": "dist/index.js",
   "scripts": {
+    "ncc": "npx @vercel/ncc build -e better-sqlite3 -m --target es2019 -o _ncc dist/index.js",
     "postinstall": "yarn tsc || true",
     "build": "yarn tsc",
     "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache",
