@@ -1,5 +1,5 @@
 diff --git a/node_modules/@adiwajshing/baileys-md/WABinary/Binary.js b/node_modules/@adiwajshing/baileys-md/WABinary/Binary.js
-index c37e1eb..021bea0 100644
+index c37e1eb..32fbaa6 100644
 --- a/node_modules/@adiwajshing/baileys-md/WABinary/Binary.js
 +++ b/node_modules/@adiwajshing/baileys-md/WABinary/Binary.js
 @@ -242,20 +242,20 @@ module.exports.parseInt64OrThrow = j;
@@ -64,8 +64,9 @@ index c37e1eb..021bea0 100644
  }
  
  module.exports.Binary = Binary
+\ No newline at end of file
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/ciphertext_message.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/ciphertext_message.js
-index f9bb771..491e9a2 100644
+index f9bb771..f9d3838 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/ciphertext_message.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/ciphertext_message.js
 @@ -1,16 +1,18 @@
@@ -94,8 +95,9 @@ index f9bb771..491e9a2 100644
 +  }
  }
  module.exports = CiphertextMessage;
+\ No newline at end of file
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_chain_key.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_chain_key.js
-index 9a3125b..cac2043 100644
+index 9a3125b..b25b905 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_chain_key.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_chain_key.js
 @@ -3,15 +3,15 @@ const SenderMessageKey = require('./sender_message_key');
@@ -120,7 +122,7 @@ index 9a3125b..cac2043 100644
      this.chainKey = chainKey;
    }
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_message.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_message.js
-index 80683a6..7eb4526 100644
+index 80683a6..450c345 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_message.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_message.js
 @@ -3,8 +3,6 @@ const curve = require('libsignal/src/curve');
@@ -132,16 +134,16 @@ index 80683a6..7eb4526 100644
    constructor(
      keyId = null,
      iteration = null,
-@@ -12,6 +10,7 @@ class SenderKeyMessage extends CiphertextMessage {
-     signatureKey = null,
+@@ -13,6 +11,7 @@ class SenderKeyMessage extends CiphertextMessage {
      serialized = null
    ) {
-+    this.SIGNATURE_LENGTH = 64;
      super();
++    this.SIGNATURE_LENGTH = 64;
      if (serialized) {
        const version = serialized[0];
+       const message = serialized.slice(1, serialized.length - this.SIGNATURE_LENGTH);
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_record.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_record.js
-index e17f290..f1c1777 100644
+index e17f290..5ae6401 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_record.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_record.js
 @@ -1,9 +1,8 @@
@@ -156,7 +158,7 @@ index e17f290..f1c1777 100644
    
        if (serialized) {
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_state.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_state.js
-index c3e0fc9..8950f0e 100644
+index c3e0fc9..702ee8b 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_state.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_key_state.js
 @@ -4,8 +4,6 @@ const SenderMessageKey = require('./sender_message_key');
@@ -178,7 +180,7 @@ index c3e0fc9..8950f0e 100644
              this.senderKeyStateStructure = senderKeyStateStructure;
          } else {
 diff --git a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_message_key.js b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_message_key.js
-index 7639704..cf136bc 100644
+index 7639704..0551745 100644
 --- a/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_message_key.js
 +++ b/node_modules/@adiwajshing/baileys-md/WASignalGroup/sender_message_key.js
 @@ -1,14 +1,14 @@
