@@ -4,7 +4,7 @@
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys#core":
   version "4.0.0"
-  resolved "https://github.com/adiwajshing/Baileys#43ad1ac2e7c54cfeb2b56d7db249f30b14b45333"
+  resolved "https://github.com/adiwajshing/Baileys#03d372e3b39a09250a4636854521032075924229"
   dependencies:
     "@hapi/boom" "^9.1.3"
     curve25519-js "^0.0.4"
