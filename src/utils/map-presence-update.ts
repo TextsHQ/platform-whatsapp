@@ -11,6 +11,7 @@ export default (threadID: string, presenceUpdates: { [_: string]: PresenceData }
       type: ServerEventType.USER_PRESENCE_UPDATED,
       presence: {
         userID: participantID,
+        status: presence.lastKnownPresence === 'available' ? 'online' : 'offline',
         isActive: presence.lastKnownPresence === 'available',
         lastActive,
       },
