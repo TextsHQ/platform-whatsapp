@@ -33,7 +33,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private evCallback: OnServerEventCallback = () => {}
 
-  private connCallback: OnConnStateChangeCallback = () => {}
+  // private connCallback: OnConnStateChangeCallback = () => {}
 
   private loginCallback?: (data: { qr: string | undefined, isOpen: boolean }) => void
 
@@ -197,7 +197,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
-    this.connCallback = onEvent
+    // this.connCallback = onEvent
   }
 
   private registerDBEvents = () => {
@@ -456,7 +456,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
 
-        this.connCallback({ status: CONNECTION_STATE_MAP[connection] })
+        // this.connCallback({ status: CONNECTION_STATE_MAP[connection] })
       }
     })
 
