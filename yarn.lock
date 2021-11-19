@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys-md@git+https://github.com/adiwajshing/baileys#multi-device":
   version: 4.0.0
-  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=dac5a63ff98fa41d4cb287779f485970a880e645"
+  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=49da0e4e71255a69bb7426cda1c5c367395472f8"
   dependencies:
     "@hapi/boom": ^9.1.3
     curve25519-js: ^0.0.4
@@ -23,7 +23,7 @@ __metadata:
   dependenciesMeta:
     qrcode-terminal:
       optional: true
-  checksum: 65c18cf77e94a8c861b7dc343649e4c8e0aa075ed3c2f787e1b229805e35107f14d4596daeebd45ee0d902b2ab6b39175758e5cb09b19b721e49f71034f76da4
+  checksum: a6610ba62af9349c9cee000a4a5d460c7a911636c492fb16a392a312b05098f4c9616af0773aebb7f19c2d343622c702ec9c7b7e2b37c67c76fee9ba56139da2
   languageName: node
   linkType: hard
 
@@ -413,11 +413,11 @@ __metadata:
   linkType: hard
 
 "@babel/runtime@npm:^7.7.2":
-  version: 7.15.4
-  resolution: "@babel/runtime@npm:7.15.4"
+  version: 7.16.3
+  resolution: "@babel/runtime@npm:7.16.3"
   dependencies:
     regenerator-runtime: ^0.13.4
-  checksum: c40825430400e47c19b97e4142d5315d2910305b9714d44a711472587ee2fd4521fdba5f02ddd9df3902f5e988d9854fa83f4da1e0c091f70f6983fa52480606
+  checksum: ab8ac887096d76185ddbf291d28fb976cd32473696dc497ad4905b784acbd5aa462533ad83a5c5104e10ead28c2e0e119840ee28ed8eff90dcdde9d57f916eda
   languageName: node
   linkType: hard
 
@@ -1573,10 +1573,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=13.7.0":
+"@types/node@npm:*":
   version: 16.10.5
   resolution: "@types/node@npm:16.10.5"
   checksum: 24ebd1199c4630ea59bdbd85416cfa7502ca4b5042ee9626e0fb4aa482530ba5832e6346a006993c2508d4b916347b0a558dd088f3fabc448d8e93110b9e2c1e
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=13.7.0":
+  version: 16.11.9
+  resolution: "@types/node@npm:16.11.9"
+  checksum: baec2e6471ee58fd1e9874e6f47ab95a918a0f46b42424392e4c13e3e07f078f8b72b6b48073b0b14f710ed66c5f1b2e497df43f28151000f11f5f299382cfe2
   languageName: node
   linkType: hard
 
@@ -2487,7 +2494,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cacheable-request@npm:^7.0.1":
+"cacheable-request@npm:^7.0.2":
   version: 7.0.2
   resolution: "cacheable-request@npm:7.0.2"
   dependencies:
@@ -4235,21 +4242,21 @@ __metadata:
   linkType: hard
 
 "got@npm:^11.8.1":
-  version: 11.8.2
-  resolution: "got@npm:11.8.2"
+  version: 11.8.3
+  resolution: "got@npm:11.8.3"
   dependencies:
     "@sindresorhus/is": ^4.0.0
     "@szmarczak/http-timer": ^4.0.5
     "@types/cacheable-request": ^6.0.1
     "@types/responselike": ^1.0.0
     cacheable-lookup: ^5.0.3
-    cacheable-request: ^7.0.1
+    cacheable-request: ^7.0.2
     decompress-response: ^6.0.0
     http2-wrapper: ^1.0.0-beta.5.2
     lowercase-keys: ^2.0.0
     p-cancelable: ^2.0.0
     responselike: ^2.0.0
-  checksum: 41ad7bf74f7ec18bca81997ea0a6c8b6b75405cc3ba76d49c5d9d4658cad200d5a9fa7b0a13058458d0df6bed217baabd122d5d351c6bc6996514a5e428744bb
+  checksum: 3b6db107d9765470b18e4cb22f7c7400381be7425b9be5823f0168d6c21b5d6b28b023c0b3ee208f73f6638c3ce251948ca9b54a1e8f936d3691139ac202d01b
   languageName: node
   linkType: hard
 
@@ -5609,11 +5616,11 @@ __metadata:
   linkType: hard
 
 "keyv@npm:^4.0.0":
-  version: 4.0.3
-  resolution: "keyv@npm:4.0.3"
+  version: 4.0.4
+  resolution: "keyv@npm:4.0.4"
   dependencies:
     json-buffer: 3.0.1
-  checksum: 770134225c5320861748bf65f022e7ce100e465b85b28fe39036ef66f6190bb602aa8a57df365b9c745005d948fc1f0da99306062875a2f52700195e0b4d1033
+  checksum: 73f0f45e149be12aab0449a59c9a490195f231ef90024222e544f4c24221fa2b4ec1cd432f92384f0f852e6ae48b7e97f1bf2147c29616b2feddf8ffbc401777
   languageName: node
   linkType: hard
 
@@ -5701,11 +5708,11 @@ __metadata:
 
 "libsignal@git+https://github.com/adiwajshing/libsignal-node":
   version: 2.0.1
-  resolution: "libsignal@git+https://github.com/adiwajshing/libsignal-node#commit=11de21293c352a57d0c25d29c66963029873d953"
+  resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=4ffc1f3d6147ffdec88f62e70f41e7de2e08cd42"
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: 9cd25b4ee1aff586a8ede04666b244f7e135c6a1f173043abbc2c24383f2df2a583c581c8048c3c908a0c3af4154125fa2bf8c99e7dc28bd449b3597f0aa4522
+  checksum: 7d951215ac988fac8ed9e8fde2da51e28939d509f911eeae88673766823a7fec4da2616d14cfb15f08fe97a32d347a14938852664ee82b3f051fed17133f628e
   languageName: node
   linkType: hard
 
