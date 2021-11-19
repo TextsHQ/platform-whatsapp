@@ -111,9 +111,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private connect = async () => {
-    try {
-      await this.connectInternal()
+    await this.connectInternal()
 
+    try {
       const start = Date.now()
       while ((Date.now() - start) < config.connectTimeoutMs!) {
         await delay(500)
@@ -144,8 +144,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private connectInternal = async (delayMs?: number) => {
-    if (!!this.client && this.connState.connection !== 'close') {
-      throw new Error('already connecting!')
+    if (this.client) {
+      throw new Error('connection already exists!')
+    }
+    if (this.connState.connection !== 'close') {
+      throw new Error('already connecting')
     }
     delayMs && await delay(delayMs)
     const creds = await this.db.getRepository(AccountCredentials).findOne({
@@ -449,6 +452,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           // auto reconnect logic
           if (isReconnecting) {
             update.connection = 'connecting'
+            this.client = undefined
             this.connectInternal(2000)
           } else if (statusCode === DisconnectReason.loggedOut) {
             makeDBKeyStore(this.db).clear()
