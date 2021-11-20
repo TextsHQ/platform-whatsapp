@@ -63,7 +63,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   // as a patch, we mark "isAccountSetup" as true to prevent getThreads from hanging infinitely
   private fetchedAllOfflineMessagesTimeout: NodeJS.Timeout
 
-  private profilePictureUrlCache: { [id: string]: string } = {}
+  private profilePictureUrlCache: { [id: string]: Promise<string> } = {}
 
   accountID: string
 
@@ -993,8 +993,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     switch (category) {
       case 'profile-picture': {
         if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
-          this.profilePictureUrlCache[jid] = await this.client!.profilePictureUrl(jid)
-            .catch(() => '')
+          this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid).catch(() => '')
         }
         return this.profilePictureUrlCache[jid]
       }
