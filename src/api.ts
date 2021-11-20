@@ -17,6 +17,8 @@ import mapPresenceUpdate from './utils/map-presence-update'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
+type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
+
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 const MAX_OFFLINE_MESSAGES_WAIT_MS = 5_000
@@ -35,7 +37,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
-  private loginCallback?: (data: { qr: string | undefined, isOpen: boolean }) => void
+  private loginCallback?: LoginCallback
 
   private readonly mutex = makeMutex()
 
@@ -106,7 +108,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client?.logout()
   }
 
-  onLoginEvent = (callback: (data: { qr: string | undefined, isOpen: boolean }) => void) => {
+  onLoginEvent = (callback: LoginCallback) => {
     this.loginCallback = callback
   }
 
@@ -131,10 +133,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
-      if (statusCode) {
-        if (statusCode === DisconnectReason.notJoinedBeta) throw new ConnectionError("Please use the main WhatsApp integration or join WhatsApp's multi-device beta")
-        else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
-      }
+      if (statusCode === DisconnectReason.notJoinedBeta) {
+        console.log('no join', this.loginCallback)
+        if (this.loginCallback) {
+          this.loginCallback({ qr: undefined, isOpen: false, error: "Please use the main WhatsApp integration or join WhatsApp's multi-device beta" })
+        }
+      } else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
       // ensure cleanup
       // @ts-expect-error
       this.client!.end(undefined)
