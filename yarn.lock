@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys#core":
   version: 4.0.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys.git#commit=e10896b191624f8c5bf90217e590eb20fdea64f7"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/Baileys.git#commit=03d372e3b39a09250a4636854521032075924229"
   dependencies:
     "@adiwajshing/keyed-db": ^0.2.4
     "@hapi/boom": ^9.1.3
@@ -25,7 +25,7 @@ __metadata:
       optional: true
     qrcode-terminal:
       optional: true
-  checksum: b76086b10c8a06c870a56efc6ee1324a98199c8e5aa790a93a17b14c1700530c1fe6903bf0eef9cfb3428064249abc0a4d130db03660aeff237f92aa36ab092f
+  checksum: a048e3f022f3c712df248ddc9a15d6a9a6147b7401306d1a24d8edf562e6dfd81f57866aa46d1c88f233fd409d3991f46b3f6ee6a9d5748e9bcaa99f800b3d62
   languageName: node
   linkType: hard
 
