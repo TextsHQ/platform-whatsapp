@@ -51,7 +51,7 @@ export function safeJSONStringify(obj: any) {
 export const canReconnect = (error?: Error) => {
   // @ts-expect-error
   const statusCode: number = error?.output?.statusCode || 0
-  const isReconnecting = statusCode !== DisconnectReason.loggedOut
+  const isReconnecting = statusCode !== DisconnectReason.loggedOut && statusCode !== DisconnectReason.notJoinedBeta
   return {
     isReconnecting,
     statusCode,

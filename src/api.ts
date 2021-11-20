@@ -1,4 +1,4 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, initAuthState, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
@@ -132,7 +132,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
       if (statusCode) {
-        if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
+        if (statusCode === DisconnectReason.notJoinedBeta) throw new ConnectionError("Please use the main WhatsApp integration or join WhatsApp's multi-device beta")
+        else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
       }
       // ensure cleanup
       // @ts-expect-error
@@ -161,7 +162,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const auth = {
-      creds: creds?.credentials || initAuthState().creds,
+      creds: creds?.credentials || initAuthCreds(),
       keys: makeDBKeyStore(this.db),
     }
     this.client = makeSocket({
@@ -375,8 +376,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
-    ev.on('auth-state.update', ({ creds }) => {
+    ev.on('creds.update', () => {
       const repo = this.db.getRepository(AccountCredentials)
+      const { creds } = this.client!.authState
       repo.save(
         repo.create({
           accountID: this.accountID,
@@ -995,7 +997,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
           this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid).catch(() => '')
         }
-        return this.profilePictureUrlCache[jid]
+        const url = await this.profilePictureUrlCache[jid]
+        return url
       }
       case 'attachment': {
         const m = await this.db.getRepository(DBMessage).findOne({
