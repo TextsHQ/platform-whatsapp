@@ -10,6 +10,8 @@ import { CHAT_MUTE_DURATION_S } from './constants'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
+type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
+
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
 const DELAY_CONN_STATUS_CHANGE = 20_000
@@ -43,7 +45,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private connCallback: OnConnStateChangeCallback = () => {}
 
-  private loginCallback?: (data: { qr: string | undefined, isOpen: boolean }) => void
+  private loginCallback?: LoginCallback
 
   private connStatusTimeout: NodeJS.Timeout
 
@@ -122,10 +124,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
-      if (statusCode) {
-        if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
-        else if (error.message === DisconnectReason.timedOut) throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
+      if (statusCode === DisconnectReason.requiresMultiDevice) {
+        this.loginCallback && this.loginCallback({ 
+          qr: undefined, isOpen: false, error: 'Please downgrade your WhatsApp or use the Multi-device integration'
+        })
       }
+      else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
+      else if (error.message === DisconnectReason.timedOut) throw new ConnectionError('Timed out. Make sure your phone is connected to the internet')
       // ensure cleanup
       // @ts-expect-error
       this.client!.end(undefined)
