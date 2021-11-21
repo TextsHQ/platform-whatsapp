@@ -70,6 +70,7 @@ export default class DBMessage implements Message {
   @Index()
   cursor?: string
 
+  @Column({ type: 'varchar', length: 64, nullable: true, default: null })
   behavior?: MessageBehavior
 
   textAttributes?: TextAttributes
