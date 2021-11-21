@@ -5,7 +5,7 @@ import { READ_STATUS } from '../constants'
 import type { MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
-import { isPaymentMessage, isSilentMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText } from './DBMessage-util'
+import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText } from './DBMessage-util'
 
 @Entity()
 export default class DBMessage implements Message {
@@ -160,7 +160,7 @@ export default class DBMessage implements Message {
       action,
       // todo: review logic, this is incorrect:
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
-      behavior: isSilentMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
+      behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
       expiresInSeconds: messageInner?.contextInfo?.expiration,
     }
 
