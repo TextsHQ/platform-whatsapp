@@ -6,8 +6,8 @@ import { TEN_YEARS_IN_SECONDS } from './constants'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
-    ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
-    : `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
+    ? `{{${whatsappID(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${whatsappID(p)}}}`).join(', ')} to this group`
+    : `${message.messageStubParameters!.map(p => `{{${whatsappID(p)}}}`).join(', ')} was added to this group`)
 
 const numberToBigInt = (number: Number | Long.Long) => BigInt(number.toString())
 
@@ -71,26 +71,26 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
   // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
-  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant)}}} changed their phone number to a new number {{{{0}}}}`,
-  [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant)}}} changed their phone number to a new number {{{{0}}}}`,
-  [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters[0], message.messageStubParameters[1]),
+  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant!)}}} changed their phone number to a new number {{{{0}}}}`,
+  [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: message => `{{${whatsappID(message.participant!)}}} changed their phone number to a new number {{{{0}}}}`,
+  [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters![0], message.messageStubParameters![1]),
 
-  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant)}}} changed the group description`,
-  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant)}}} removed {{{{0}}}} from this group`,
-  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant)}}} changed the group subject to "{{0}}"`,
-  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${whatsappID(message.participant)}}} changed this group's icon`,
-  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: message => `{{${whatsappID(message.participant)}}} joined using this group's invite link`,
+  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: message => `{{${whatsappID(message.participant!)}}} changed the group description`,
+  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: message => `{{${whatsappID(message.participant!)}}} removed {{{{0}}}} from this group`,
+  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: message => `{{${whatsappID(message.participant!)}}} changed the group subject to "{{0}}"`,
+  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${whatsappID(message.participant!)}}} changed this group's icon`,
+  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: message => `{{${whatsappID(message.participant!)}}} joined using this group's invite link`,
 
   [WAMessageStubType.GROUP_PARTICIPANT_LEAVE]: message =>
-    `${message.messageStubParameters.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
+    `${message.messageStubParameters!.map(p => `{{${whatsappID(p)}}}`).join(', ')} left`,
   [WAMessageStubType.GROUP_CHANGE_RESTRICT]: message => {
-    const actor = whatsappID(message.participant)
-    if (message.messageStubParameters[0] === 'on') return `{{${actor}}} changed this group's settings to allow only admins to edit this group's info`
+    const actor = whatsappID(message.participant!)
+    if (message.messageStubParameters![0] === 'on') return `{{${actor}}} changed this group's settings to allow only admins to edit this group's info`
     return `{{${actor}}} changed this group's settings to allow all participants to edit this group's info`
   },
   [WAMessageStubType.GROUP_CHANGE_ANNOUNCE]: message => {
-    const actor = whatsappID(message.participant)
-    if (message.messageStubParameters[0] === 'on') return `📢 {{${actor}}} changed this group's settings to allow only admins to send messages to this group`
+    const actor = whatsappID(message.participant!)
+    if (message.messageStubParameters![0] === 'on') return `📢 {{${actor}}} changed this group's settings to allow only admins to send messages to this group`
     return `📢 {{${actor}}} changed this group's settings to allow all participants to send messages to this group`
   },
 }
@@ -141,26 +141,26 @@ function threadType(jid: string): ThreadType {
 }
 
 function messageAction(message: WAMessage): MessageAction | undefined {
-  const actionType = MESSAGE_ACTION_MAP[message.messageStubType]
+  const actionType = MESSAGE_ACTION_MAP[message.messageStubType!]
   if (!actionType) return
   if (actionType === MessageActionType.THREAD_TITLE_UPDATED) {
     return {
       type: actionType,
-      title: message.messageStubParameters[0],
-      actorParticipantID: message.participant,
+      title: message.messageStubParameters![0],
+      actorParticipantID: message.participant!,
     }
   }
   if (actionType === MessageActionType.GROUP_THREAD_CREATED) {
     return {
       type: actionType,
-      title: message.messageStubParameters[0],
-      actorParticipantID: message.participant,
+      title: message.messageStubParameters![0],
+      actorParticipantID: message.participant!,
     }
   }
   return {
     type: actionType,
-    participantIDs: message.messageStubParameters ? message.messageStubParameters.map(p => whatsappID(p)) : [message.participant],
-    actorParticipantID: message.participant,
+    participantIDs: message.messageStubParameters ? message.messageStubParameters!.map(p => whatsappID(p)) : [message.participant!],
+    actorParticipantID: message.participant!,
   }
 }
 function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
@@ -326,10 +326,10 @@ function messageLink(message: WAMessageContent): MessageLink | undefined {
   }
 }
 function messageStubText(message: WAMessage) {
-  const mapped = PRE_DEFINED_MESSAGES[message.messageStubType]
+  const mapped = PRE_DEFINED_MESSAGES[message.messageStubType!]
   let txt = typeof mapped === 'function' ? mapped(message) : mapped
   if (txt) {
-    message.messageStubParameters.forEach((p, i) => {
+    message.messageStubParameters!.forEach((p, i) => {
       txt = txt.replace(`{{${i}}}`, whatsappID(p))
     })
   }
@@ -449,14 +449,14 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     const senderID = message.key.fromMe ? currentUserID : whatsappID(message.key.participant || message.participant || message.key.remoteJid!)
     const stubBasedMessage = messageStubText(message)
     const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, message.key.id!)
-    const timestamp = toNumber(message.messageTimestamp)
+    const timestamp = toNumber(message.messageTimestamp!)
     const linked = mapMessageQuoted(messageInner)
     const link = messageLink(messageContent!)
     const action = messageAction(message)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
     const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAMessageProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-    const isAction = (!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType)) || isEphemeralSetting
+    const isAction = (!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting
 
     const mapped: Message = {
       _original: safeJSONStringify([message, currentUserID]),
@@ -473,7 +473,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       isDeleted,
       attachments,
       buttons: messageButtons(messageContent!),
-      isDelivered: message.key.fromMe ? messageStatus(message.status) >= WAMessageStatus.SERVER_ACK : true,
+      isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
       links: link ? [link] : undefined,
       parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
@@ -481,7 +481,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       action,
       // todo: review logic, this is incorrect:
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
-      silent: message.broadcast || !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType) && !!message.messageStubParameters.find(w => whatsappID(w) === currentUserID))),
+      silent: message.broadcast || !(!!message.message || (NOTIFYING_STUB_TYPES.has(message.messageStubType!) && !!message.messageStubParameters!.find(w => whatsappID(w) === currentUserID))),
       expiresInSeconds: messageInner?.contextInfo?.expiration,
     }
     if (mapped.text) {
