@@ -134,10 +134,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
       if (statusCode === DisconnectReason.notJoinedBeta) {
-        console.log('no join', this.loginCallback)
-        if (this.loginCallback) {
-          this.loginCallback({ qr: undefined, isOpen: false, error: "Please use the main WhatsApp integration or join WhatsApp's multi-device beta" })
-        }
+        this.loginCallback?.({ qr: undefined, isOpen: false, error: 'Your phone has Multi-Device disabled. You can either turn on Multi-Device and retry or use the regular WhatsApp integration.' })
       } else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
       // ensure cleanup
       // @ts-expect-error
