@@ -125,8 +125,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
       if (statusCode === DisconnectReason.requiresMultiDevice) {
-        this.loginCallback && this.loginCallback({ 
-          qr: undefined, isOpen: false, error: 'Please downgrade your WhatsApp or use the Multi-device integration'
+        this.loginCallback?.({
+          qr: undefined, isOpen: false, error: 'Your phone has Multi-Device enabled. You can either turn off Multi-Device and retry or use the WhatsApp Multi-Device integration.'
         })
       }
       else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
