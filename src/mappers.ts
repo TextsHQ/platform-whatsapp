@@ -502,7 +502,7 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
       id: chat.jid!,
       title: chat.name || contactNameFromJid(chat.jid!),
       description: store.groupMetadata[chat.jid!]?.desc || '',
-      imgURL: store.contacts[chat.jid!]?.imgUrl,
+      imgURL: isGroupID(chat.jid!) ? store.contacts[chat.jid!]?.imgUrl : undefined,
     }
     if (typeof chat.count !== 'undefined') { mapped.isUnread = !!chat.count }
     if (typeof chat.archive !== 'undefined') { mapped.isArchived = chat.archive === 'true' }
