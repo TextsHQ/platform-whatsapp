@@ -1,4 +1,4 @@
-import { Chat, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys-md'
+import { Chat, isJidGroup, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys-md'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S, TEN_YEARS_IN_SECONDS } from '../constants'
@@ -99,7 +99,7 @@ export default class DBThread implements Thread {
     }
     delete item.participantsList
     delete item.unreadCount
-    item.imgURL = profilePictureUrl(accountID, item.id!)
+    item.imgURL = isJidGroup(item.id!) ? profilePictureUrl(accountID, item.id!) : undefined
     return item
   }
 
