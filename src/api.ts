@@ -492,12 +492,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.getRepository(DBThread).save(items, { chunk: 500 })
       await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
 
-      texts.log('saved chats history')
+      texts.log({ chats: items.length, participants: totalParticipantList.length }, 'saved chats history')
 
       const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
       await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
-      texts.log('saved last message history')
+      texts.log({ messages: dbMessages.length }, 'saved last message history')
 
       this.decrementNewLoginCounter()
     })
