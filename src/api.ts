@@ -1,5 +1,5 @@
 import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds } from '@adiwajshing/baileys-md'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
 import { Brackets, Connection, In } from 'typeorm'
@@ -460,6 +460,8 @@ export default class WhatsAppAPI implements PlatformAPI {
           } else if (statusCode === DisconnectReason.loggedOut) {
             makeDBKeyStore(this.db).clear()
             this.db.getRepository(AccountCredentials).delete({ accountID: this.accountID })
+            this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
+            return
           }
         }
 
