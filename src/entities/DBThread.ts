@@ -84,10 +84,11 @@ export default class DBThread implements Thread {
     }
     if ('mute' in chat) {
       if (chat.mute) {
-        if (chat.mute > TEN_YEARS_IN_SECONDS || chat.mute < 0) this.mutedUntil = new Date(CHAT_MUTE_DURATION_S)
-        else this.mutedUntil = new Date(+chat.mute * 1000)
+        if (chat.mute < 0) this.mutedUntil = new Date(CHAT_MUTE_DURATION_S)
+        else this.mutedUntil = new Date(+chat.mute)
       } else {
-        this.mutedUntil = undefined
+        // @ts-ignore
+        this.mutedUntil = null
       }
     }
   }
@@ -96,6 +97,10 @@ export default class DBThread implements Thread {
     item = { ...item }
     if (typeof item.unreadCount !== 'undefined') {
       item.isUnread = !!item.unreadCount
+    }
+    if (typeof item.mutedUntil !== 'undefined') {
+      // @ts-ignore
+      item.mutedUntil = item.mutedUntil ? 'forever' : null
     }
     delete item.participantsList
     delete item.unreadCount
