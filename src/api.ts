@@ -513,7 +513,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('chats.update', async updates => {
       const updated = await updateItems(updates, this.db.getRepository(DBThread))
-      texts.log(`updating ${updated.length}/${updates.length} chats`)
+      texts.log({ updates }, `updating ${updated.length}/${updates.length} chats`)
     })
 
     ev.on('chats.delete', async ids => {
