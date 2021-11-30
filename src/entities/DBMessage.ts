@@ -95,16 +95,20 @@ export default class DBMessage implements Message {
 
   update(partial: Partial<WAMessage>) {
     const update: Partial<DBMessage> = { }
-    if (partial.status && partial.key!.fromMe) {
-      if (isJidGroup(partial.key!.remoteJid!)) {
-        if (typeof this.seen === 'object') {
-          const p = jidNormalizedUser(partial.participant!)
-          this.seen[p] = new Date()
+    if (partial.status) {
+      if (partial.key!.fromMe) {
+        if (isJidGroup(partial.key!.remoteJid!)) {
+          if (typeof this.seen === 'object') {
+            const p = jidNormalizedUser(partial.participant!)
+            this.seen[p] = new Date()
+          } else {
+            // cannot unambigously determine seen
+          }
         } else {
-          // cannot unambigously determine seen
+          update.seen = READ_STATUS.includes(partial.status)
         }
-      } else {
-        update.seen = READ_STATUS.includes(partial.status)
+      } else if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ && !update.seen) {
+        update.seen = true
       }
     }
 
@@ -115,6 +119,8 @@ export default class DBMessage implements Message {
     }
 
     Object.assign(this, update)
+
+    return update
   }
 
   static fromOriginal = (message: WAMessage, ctx: MappingContext) => {

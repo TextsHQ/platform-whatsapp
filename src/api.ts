@@ -542,7 +542,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('messages.update', async updates => {
       const repo = this.db.getRepository(DBMessage)
+      const chatRepo = this.db.getRepository(DBThread)
 
+      const readMsgsUpdateMap: { [threadId: string]: number } = { }
       const map: { [id: string]: WAMessageUpdate } = { }
       for (const update of updates) {
         const msgId = mapMessageID(update.key)
@@ -565,11 +567,30 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       for (const item of dbItems) {
         const id = `${item.threadID},${item.id!}`
-        item.update({ ...map[id].update, key: map[id].key })
+        const update = item.update({ ...map[id].update, key: map[id].key })
+        if (update.seen && !item.isSender) {
+          readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
+          readMsgsUpdateMap[item.threadID] += 1
+        }
       }
 
       await repo.save(dbItems as any[])
       texts.log(`updating ${dbItems.length}/${updates.length} messages`)
+
+      const threadIds = Object.keys(readMsgsUpdateMap)
+      if (threadIds.length) {
+        const chats = await chatRepo.find({ id: In(threadIds) })
+        for (const chat of chats) {
+          if (chat.unreadCount > 0) {
+            const msgsRead = readMsgsUpdateMap[chat.id]
+            chat.unreadCount = Math.max(chat.unreadCount - msgsRead, 0)
+          }
+        }
+
+        await chatRepo.save(chats, { chunk: 50 })
+
+        texts.log({ readMsgsUpdateMap }, `updating ${chats.length} thread read counts`)
+      }
     })
 
     ev.on('messages.delete', async item => {
