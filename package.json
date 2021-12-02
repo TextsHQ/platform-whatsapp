@@ -28,7 +28,7 @@
     "pino": "^6.7.0",
     "qrcode.react": "^1.0.1",
     "react": "^17.0.2",
-    "typeorm": "^0.2.37",
+    "typeorm": "^0.2.41",
     "typeorm-naming-strategies": "^2.0.0"
   },
   "devDependencies": {
