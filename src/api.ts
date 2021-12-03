@@ -380,14 +380,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('creds.update', async () => {
       const repo = this.db.getRepository(AccountCredentials)
       const { creds } = this.client!.authState
+      // this has to be done before we await since `this` can change after the context switch
+      const meUser = creds.me && DBUser.fromOriginal(creds.me, this)
       await repo.save(
         repo.create({
           accountID: this.accountID,
           credentials: creds,
         }),
       )
-      if (creds?.me) {
-        const meUser = DBUser.fromOriginal(creds.me!, this)
+      if (meUser) {
         meUser.isSelf = true
         meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
 
