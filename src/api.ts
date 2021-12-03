@@ -377,23 +377,23 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
-    // ev.on('creds.update', () => {
-    //   const repo = this.db.getRepository(AccountCredentials)
-    //   const { creds } = this.client!.authState
-    //   repo.save(
-    //     repo.create({
-    //       accountID: this.accountID,
-    //       credentials: creds,
-    //     }),
-    //   )
-    //   if (creds.me) {
-    //     const meUser = DBUser.fromOriginal(creds.me!, this)
-    //     meUser.isSelf = true
-    //     meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
+    ev.on('creds.update', async () => {
+      const repo = this.db.getRepository(AccountCredentials)
+      const { creds } = this.client!.authState
+      await repo.save(
+        repo.create({
+          accountID: this.accountID,
+          credentials: creds,
+        }),
+      )
+      if (creds.me) {
+        const meUser = DBUser.fromOriginal(creds.me!, this)
+        meUser.isSelf = true
+        meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
 
-    //     this.db.getRepository(DBUser).save(meUser)
-    //   }
-    // })
+        await this.db.getRepository(DBUser).save(meUser)
+      }
+    })
 
     ev.on('connection.update', update => {
       Object.assign(this.connState, update)
