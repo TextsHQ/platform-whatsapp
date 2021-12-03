@@ -1,45 +1,33 @@
 import type { Connection } from 'typeorm'
 import type { SignalKeyStore } from '@adiwajshing/baileys-md'
-// import AccountKeyValue from '../entities/AccountKeyValue'
-// import { makeMutex } from './generics'
+import AccountKeyValue from '../entities/AccountKeyValue'
+import { makeMutex } from './generics'
 
 type DBKeyStore = SignalKeyStore & { clear: () => Promise<void> }
 
 export const makeDBKeyStore = (db: Connection): DBKeyStore => {
-  let localStore: Record<string, any> = {}
+  const repo = db.getRepository(AccountKeyValue)
+  const mutex = makeMutex()
   const getItem = async (category: string, id: string | number) => {
-    console.log('getItem', category, id)
-    const item = localStore[`${category} ${id}`]
-    return item
+    const item = await repo.findOne({
+      category,
+      id: id.toString(),
+    })
+    return item?.data
   }
   const setItem = async (category: string, id: string | number, item: any | null) => {
-    console.log('setItem', category, id, item)
-    if (item) localStore[`${category} ${id}`] = item
-    else delete localStore[`${category} ${id}`]
+    await mutex.mutex(async () => {
+      if (item) {
+        await repo.save({
+          category,
+          id: id.toString(),
+          data: item,
+        }, { transaction: false })
+      } else {
+        await repo.delete({ category, id: id.toString() })
+      }
+    })
   }
-
-  // const repo = db.getRepository(AccountKeyValue)
-  // const mutex = makeMutex()
-  // const getItem = async (category: string, id: string | number) => {
-  //   const item = await repo.findOne({
-  //     category,
-  //     id: id.toString(),
-  //   })
-  //   return item?.data
-  // }
-  // const setItem = async (category: string, id: string | number, item: any | null) => {
-  //   await mutex.mutex(async () => {
-  //     if (item) {
-  //       await repo.save({
-  //         category,
-  //         id: id.toString(),
-  //         data: item,
-  //       }, { transaction: false })
-  //     } else {
-  //       await repo.delete({ category, id: id.toString() })
-  //     }
-  //   })
-  // }
 
   return {
     getPreKey: keyId => getItem('pre-key', keyId),
@@ -53,8 +41,7 @@ export const makeDBKeyStore = (db: Connection): DBKeyStore => {
     getAppStateSyncVersion: id => getItem('sync-version', id),
     setAppStateSyncVersion: (id, item) => setItem('sync-version', id, item),
     clear: async () => {
-      localStore = {}
-      // await repo.delete({ })
+      await repo.delete({ })
     },
   }
 }
