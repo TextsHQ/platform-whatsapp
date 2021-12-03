@@ -386,7 +386,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           credentials: creds,
         }),
       )
-      if (creds.me) {
+      if (creds?.me) {
         const meUser = DBUser.fromOriginal(creds.me!, this)
         meUser.isSelf = true
         meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
