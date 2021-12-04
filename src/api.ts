@@ -169,6 +169,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.client = makeSocket({
       ...config,
       auth,
+      getMessage: async key => {
+        const msg = await this.loadWAMessageFromDB(key)
+        return msg?.message || undefined
+      },
     })
     this.registerCallbacks(this.client!.ev)
 
@@ -203,6 +207,21 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
     this.connCallback = onEvent
+  }
+
+  private loadWAMessageFromDB = async (key: WAProto.IMessageKey) => {
+    const jid = jidNormalizedUser(key.remoteJid!)
+    const id = mapMessageID(key)
+
+    const repo = await this.db.getRepository(DBMessage)
+    const dbmsg = await repo.findOneOrFail({
+      id,
+      threadID: jid,
+    })
+
+    const parsed = JSON.parse(dbmsg!._original!)
+    const msg = WAProto.WebMessageInfo.fromObject(parsed)
+    return msg
   }
 
   private registerDBEvents = () => {
