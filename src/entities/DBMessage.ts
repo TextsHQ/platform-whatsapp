@@ -5,6 +5,7 @@ import { READ_STATUS } from '../constants'
 import type { MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
+import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText } from './DBMessage-util'
 
 @Entity()
@@ -36,7 +37,7 @@ export default class DBMessage implements Message {
   @Column({ type: 'text', nullable: true })
   textHeading?: string
 
-  @Column({ type: 'simple-json', nullable: false, default: '[]' })
+  @Column({ ...BufferJSONEncodedColumn, nullable: false, default: '[]' })
   attachments: MessageAttachment[]
 
   @Column({ type: 'simple-json', nullable: false, default: '[]' })
