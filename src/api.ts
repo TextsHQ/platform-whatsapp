@@ -2,7 +2,7 @@ import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, Authentic
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
-import { Brackets, Connection, In } from 'typeorm'
+import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, shouldExcludeMessage, threadType, unmapMessageID, updateItems } from './utils/generics'
@@ -40,6 +40,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private loginCallback?: LoginCallback
 
   private readonly mutex = makeMutex()
+
+  private readonly transactionMutex = makeMutex()
 
   private connectionLifetimeTransaction: Transaction | undefined = undefined
 
@@ -182,8 +184,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.db.getRepository(DBMessage).save(msgs) */
   }
 
+  /**
+   * sqlite cannot run multiple transactions at the same time
+   * if you try to do so, it throws an error
+   *
+   * to prevent that, we queue each transaction with this wrapper
+   */
+  private mutexedTransaction = function<T>(this: WhatsAppAPI, work: (db: EntityManager) => Promise<T>) {
+    return this.transactionMutex.mutex(
+      () => this.db.transaction(work),
+    )
+  }
+
   getCurrentUser = async (): Promise<CurrentUser> => {
-    let user = await this.db.getRepository(DBUser).findOne({ isSelf: true })
+    let user = await this.db.getRepository(DBUser).findOne({
+      where: { isSelf: true },
+      transaction: false,
+    })
     if (!user) {
       const u = this.client!.authState!.creds!.me!
       if (!u) {
@@ -215,8 +232,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const repo = await this.db.getRepository(DBMessage)
     const dbmsg = await repo.findOneOrFail({
-      id,
-      threadID: jid,
+      where: { id, threadID: jid },
+      transaction: false,
     })
 
     const parsed = JSON.parse(dbmsg!._original!)
@@ -401,18 +418,22 @@ export default class WhatsAppAPI implements PlatformAPI {
       const { creds } = this.client!.authState
       // this has to be done before we await since `this` can change after the context switch
       const meUser = creds.me && DBUser.fromOriginal(creds.me, this)
-      await repo.save(
-        repo.create({
-          accountID: this.accountID,
-          credentials: creds,
-        }),
-      )
-      if (meUser) {
-        meUser.isSelf = true
-        meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
+      await this.mutexedTransaction(
+        async () => {
+          await repo.save(
+            repo.create({
+              accountID: this.accountID,
+              credentials: creds,
+            }),
+          )
+          if (meUser) {
+            meUser.isSelf = true
+            meUser.imgURL = profilePictureUrl(this.accountID, meUser.id)
 
-        await this.db.getRepository(DBUser).save(meUser)
-      }
+            await this.db.getRepository(DBUser).save(meUser)
+          }
+        },
+      )
     })
 
     ev.on('connection.update', update => {
@@ -479,7 +500,9 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.connectInternal(2000)
           } else if (statusCode === DisconnectReason.loggedOut) {
             makeDBKeyStore(this.db).clear()
-            this.db.getRepository(AccountCredentials).delete({ accountID: this.accountID })
+            this.db.getRepository(AccountCredentials).delete({
+              accountID: this.accountID,
+            })
             this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
             return
           }
@@ -491,59 +514,74 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     ev.on('chats.set', async ({ messages, chats }) => {
       texts.log('got history')
+      await this.mutexedTransaction(
+        async () => {
+          const metadatas = await this.client!.groupFetchAllParticipating()
+          const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
+          const totalParticipantList: DBParticipant[] = []
 
-      const metadatas = await this.client!.groupFetchAllParticipating()
-      const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
-      const totalParticipantList: DBParticipant[] = []
-
-      const addedParticipants = new Set<string>()
-      for (const { participantsList } of items) {
-        for (const item of participantsList!) {
-          const id = `${item.threadID},${item.id}`
-          if (!addedParticipants.has(id)) {
-            totalParticipantList.push(item)
-            addedParticipants.add(id)
-          } else {
-            texts.log('duplicate participant: ' + id, participantsList)
+          const addedParticipants = new Set<string>()
+          for (const { participantsList } of items) {
+            for (const item of participantsList!) {
+              const id = `${item.threadID},${item.id}`
+              if (!addedParticipants.has(id)) {
+                totalParticipantList.push(item)
+                addedParticipants.add(id)
+              } else {
+                texts.log('duplicate participant: ' + id, participantsList)
+              }
+            }
           }
-        }
-      }
 
-      await this.db.getRepository(DBThread).save(items, { chunk: 500 })
-      await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
+          await this.db.getRepository(DBThread).save(items, { chunk: 500 })
+          await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
 
-      texts.log({ chats: items.length, participants: totalParticipantList.length }, 'saved chats history')
+          texts.log({ chats: items.length, participants: totalParticipantList.length }, 'saved chats history')
 
-      const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
-      await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+          const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
+          await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
-      texts.log({ messages: dbMessages.length }, 'saved last message history')
+          texts.log({ messages: dbMessages.length }, 'saved last message history')
 
-      this.decrementNewLoginCounter()
+          this.decrementNewLoginCounter()
+        },
+      )
     })
 
     ev.on('contacts.upsert', async contacts => {
       texts.log('got contact history')
 
-      const items = contacts.map(item => DBUser.fromOriginal(item, this))
-      await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+      await this.mutexedTransaction(
+        async () => {
+          const items = contacts.map(item => DBUser.fromOriginal(item, this))
+          await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+        },
+      )
 
       this.decrementNewLoginCounter()
     })
 
     ev.on('chats.update', async updates => {
-      const updated = await updateItems(updates, this.db.getRepository(DBThread))
+      const updated = await this.mutexedTransaction(
+        () => updateItems(updates, this.db.getRepository(DBThread)),
+      )
       texts.log({ updates }, `updating ${updated.length}/${updates.length} chats`)
     })
 
     ev.on('chats.delete', async ids => {
-      const repo = this.db.getRepository(DBThread)
-      const chats = await repo.find({ id: In(ids) })
-      await repo.remove(chats, { chunk: 500 })
+      await this.mutexedTransaction(
+        async db => {
+          const repo = db.getRepository(DBThread)
+          const chats = await repo.find({ id: In(ids) })
+          await repo.remove(chats, { chunk: 500 })
+        },
+      )
     })
 
     ev.on('contacts.update', async updates => {
-      const updated = await updateItems(updates, this.db.getRepository(DBUser))
+      const updated = await this.mutexedTransaction(
+        db => updateItems(updates, db.getRepository(DBUser)),
+      )
       texts.log(`updating ${updated.length}/${updates.length} contacts`)
     })
 
@@ -554,17 +592,18 @@ export default class WhatsAppAPI implements PlatformAPI {
           mapped.push(DBMessage.fromOriginal(msg, this))
         }
       }
-      await this.db.getRepository(DBMessage).save(mapped, { chunk: 500 })
+      await this.mutexedTransaction(
+        db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }),
+      )
       if (type === 'prepend') {
         this.fetchedAllMessages = true
       }
     })
 
     ev.on('messages.update', async updates => {
-      const repo = this.db.getRepository(DBMessage)
-      const chatRepo = this.db.getRepository(DBThread)
-
+      // create a map for which thread ID has number of read messages
       const readMsgsUpdateMap: { [threadId: string]: number } = { }
+      // map for messageId => update for easy access
       const map: { [id: string]: WAMessageUpdate } = { }
       for (const update of updates) {
         const msgId = mapMessageID(update.key)
@@ -572,57 +611,70 @@ export default class WhatsAppAPI implements PlatformAPI {
         map[id] = update
       }
 
-      const qb = repo
-        .createQueryBuilder()
-        .where(new Brackets(
-          qb => {
-            for (const { key } of updates) {
-              const msgId = mapMessageID(key)
-              qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+      await this.mutexedTransaction(
+        async db => {
+          const repo = db.getRepository(DBMessage)
+          const chatRepo = db.getRepository(DBThread)
+          // find all the messages to be updated
+          const qb = repo
+            .createQueryBuilder()
+            .where(new Brackets(
+              qb => {
+                for (const { key } of updates) {
+                  const msgId = mapMessageID(key)
+                  qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+                }
+                return qb
+              },
+            ))
+          const dbItems = await qb.getMany()
+          // update each message & save
+          for (const item of dbItems) {
+            const id = `${item.threadID},${item.id!}`
+            const update = item.update({ ...map[id].update, key: map[id].key })
+            // if the message was just marked seen
+            // and it's not from the user themselves
+            // add to the thread read counter
+            if (update.seen && !item.isSender) {
+              readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
+              readMsgsUpdateMap[item.threadID] += 1
             }
-            return qb
-          },
-        ))
-      const dbItems = await qb.getMany()
-
-      for (const item of dbItems) {
-        const id = `${item.threadID},${item.id!}`
-        const update = item.update({ ...map[id].update, key: map[id].key })
-        if (update.seen && !item.isSender) {
-          readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
-          readMsgsUpdateMap[item.threadID] += 1
-        }
-      }
-
-      await repo.save(dbItems as any[])
-      texts.log(`updating ${dbItems.length}/${updates.length} messages`)
-
-      const threadIds = Object.keys(readMsgsUpdateMap)
-      if (threadIds.length) {
-        const chats = await chatRepo.find({ id: In(threadIds) })
-        for (const chat of chats) {
-          if (chat.unreadCount > 0) {
-            const msgsRead = readMsgsUpdateMap[chat.id]
-            chat.unreadCount = Math.max(chat.unreadCount - msgsRead, 0)
           }
-        }
-
-        await chatRepo.save(chats, { chunk: 50 })
-
-        texts.log({ readMsgsUpdateMap }, `updating ${chats.length} thread read counts`)
-      }
+          await repo.save(dbItems as any[])
+          texts.log(`updating ${dbItems.length}/${updates.length} messages`)
+          // after messages are saved, if there are any updates to thread read counters
+          // execute those updates
+          const threadIds = Object.keys(readMsgsUpdateMap)
+          if (threadIds.length) {
+            const chats = await chatRepo.find({ id: In(threadIds) })
+            for (const chat of chats) {
+              // if the chat had unread messages
+              if (chat.unreadCount > 0) {
+                const msgsRead = readMsgsUpdateMap[chat.id]
+                chat.unreadCount = Math.max(chat.unreadCount - msgsRead, 0)
+              }
+            }
+            await chatRepo.save(chats, { chunk: 50 })
+            texts.log({ readMsgsUpdateMap }, `updating ${chats.length} thread read counts`)
+          }
+        },
+      )
     })
 
     ev.on('messages.delete', async item => {
-      const repo = this.db.getRepository(DBMessage)
-      if ('all' in item) {
-        // isn't supported yet
-      } else {
-        const msgs = await repo.find({
-          id: In(item.keys.map(mapMessageID)),
-        })
-        await repo.remove(msgs)
-      }
+      await this.mutexedTransaction(
+        async db => {
+          const repo = db.getRepository(DBMessage)
+          if ('all' in item) {
+            // isn't supported yet
+          } else {
+            const msgs = await repo.find({
+              id: In(item.keys.map(mapMessageID)),
+            })
+            await repo.remove(msgs)
+          }
+        },
+      )
     })
 
     ev.on('presence.update', ({ id, presences }) => {
@@ -635,25 +687,29 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('group-participants.update', async ({ id: threadID, participants, action }) => {
-      const repo = this.db.getRepository(DBParticipant)
-      let dbParticipants: DBParticipant[]
-      switch (action) {
-        case 'add':
-          dbParticipants = participants.map(
-            id => (
-              DBParticipant.fromOriginal({ threadID, item: { id } })
-            ),
-          )
-          break
-        default:
-          dbParticipants = await repo.find({ id: In(participants) })
-          for (const participant of dbParticipants) {
-            if (action === 'remove') participant.hasExited = true
-            else participant.isAdmin = action === 'promote'
+      await this.mutexedTransaction(
+        async db => {
+          const repo = db.getRepository(DBParticipant)
+          let dbParticipants: DBParticipant[]
+          switch (action) {
+            case 'add':
+              dbParticipants = participants.map(
+                id => (
+                  DBParticipant.fromOriginal({ threadID, item: { id } })
+                ),
+              )
+              break
+            default:
+              dbParticipants = await repo.find({ id: In(participants) })
+              for (const participant of dbParticipants) {
+                if (action === 'remove') participant.hasExited = true
+                else participant.isAdmin = action === 'promote'
+              }
+              break
           }
-          break
-      }
-      await repo.save(dbParticipants)
+          await repo.save(dbParticipants)
+        },
+      )
     })
   }
 
@@ -663,6 +719,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       .where('full_name LIKE :typed', { typed: `%${typed}%` })
       .orderBy('full_name')
       .addOrderBy('id')
+      .useTransaction(false)
       .getMany()
     return users
   }
