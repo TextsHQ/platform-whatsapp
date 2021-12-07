@@ -1,6 +1,6 @@
 import { areJidsSameUser, extractMessageContent, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview } from '@textshq/platform-sdk'
-import { getDataURIFromBuffer, mapMessageID } from '../utils/generics'
+import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -221,7 +221,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
       isSticker: message.stickerMessage ? true : undefined,
       mimeType: messageInner.mimetype,
       posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
-      srcURL: `asset://$accountID/attachment/${jid}/${id}/${fileName || ''}`,
+      srcURL: attachmentUrl(undefined, jid, id, fileName || ''),
       fileName: fileName || undefined,
     }]
     response.media = true

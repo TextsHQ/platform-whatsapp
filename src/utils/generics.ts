@@ -76,7 +76,11 @@ export const makeMutex = () => {
   }
 }
 
-export const profilePictureUrl = (accountID: string, jid: string) => `asset://${accountID}/profile-picture/${jid}`
+export const profilePictureUrl = (accountID: string, jid: string) =>
+  `asset://${accountID}/profile-picture/${encodeURIComponent(jid)}`
+
+export const attachmentUrl = (accountID: string | undefined, jid: string, messageId: string, fileId: string) =>
+  `asset://${accountID || '$accountID'}/attachment/${encodeURIComponent(jid)}/${encodeURIComponent(messageId)}/${encodeURIComponent(fileId)}`
 
 export function threadType(jid: string): ThreadType | undefined {
   const { server } = jidDecode(jid)
