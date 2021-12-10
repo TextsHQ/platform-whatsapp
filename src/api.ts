@@ -1,4 +1,4 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
@@ -893,11 +893,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       const opts: MiscMessageGenerationOptions = await this.ephemeralOptions(threadID)
 
-      msgContent.mentionedUserIDs?.forEach(userID => {
-        const phoneNumber = numberFromJid(userID)
-        // @+14151231234 => @14151231234
-        text = text!.replace('@+' + phoneNumber, '@' + phoneNumber)
-      })
+      if (msgContent.mentionedUserIDs) {
+        for (const mention of msgContent.mentionedUserIDs) {
+          const { user } = jidDecode(mention)
+          // @+14151231234 => @14151231234
+          text = text!.replace('@+' + user, '@' + user)
+        }
+      }
+
       const buffer = msgContent.fileBuffer || (msgContent.filePath ? { url: msgContent.filePath! } : undefined)
 
       if (buffer) {
