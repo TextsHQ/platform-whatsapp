@@ -1,3 +1,4 @@
+import { jidDecode } from '@adiwajshing/baileys-md'
 import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
 const info: PlatformInfo = {
@@ -38,10 +39,11 @@ const info: PlatformInfo = {
   extra: {
     mentionsSupported: true,
     getUnknownParticipant(participantID: string): Participant | undefined {
-      if (participantID && participantID.endsWith('s.whatsapp.net')) {
+      const decoded = participantID ? jidDecode(participantID) : undefined
+      if (decoded && decoded.server === 's.whatsapp.net') {
         return {
           id: participantID,
-          phoneNumber: '+' + participantID.split('@').shift(),
+          phoneNumber: '+' + decoded.user,
         }
       }
     },
