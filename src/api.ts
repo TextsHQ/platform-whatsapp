@@ -1,4 +1,4 @@
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, GroupMetadata } from '@adiwajshing/baileys-md'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import path from 'path'
@@ -412,6 +412,32 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
+  private upsertWAChats = async (chats: WAChat[], metadatas: { [id: string]: GroupMetadata }) => {
+    const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
+    const totalParticipantList: DBParticipant[] = []
+
+    const addedParticipants = new Set<string>()
+    for (const { participantsList } of items) {
+      for (const item of participantsList!) {
+        const id = `${item.threadID},${item.id}`
+        if (!addedParticipants.has(id)) {
+          totalParticipantList.push(item)
+          addedParticipants.add(id)
+        } else {
+          texts.log('duplicate participant: ' + id, participantsList)
+        }
+      }
+    }
+
+    await this.db.getRepository(DBThread).save(items, { chunk: 500 })
+    await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
+
+    return {
+      chats,
+      participants: totalParticipantList,
+    }
+  }
+
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     ev.on('creds.update', async () => {
       const repo = this.db.getRepository(AccountCredentials)
@@ -517,26 +543,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.mutexedTransaction(
         async () => {
           const metadatas = await this.client!.groupFetchAllParticipating()
-          const items = chats.map(chat => DBThread.fromOriginal({ chat, metadata: metadatas[chat.id] }, this))
-          const totalParticipantList: DBParticipant[] = []
-
-          const addedParticipants = new Set<string>()
-          for (const { participantsList } of items) {
-            for (const item of participantsList!) {
-              const id = `${item.threadID},${item.id}`
-              if (!addedParticipants.has(id)) {
-                totalParticipantList.push(item)
-                addedParticipants.add(id)
-              } else {
-                texts.log('duplicate participant: ' + id, participantsList)
-              }
-            }
-          }
-
-          await this.db.getRepository(DBThread).save(items, { chunk: 500 })
-          await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
-
-          texts.log({ chats: items.length, participants: totalParticipantList.length }, 'saved chats history')
+          const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
+          texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
 
           const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
           await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
@@ -566,6 +574,24 @@ export default class WhatsAppAPI implements PlatformAPI {
         () => updateItems(updates, this.db.getRepository(DBThread)),
       )
       texts.log({ updates }, `updating ${updated.length}/${updates.length} chats`)
+    })
+
+    ev.on('chats.upsert', async upserts => {
+      const metadataList = await Promise.all(
+        upserts.map(update => this.client!.groupMetadata(update.id)),
+      )
+      const metadataMap = metadataList.reduce(
+        (dict, item) => {
+          dict[item.id] = item
+          return dict
+        }, { } as { [id: string]: GroupMetadata },
+      )
+      const updated = await this.mutexedTransaction(
+        () => (
+          this.upsertWAChats(upserts, metadataMap)
+        ),
+      )
+      texts.log({ threads: updated.chats }, `upserted ${updated.chats.length} chats`)
     })
 
     ev.on('chats.delete', async ids => {
