@@ -25,10 +25,12 @@ const MAX_OFFLINE_MESSAGES_WAIT_MS = 5_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 
 const config: Partial<SocketConfig> = {
-  logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
+  logger: P().child({ class: 'texts-baileys' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 120_000,
 }
+
+config.logger!.level = texts.IS_DEV ? 'trace' : 'silent'
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: ReturnType<typeof makeSocket> // TODO: make type
