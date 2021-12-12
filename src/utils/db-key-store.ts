@@ -1,47 +1,67 @@
 import type { Connection } from 'typeorm'
-import type { SignalKeyStore } from '@adiwajshing/baileys-md'
+import type { SignalKeyStore, SignalDataTypeMap } from '@adiwajshing/baileys-md'
 import AccountKeyValue from '../entities/AccountKeyValue'
-import { makeMutex } from './generics'
 
 type DBKeyStore = SignalKeyStore & { clear: () => Promise<void> }
 
+const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
+  'pre-key': 'pre-key',
+  session: 'session',
+  'sender-key': 'sender-key',
+  'app-state-sync-key': 'sync-key',
+  'app-state-sync-version': 'sync-version',
+  'sender-key-memory': 'sender-key-memory',
+}
+
 export const makeDBKeyStore = (db: Connection): DBKeyStore => {
   const repo = db.getRepository(AccountKeyValue)
-  const mutex = makeMutex()
-  const getItem = async (category: string, id: string | number) => {
-    const item = await repo.findOne({
-      category,
-      id: id.toString(),
-    })
-    return item?.data
-  }
-  const setItem = async (category: string, id: string | number, item: any | null) => {
-    await mutex.mutex(async () => {
-      if (item) {
-        await repo.save({
-          category,
-          id: id.toString(),
-          data: item,
-        }, { transaction: false })
-      } else {
-        await repo.delete({ category, id: id.toString() })
-      }
-    })
-  }
 
   return {
-    getPreKey: keyId => getItem('pre-key', keyId),
-    setPreKey: (keyId, key) => setItem('pre-key', keyId, key),
-    getSession: sessionId => getItem('session', sessionId),
-    setSession: (sessionId, session) => setItem('session', sessionId, session),
-    getSenderKey: id => getItem('sender-key', id),
-    setSenderKey: (id, item) => setItem('sender-key', id, item),
-    getAppStateSyncKey: id => getItem('sync-key', id),
-    setAppStateSyncKey: (id, item) => setItem('sync-key', id, item),
-    getAppStateSyncVersion: id => getItem('sync-version', id),
-    setAppStateSyncVersion: (id, item) => setItem('sync-version', id, item),
+    get: async (type, ids) => {
+      const items = await db
+        .createQueryBuilder(AccountKeyValue, 'acc')
+        .where('category = :category AND id IN (:...ids)', {
+          category: KEY_MAP[type],
+          ids,
+        })
+        .getMany()
+      return items.reduce(
+        (dict, item) => {
+          dict[item.id] = item.data
+          return dict
+        },
+        {} as { [id: string]: SignalDataTypeMap[typeof type] },
+      )
+    },
+    set: async data => {
+      const updates: AccountKeyValue[] = []
+      const deletions: Pick<AccountKeyValue, 'id' | 'category'>[] = []
+      for (const key in data) {
+        for (const id in data[key]) {
+          const itemValue = data[key][id]
+          const category = KEY_MAP[key]
+          if (itemValue) {
+            updates.push(repo.create({ id, category, data: itemValue }))
+          } else {
+            deletions.push({ id, category })
+          }
+        }
+      }
+
+      if (updates.length) {
+        await repo.save(updates, { transaction: false })
+      }
+
+      if (deletions.length) {
+        await repo.createQueryBuilder()
+          .delete()
+          .where(deletions.map(d => `(id='${d.id}' AND category='${d.category}')`).join(' OR '))
+          .useTransaction(false)
+          .execute()
+      }
+    },
     clear: async () => {
-      await repo.delete({ })
+      await repo.delete({})
     },
   }
 }
