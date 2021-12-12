@@ -801,10 +801,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         return [new Date(date), id] as const
       }
     })()
-    let cursorClause: string | undefined
-    if (cursor) {
-      cursorClause = `(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`
-    }
+    const cursorClause = cursor
+      ? `(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`
+      : undefined
     const selectClause = `(SELECT id FROM db_thread ${cursorClause ? `WHERE ${cursorClause}` : ''} ORDER BY timestamp DESC LIMIT ${THREAD_PAGE_SIZE})`
     const items = await repo
       .createQueryBuilder('thread')
