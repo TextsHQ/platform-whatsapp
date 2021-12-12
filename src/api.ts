@@ -1185,13 +1185,49 @@ export default class WhatsAppAPI implements PlatformAPI {
         break
     }
 
-    const msgs = await this.db.getRepository(DBMessage).find({
-      where: { threadID },
-      order: { timestamp: 'DESC' },
-      take: 1,
-    })
-    const ogMsgs = msgs.map(m => WAProto.WebMessageInfo.fromObject(JSON.parse(m._original!)))
-    await this.client!.chatModify(mod, threadID, ogMsgs)
+    const lastMsgs: Pick<WAMessage, 'key' | 'messageTimestamp'>[] = []
+    if (key === 'isUnread' || key === 'isArchived') {
+      const lastMsgFromOther = await this.db.getRepository(DBMessage).findOne({
+        where: {
+          threadID: chat.id,
+          isAction: false,
+          isSender: false,
+        },
+        order: { cursor: 'DESC' },
+      })
+      if (!lastMsgFromOther) {
+        throw new Error('Cannot execute action without message from other party')
+      }
+
+      const lastMsgsAfter = await this.db.getRepository(DBMessage)
+        .createQueryBuilder('msg')
+        .where('thread_id = :chatId', { chatId: chat.id })
+        .andWhere('NOT msg.is_action')
+        .andWhere('msg.cursor > :cursor', { cursor: lastMsgFromOther.cursor })
+        .orderBy('cursor', 'ASC')
+        .getMany()
+      const allMsgs = [
+        ...lastMsgsAfter.reverse(),
+        lastMsgFromOther,
+      ]
+
+      for (const msg of allMsgs) {
+        const key = unmapMessageID(msg.id)
+        lastMsgs.push({
+          key: {
+            remoteJid: chat.id,
+            fromMe: key.fromMe,
+            id: key.id,
+            participant: isJidGroup(chat.id) ? msg.senderID : undefined,
+          },
+          messageTimestamp: Math.floor(msg.timestamp.getTime() / 1000),
+        })
+      }
+
+      texts.log(`applying patch "${key}", last msgs: `, lastMsgs)
+    }
+
+    await this.client!.chatModify(mod, threadID, lastMsgs)
   }
 
   private getChat = (threadID: string) => {
