@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys-md@git+https://github.com/adiwajshing/baileys#multi-device":
   version: 4.0.0
-  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=13b49e658dd1ea75873fbde463e68593749080c9"
+  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=ef1b01b6df0e3c10f139c57aa842cbc5aec245e7"
   dependencies:
     "@hapi/boom": ^9.1.3
     curve25519-js: ^0.0.4
@@ -23,7 +23,7 @@ __metadata:
   dependenciesMeta:
     qrcode-terminal:
       optional: true
-  checksum: 89e8b54db0926c04c41a7b64aed1ea960af5f6d2e855fa7abd05ff4b1ec72018fd426b18e3e3bcb6dad5b48d764b630f313d258bf26baedc46e22db5bbce1bef
+  checksum: 98fcf23e5f111b24f640e45d6ab849725a47c9d47d6907e3ecb9fdaf3b1260f2843ebe8d0c958cbf7e4b12022b60576cc809985d3b8ebff718f319c2cf3149a4
   languageName: node
   linkType: hard
 
