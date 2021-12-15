@@ -12,7 +12,7 @@ export default class DBUser implements User {
   @Column({ type: 'varchar', length: 48, nullable: false })
   phoneNumber: string
 
-  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Column({ type: 'text', nullable: false })
   fullName: string
 
   @Column({ type: 'boolean', nullable: false })
