@@ -5,6 +5,7 @@ import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, Authentic
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
+
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, shouldExcludeMessage, threadType, unmapMessageID, updateItems } from './utils/generics'
@@ -20,6 +21,8 @@ import mapPresenceUpdate from './utils/map-presence-update'
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
 type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
+
+type Session = { dbKey: string }
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
@@ -79,14 +82,18 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   db: Connection
 
+  private dbKey: string
+
   get auth(): AuthenticationCreds | undefined { return this.client?.authState?.creds }
 
-  init = async (session: { }, { accountID, dataDirPath }: AccountInfo) => {
+  init = async (session: Session, { accountID, dataDirPath }: AccountInfo) => {
     this.dataDirPath = dataDirPath
     const dbPath = path.join(dataDirPath, 'db.sqlite')
     texts.log(`init with DB path: ${dbPath}`)
 
-    this.db = await getConnection(accountID, dbPath)
+    this.dbKey = session?.dbKey || crypto.randomBytes(32).toString('hex')
+    this.db = await getConnection(accountID, dbPath, this.dbKey)
+
     this.registerDBEvents()
     this.eventPushInterval = setInterval(() => {
       if (this.pendingEvents.length) {
@@ -222,9 +229,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  serializeSession = () => (
-    { }
-  )
+  serializeSession = (): Session => ({ dbKey: this.dbKey })
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
     this.evCallback = onEvent

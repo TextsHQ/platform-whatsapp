@@ -1,0 +1,26 @@
+diff --git a/browser/platform/PlatformTools.js b/browser/platform/PlatformTools.js
+index 069299f93b71264a81ee389dda3f03257e606229..a9421c2ec55413001d29fa0d2159a99659f175d0 100644
+--- a/browser/platform/PlatformTools.js
++++ b/browser/platform/PlatformTools.js
+@@ -76,7 +76,7 @@ var PlatformTools = /** @class */ (function () {
+                  * better-sqlite3
+                  */
+                 case "better-sqlite3":
+-                    return require("better-sqlite3");
++                    return require("better-sqlite");
+                 /**
+                 * sqlite
+                 */
+diff --git a/platform/PlatformTools.js b/platform/PlatformTools.js
+index 0ab125895ed279e35c650ddf2673ee1b16c4be48..5a95c4e9fd787d6e924633e035be41dc1591170f 100644
+--- a/platform/PlatformTools.js
++++ b/platform/PlatformTools.js
+@@ -83,7 +83,7 @@ var PlatformTools = /** @class */ (function () {
+                  * better-sqlite3
+                  */
+                 case "better-sqlite3":
+-                    return require("better-sqlite3");
++                    return require("better-sqlite");
+                 /**
+                 * sqlite
+                 */
