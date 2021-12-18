@@ -20,9 +20,11 @@
   "dependencies": {
     "@adiwajshing/baileys-md": "git+https://github.com/adiwajshing/baileys#multi-device",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
+    "@types/lodash": "^4.14.178",
     "better-sqlite3": "^7.4.5",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
+    "lodash": "^4.17.21",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
     "pino": "^6.7.0",
