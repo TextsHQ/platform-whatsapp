@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto } from '@adiwajshing/baileys-md'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast } from '@adiwajshing/baileys-md'
 import { In, Repository } from 'typeorm'
 
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
@@ -130,5 +130,7 @@ export async function updateItems<
   return dbItems
 }
 
-export const shouldExcludeMessage = (msg: WAMessage) => msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
+export const shouldExcludeMessage = (msg: WAMessage) => 
+    msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
     || !!msg.message?.senderKeyDistributionMessage
+    || isJidBroadcast(msg.key.remoteJid || '')
