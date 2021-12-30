@@ -23,7 +23,7 @@ type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: s
 
 const MESSAGE_PAGE_SIZE = 15
 const THREAD_PAGE_SIZE = 15
-const MAX_OFFLINE_MESSAGES_WAIT_MS = 5_000
+const MAX_OFFLINE_MESSAGES_WAIT_MS = 10_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 
 const config: Partial<SocketConfig> = {
@@ -544,18 +544,33 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('chats.set', async ({ messages, chats }) => {
+    ev.on('chats.set', async ({ messages, chats, contacts }) => {
       texts.log('got history')
       await this.mutexedTransaction(
         async () => {
-          const metadatas = await this.client!.groupFetchAllParticipating()
-          const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
-          texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
+          if(chats.length) {
+            const metadatas = await this.client!.groupFetchAllParticipating()
+            const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
+            texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
+          }
 
-          const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
-          await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+          if(messages.length) {
+            const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
+            await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
-          texts.log({ messages: dbMessages.length }, 'saved last message history')
+            texts.log({ messages: dbMessages.length }, 'saved last message history')
+          }
+
+          if(contacts.length) {
+            const items: DBUser[] = []
+            // only save individual contacts
+            for(const item of contacts) {
+              if(jidDecode(item.id).server === 's.whatsapp.net') {
+                items.push(DBUser.fromOriginal(item, this))
+              }
+            }
+            await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+          }
 
           this.decrementNewLoginCounter()
         },
@@ -563,16 +578,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.upsert', async contacts => {
-      texts.log('got contact history')
-
       await this.mutexedTransaction(
         async () => {
           const items = contacts.map(item => DBUser.fromOriginal(item, this))
           await this.db.getRepository(DBUser).save(items, { chunk: 500 })
         },
       )
-
-      this.decrementNewLoginCounter()
     })
 
     ev.on('chats.update', async updates => {
