@@ -9,6 +9,7 @@ import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText } from './DBMessage-util'
 
 @Entity()
+@Index('fetch_idx', ['threadID', 'cursor'])
 export default class DBMessage implements Message {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   threadID: string
@@ -68,7 +69,6 @@ export default class DBMessage implements Message {
   _original?: string
 
   @Column({ type: 'varchar', length: 64 })
-  @Index()
   cursor?: string
 
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
