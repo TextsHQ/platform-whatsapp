@@ -2,12 +2,12 @@ import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipan
 import type { Connection, EntityManager } from 'typeorm'
 
 export type FullBaileysChat = {
-  chat: Chat
+  chat: Partial<Chat>
   metadata: GroupMetadata | undefined
 }
 
 export type FullChatParticipant = {
-  item: Chat | GroupParticipant | Contact
+  item: Partial<Chat | GroupParticipant | Contact>
   threadID: string
 }
 

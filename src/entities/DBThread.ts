@@ -110,21 +110,21 @@ export default class DBThread implements Thread {
 
   static fromOriginal = (raw: FullBaileysChat, ctx: MappingContext): DBThread => {
     const { chat, metadata } = raw
-    const threadID = jidNormalizedUser(chat.id)
+    const threadID = jidNormalizedUser(chat.id!)
     if (!chat.conversationTimestamp) {
       chat.conversationTimestamp = 0
     }
     if (chat.id === STORIES_JID) {
       texts.Sentry.captureException(new Error('stories thread being mapped'))
     }
-    const type = threadType(chat.id)!
+    const type = threadType(threadID)!
     const baileysParticipants = type === 'single' ? [chat, ctx.auth!.me!] : (metadata?.participants || [])
 
     const participants: DBParticipant[] = []
     const participantSet = new Set<string>()
 
     for (const item of baileysParticipants) {
-      const id = jidNormalizedUser(item.id)
+      const id = jidNormalizedUser(item.id!)
       if (!participantSet.has(id)) {
         participants.push(DBParticipant.fromOriginal({ threadID, item }))
         participantSet.add(id)

@@ -41,7 +41,7 @@ export default class DBParticipant {
     const p = new DBParticipant()
     Object.assign(p, {
       threadID,
-      id: jidNormalizedUser(item.id),
+      id: jidNormalizedUser(item.id!),
       isAdmin: 'admin' in item ? !!item.admin : false,
       isSuperAdmin: 'admin' in item ? item.admin === 'superadmin' : false,
     })

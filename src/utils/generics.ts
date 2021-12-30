@@ -105,19 +105,26 @@ export const unmapMessageID = (id: string) => {
 export async function updateItems<
   T extends { id: string },
   D extends { id: string, update: (t: Partial<T>) => void },
-  >(updates: Partial<T>[], repo: Repository<D>) {
-  const map: { [jid: string]: Partial<T> } = { }
-  const jids = updates.map(c => {
-    const id = jidNormalizedUser(c.id!)
-    map[id] = c
-    return id
-  })
+  >(updates: Partial<T>[], repo: Repository<D>, upsert?: (update: Partial<T>) => D | Promise<D>) {
+  const map: { [jid: string]: D } = { }
+  const jids = updates.map(c => jidNormalizedUser(c.id!))
   const dbItems = await repo.find({
     where: { id: In(jids) },
   })
-  for (const contact of dbItems) {
-    contact.update(map[contact.id!])
+
+  for (const dbItem of dbItems) {
+    map[dbItem.id] = dbItem
   }
+
+  for (const update of updates) {
+    const dbItem = map[update.id!]
+    if (dbItem) {
+      dbItem.update(update)
+    } else if (upsert) {
+      dbItems.push(await upsert(update))
+    }
+  }
+
   await repo.save(dbItems as any[])
 
   return dbItems

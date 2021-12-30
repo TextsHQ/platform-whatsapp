@@ -587,19 +587,31 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('chats.update', async updates => {
+      const shouldUpsert = !!updates.find(u => !!u.conversationTimestamp)
       const updated = await this.mutexedTransaction(
-        () => updateItems(updates, this.db.getRepository(DBThread)),
+        () => updateItems(
+          updates,
+          this.db.getRepository(DBThread),
+          shouldUpsert
+            ? async update => {
+              const metadata = isJidGroup(update.id!) ? await this.client!.groupMetadata(update.id!) : undefined
+              return DBThread.fromOriginal({ chat: update, metadata }, this)
+            }
+            : undefined,
+        ),
       )
       texts.log({ updates }, `updating ${updated.length}/${updates.length} chats`)
     })
 
     ev.on('chats.upsert', async upserts => {
       const metadataList = await Promise.all(
-        upserts.map(update => this.client!.groupMetadata(update.id)),
+        upserts.map(update => (isJidGroup(update.id) ? this.client!.groupMetadata(update.id) : undefined)),
       )
       const metadataMap = metadataList.reduce(
         (dict, item) => {
-          dict[item.id] = item
+          if (item) {
+            dict[item.id] = item
+          }
           return dict
         }, { } as { [id: string]: GroupMetadata },
       )
