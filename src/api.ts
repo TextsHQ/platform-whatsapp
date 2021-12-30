@@ -32,7 +32,7 @@ const config: Partial<SocketConfig> = {
   connectTimeoutMs: 120_000,
 }
 
-config.logger!.level = texts.IS_DEV ? 'trace' : 'silent'
+config.logger!.level = texts.IS_DEV ? 'debug' : 'silent'
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: ReturnType<typeof makeSocket> // TODO: make type
@@ -548,24 +548,24 @@ export default class WhatsAppAPI implements PlatformAPI {
       texts.log('got history')
       await this.mutexedTransaction(
         async () => {
-          if(chats.length) {
+          if (chats.length) {
             const metadatas = await this.client!.groupFetchAllParticipating()
             const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
             texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
           }
 
-          if(messages.length) {
+          if (messages.length) {
             const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
             await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
 
             texts.log({ messages: dbMessages.length }, 'saved last message history')
           }
 
-          if(contacts.length) {
+          if (contacts.length) {
             const items: DBUser[] = []
             // only save individual contacts
-            for(const item of contacts) {
-              if(jidDecode(item.id).server === 's.whatsapp.net') {
+            for (const item of contacts) {
+              if (jidDecode(item.id).server === 's.whatsapp.net') {
                 items.push(DBUser.fromOriginal(item, this))
               }
             }
