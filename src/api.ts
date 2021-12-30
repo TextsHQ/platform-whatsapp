@@ -1,7 +1,9 @@
+import path from 'path'
+import { promises as fs } from 'fs'
 import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, GroupMetadata } from '@adiwajshing/baileys-md'
+import { debounce } from 'lodash'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
-import path from 'path'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
@@ -53,8 +55,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private pendingEvents: ServerEvent[] = []
 
-  private eventPushInterval: NodeJS.Timeout
-
   private isAccountSetup = false
 
   private fetchedAllMessages = false
@@ -73,23 +73,19 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   accountID: string
 
+  private dataDirPath: string
+
   db: Connection
 
   get auth(): AuthenticationCreds | undefined { return this.client?.authState?.creds }
 
   init = async (session: { }, { accountID, dataDirPath }: AccountInfo) => {
+    this.dataDirPath = dataDirPath
     const dbPath = path.join(dataDirPath, 'db.sqlite')
     texts.log(`init with DB path: ${dbPath}`)
 
     this.db = await getConnection(accountID, dbPath)
     this.registerDBEvents()
-    this.eventPushInterval = setInterval(() => {
-      if (this.pendingEvents.length) {
-        texts.log(`pushing ${this.pendingEvents.length} events`)
-        this.evCallback(this.pendingEvents)
-        this.pendingEvents = []
-      }
-    }, 200)
 
     this.accountID = accountID
 
@@ -102,7 +98,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.close()
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
-      clearInterval(this.eventPushInterval)
     }
   }
 
@@ -110,6 +105,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   logout = async () => {
     await this.client?.logout()
+    await fs.rm(this.dataDirPath, { recursive: true })
   }
 
   onLoginEvent = (callback: LoginCallback) => {
@@ -396,15 +392,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     )
   }
 
-  private publishEvent(...events: ServerEvent[]) {
-    if (this.isAccountSetup) {
-      this.pendingEvents.push(...events)
-    }
+  private debouncedPushEvents = debounce(() => {
+    if (!this.isAccountSetup) return
+    if (!this.pendingEvents.length) return
+    texts.log(`pushing ${this.pendingEvents.length} events`)
+    this.evCallback(this.pendingEvents)
+    this.pendingEvents = []
+  }, 200)
+
+  private publishEvent = (...events: ServerEvent[]) => {
+    this.pendingEvents.push(...events)
+    this.debouncedPushEvents()
   }
 
   private markAccountSetup() {
     texts.log('account setup, sending events...')
     this.isAccountSetup = true
+    this.debouncedPushEvents()
   }
 
   private decrementNewLoginCounter() {

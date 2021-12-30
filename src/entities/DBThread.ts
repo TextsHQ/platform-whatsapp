@@ -87,7 +87,7 @@ export default class DBThread implements Thread {
         if (chat.mute < 0) this.mutedUntil = new Date(CHAT_MUTE_DURATION_S)
         else this.mutedUntil = new Date(+chat.mute)
       } else {
-        // @ts-ignore
+        // @ts-expect-error
         this.mutedUntil = null
       }
     }
@@ -99,7 +99,7 @@ export default class DBThread implements Thread {
       item.isUnread = !!item.unreadCount
     }
     if (typeof item.mutedUntil !== 'undefined') {
-      // @ts-ignore
+      // @ts-expect-error
       item.mutedUntil = item.mutedUntil ? 'forever' : null
     }
     delete item.participantsList
