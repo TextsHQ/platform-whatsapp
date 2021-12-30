@@ -133,7 +133,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } catch (error) {
       texts.log('connect failed:', error)
       const statusCode: number = error.output?.statusCode
-      if (statusCode === DisconnectReason.notJoinedBeta) {
+      if (statusCode === DisconnectReason.multideviceMismatch) {
         this.loginCallback?.({ qr: undefined, isOpen: false, error: 'Your phone has Multi-Device disabled. You can either turn on Multi-Device and retry or use the regular WhatsApp integration.' })
       } else if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
       // ensure cleanup
@@ -1027,7 +1027,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (forEveryone) {
       await this.client!.sendMessage(threadID, { delete: key })
     } else {
-      await this.client!.chatModify({ clear: { message: key } }, threadID, [])
+      await this.client!.chatModify({ clear: { messages: [key] } }, threadID)
     }
   }
 
@@ -1170,11 +1170,56 @@ export default class WhatsAppAPI implements PlatformAPI {
     const chat = await this.getChat(threadID)
     if (!chat) throw new Error('modThread: thread not found')
 
+    const getLastMessages = async () => {
+      const lastMsgs: Pick<WAMessage, 'key' | 'messageTimestamp'>[] = []
+      if (key === 'isUnread' || key === 'isArchived') {
+        const lastMsgFromOther = await this.db.getRepository(DBMessage).findOne({
+          where: {
+            threadID: chat.id,
+            isAction: false,
+            isSender: false,
+          },
+          order: { cursor: 'DESC' },
+        })
+        if (!lastMsgFromOther) {
+          throw new Error('Cannot execute action without message from other party')
+        }
+
+        const lastMsgsAfter = await this.db.getRepository(DBMessage)
+          .createQueryBuilder('msg')
+          .where('thread_id = :chatId', { chatId: chat.id })
+          .andWhere('NOT msg.is_action')
+          .andWhere('msg.cursor > :cursor', { cursor: lastMsgFromOther.cursor })
+          .orderBy('cursor', 'ASC')
+          .getMany()
+        const allMsgs = [
+          ...lastMsgsAfter.reverse(),
+          lastMsgFromOther,
+        ]
+
+        for (const msg of allMsgs) {
+          const key = unmapMessageID(msg.id)
+          lastMsgs.push({
+            key: {
+              remoteJid: chat.id,
+              fromMe: key.fromMe,
+              id: key.id,
+              participant: isJidGroup(chat.id) ? msg.senderID : undefined,
+            },
+            messageTimestamp: Math.floor(msg.timestamp.getTime() / 1000),
+          })
+        }
+
+        texts.log(`applying patch "${key}", last msgs: `, lastMsgs)
+      }
+      return lastMsgs
+    }
+
     if (!!chat[key] === value) return // already done, nothing to do
     let mod: ChatModification
     switch (key) {
       case 'isArchived':
-        mod = { archive: value }
+        mod = { archive: value, lastMessages: await getLastMessages() }
         break
       case 'pin':
         mod = { pin: value }
@@ -1184,53 +1229,11 @@ export default class WhatsAppAPI implements PlatformAPI {
         mod = { mute: value ? CHAT_MUTE_DURATION_S + Date.now() : null }
         break
       case 'isUnread':
-        mod = { markRead: !value }
+        mod = { markRead: !value, lastMessages: await getLastMessages() }
         break
     }
 
-    const lastMsgs: Pick<WAMessage, 'key' | 'messageTimestamp'>[] = []
-    if (key === 'isUnread' || key === 'isArchived') {
-      const lastMsgFromOther = await this.db.getRepository(DBMessage).findOne({
-        where: {
-          threadID: chat.id,
-          isAction: false,
-          isSender: false,
-        },
-        order: { cursor: 'DESC' },
-      })
-      if (!lastMsgFromOther) {
-        throw new Error('Cannot execute action without message from other party')
-      }
-
-      const lastMsgsAfter = await this.db.getRepository(DBMessage)
-        .createQueryBuilder('msg')
-        .where('thread_id = :chatId', { chatId: chat.id })
-        .andWhere('NOT msg.is_action')
-        .andWhere('msg.cursor > :cursor', { cursor: lastMsgFromOther.cursor })
-        .orderBy('cursor', 'ASC')
-        .getMany()
-      const allMsgs = [
-        ...lastMsgsAfter.reverse(),
-        lastMsgFromOther,
-      ]
-
-      for (const msg of allMsgs) {
-        const key = unmapMessageID(msg.id)
-        lastMsgs.push({
-          key: {
-            remoteJid: chat.id,
-            fromMe: key.fromMe,
-            id: key.id,
-            participant: isJidGroup(chat.id) ? msg.senderID : undefined,
-          },
-          messageTimestamp: Math.floor(msg.timestamp.getTime() / 1000),
-        })
-      }
-
-      texts.log(`applying patch "${key}", last msgs: `, lastMsgs)
-    }
-
-    await this.client!.chatModify(mod, threadID, lastMsgs)
+    await this.client!.chatModify(mod, threadID)
   }
 
   private getChat = (threadID: string) => {
