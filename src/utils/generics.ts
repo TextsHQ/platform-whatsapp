@@ -130,7 +130,7 @@ export async function updateItems<
   return dbItems
 }
 
-export const shouldExcludeMessage = (msg: WAMessage) => 
-    msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
+export const shouldExcludeMessage = (msg: WAMessage) =>
+  msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
     || !!msg.message?.senderKeyDistributionMessage
     || isJidBroadcast(msg.key.remoteJid || '')
