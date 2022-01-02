@@ -2,7 +2,7 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, GroupMetadata } from '@adiwajshing/baileys-md'
 import { debounce } from 'lodash'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus, MessageBehavior } from '@textshq/platform-sdk'
 import P from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import getConnection from './utils/get-connection'
@@ -647,7 +647,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       const mapped: DBMessage[] = []
       for (const msg of messages) {
         if (!shouldExcludeMessage(msg)) {
-          mapped.push(DBMessage.fromOriginal(msg, this))
+          const mappedMsg = DBMessage.fromOriginal(msg, this)
+          if(type !== 'notify') {
+            mappedMsg.behavior = MessageBehavior.DONT_NOTIFY
+          }
+          mapped.push(mappedMsg)
         }
       }
       await this.mutexedTransaction(
