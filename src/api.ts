@@ -648,7 +648,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       for (const msg of messages) {
         if (!shouldExcludeMessage(msg)) {
           const mappedMsg = DBMessage.fromOriginal(msg, this)
-          if(type !== 'notify') {
+          if (type !== 'notify') {
             mappedMsg.behavior = MessageBehavior.DONT_NOTIFY
           }
           mapped.push(mappedMsg)
