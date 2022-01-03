@@ -549,13 +549,11 @@ export default function getMappers(store: ReturnType<typeof makeInMemoryStore>) 
     const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : undefined
     const events: ServerEvent[] = []
     if ([Presence.available, Presence.unavailable].includes(presence.lastKnownPresence!)) {
-      const isActive = presence.lastKnownPresence === Presence.available
       events.push({
         type: ServerEventType.USER_PRESENCE_UPDATED,
         presence: {
           userID: participantID,
-          isActive,
-          status: isActive ? 'online' : 'offline',
+          status: presence.lastKnownPresence === Presence.available ? 'online' : 'offline',
           lastActive,
         },
       })
