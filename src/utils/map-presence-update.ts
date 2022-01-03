@@ -1,7 +1,7 @@
 import type { PresenceData } from '@adiwajshing/baileys-md'
 import { ActivityType, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 
-export default (threadID: string, presenceUpdates: { [_: string]: PresenceData }) => {
+export default function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: string]: PresenceData }) {
   const [participantID] = Object.keys(presenceUpdates)
   const presence = presenceUpdates[participantID]
   const lastActive = presence.lastSeen ? new Date(presence.lastSeen * 1000) : undefined
@@ -12,7 +12,6 @@ export default (threadID: string, presenceUpdates: { [_: string]: PresenceData }
       presence: {
         userID: participantID,
         status: presence.lastKnownPresence === 'available' ? 'online' : 'offline',
-        isActive: presence.lastKnownPresence === 'available',
         lastActive,
       },
     })
