@@ -13,7 +13,7 @@ const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
   'sender-key-memory': 'sender-key-memory',
 }
 
-export const makeDBKeyStore = (db: Connection): DBKeyStore => {
+export const makeDBKeyStore = (db: Connection, mutex: (func: () => Promise<void>) => Promise<void>): DBKeyStore => {
   const repo = db.getRepository(AccountKeyValue)
 
   return {
@@ -48,17 +48,20 @@ export const makeDBKeyStore = (db: Connection): DBKeyStore => {
         }
       }
 
-      if (updates.length) {
-        await repo.save(updates, { transaction: false })
-      }
+      await mutex(
+        async () => {
+          if (updates.length) {
+            await repo.save(updates)
+          }
 
-      if (deletions.length) {
-        await repo.createQueryBuilder()
-          .delete()
-          .where(deletions.map(d => `(id='${d.id}' AND category='${d.category}')`).join(' OR '))
-          .useTransaction(false)
-          .execute()
-      }
+          if (deletions.length) {
+            await repo.createQueryBuilder()
+              .delete()
+              .where(deletions.map(d => `(id='${d.id}' AND category='${d.category}')`).join(' OR '))
+              .execute()
+          }
+        },
+      )
     },
     clear: async () => {
       await repo.delete({})

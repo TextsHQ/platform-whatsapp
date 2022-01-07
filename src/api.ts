@@ -71,6 +71,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private profilePictureUrlCache: { [id: string]: Promise<string> } = {}
 
+  private keyStore: ReturnType<typeof makeDBKeyStore>
+
   accountID: string
 
   private dataDirPath: string
@@ -85,6 +87,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log(`init with DB path: ${dbPath}`)
 
     this.db = await getConnection(accountID, dbPath)
+    this.keyStore = await makeDBKeyStore(this.db, this.transactionMutex.mutex)
     this.registerDBEvents()
 
     this.accountID = accountID
@@ -164,7 +167,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const auth = {
       creds: creds?.credentials || initAuthCreds(),
-      keys: makeDBKeyStore(this.db),
+      keys: this.keyStore,
     }
     this.client = makeSocket({
       ...config,
@@ -531,7 +534,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.client = undefined
             this.connectInternal(2000)
           } else if (statusCode === DisconnectReason.loggedOut) {
-            makeDBKeyStore(this.db).clear()
+            this.keyStore.clear()
             this.db.getRepository(AccountCredentials).delete({
               accountID: this.accountID,
             })
