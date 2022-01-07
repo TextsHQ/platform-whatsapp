@@ -11,7 +11,7 @@ export default class DBThread implements Thread {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   id: string
 
-  @Column({ type: 'varchar', length: 255, nullable: false, default: '' })
+  @Column({ type: 'text', nullable: false, default: '' })
   title: string
 
   @Column({ type: 'int', unsigned: false, nullable: false, default: 0 })
@@ -35,7 +35,7 @@ export default class DBThread implements Thread {
   @Column({ type: 'datetime', nullable: true, default: null })
   createdAt?: Date
 
-  @Column({ type: 'varchar', length: 1024, nullable: true, default: null })
+  @Column({ type: 'text', nullable: true, default: null })
   description?: string
 
   @Column({ type: 'int', unsigned: true, nullable: true, default: null })
