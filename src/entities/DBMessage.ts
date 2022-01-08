@@ -82,6 +82,8 @@ export default class DBMessage implements Message {
 
   textFooter?: string
 
+  shouldFireEvent?: boolean
+
   @AfterLoad()
   computeProperties() {
     if (this.text) {

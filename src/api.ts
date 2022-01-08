@@ -368,8 +368,8 @@ export default class WhatsAppAPI implements PlatformAPI {
               })
               break
             case 'insert':
-              if (this.fetchedAllMessages) {
-                const dbItem = item as DBMessage
+              const dbItem = item as DBMessage
+              if (this.fetchedAllMessages && dbItem.shouldFireEvent !== false) {
                 this.publishEvent({
                   type: ServerEventType.STATE_SYNC,
                   objectName: 'message',
@@ -653,6 +653,9 @@ export default class WhatsAppAPI implements PlatformAPI {
           const mappedMsg = DBMessage.fromOriginal(msg, this)
           if (type !== 'notify') {
             mappedMsg.behavior = MessageBehavior.KEEP_READ
+            if (type === 'prepend') {
+              mappedMsg.shouldFireEvent = false
+            }
           }
           mapped.push(mappedMsg)
         }
