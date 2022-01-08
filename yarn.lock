@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys-md@git+https://github.com/adiwajshing/baileys#multi-device":
   version: 4.0.0
-  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=a0003f0fe97572b4ebe37eef54898d4dbf96fa36"
+  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=5febb86e14e12064173b9565637080944af38b94"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -28,7 +28,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 86693136aac9df2b0e6eaa351e846495fa16bd2704b3f89847a2175028a71ccf5440e8cf9c2db976ce32a0bd396593cb63bd71e48a183229c49edd16448fef0a
+  checksum: fd64c2bbf315481b5fdd51fa53d5d773b2966e6cfc4b1ce8a0a20e1f07ec499aa05c61fc185cf01e52957c27927837c6967931dc89f1d1644dfa8ffa364593a5
   languageName: node
   linkType: hard
 

@@ -114,7 +114,8 @@ export default class DBMessage implements Message {
     }
 
     if (partial.messageStubType) {
-      update.text = undefined
+      // @ts-expect-error
+      update.text = null
       update.attachments = []
       update.isDeleted = true
     }
