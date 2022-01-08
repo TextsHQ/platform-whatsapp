@@ -86,7 +86,7 @@ export default class DBMessage implements Message {
   computeProperties() {
     if (this.text) {
       // TODO
-      const { text, textAttributes } = mapTextAttributes(this.text, id => id.split('@')[0])!
+      const { text, textAttributes } = mapTextAttributes(this.text, () => undefined)!
       if (textAttributes) {
         this.text = text
         this.textAttributes = textAttributes

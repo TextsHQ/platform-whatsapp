@@ -68,7 +68,7 @@ const findClosingIndex = (input: string[], curToken: string) => {
   return closingIndex
 }
 
-export function mapTextAttributes(src: string, contactUsername: (id: string) => string) {
+export function mapTextAttributes(src: string, contactUsername: (id: string) => string | undefined) {
   const entities: TextEntity[] = []
   let output = ''
   let prevToken: string | null = null
@@ -155,11 +155,12 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
             break
           case '@{{': {
             const username = contactUsername(content)
-            output += `@${username}`
-            entity.to = from + username.length + 1
-            entity.mentionedUser = {
-              id: content,
-              username,
+            const text = username || content
+            output += `@${text}`
+            entity.to = from + text.length + 1
+            entity.mentionedUser = { id: content }
+            if (username) {
+              entity.mentionedUser.username = username
             }
             break
           }
