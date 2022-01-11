@@ -18,7 +18,7 @@ const DELAY_CONN_STATUS_CHANGE = 20_000
 const ATTACHMENT_UPDATE_WAIT_TIME_MS = 20_000
 
 const config: Partial<SocketConfig> = {
-  version: [2, 2147, 14],
+  version: [2, 2147, 16],
   logger: P().child({ class: 'texts-baileys', level: texts.IS_DEV ? 'debug' : 'silent' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 150_000,
