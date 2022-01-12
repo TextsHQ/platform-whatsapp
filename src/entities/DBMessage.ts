@@ -87,7 +87,6 @@ export default class DBMessage implements Message {
   @AfterLoad()
   computeProperties() {
     if (this.text) {
-      // TODO
       const { text, textAttributes } = mapTextAttributes(this.text, () => undefined)!
       if (textAttributes) {
         this.text = text
