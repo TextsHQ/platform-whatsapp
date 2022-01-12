@@ -132,5 +132,4 @@ export async function updateItems<
 
 export const shouldExcludeMessage = (msg: WAMessage) =>
   msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
-    || !!msg.message?.senderKeyDistributionMessage
     || isJidBroadcast(msg.key.remoteJid || '')
