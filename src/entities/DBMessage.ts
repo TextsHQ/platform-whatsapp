@@ -1,4 +1,4 @@
-import { extractMessageContent, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
+import { extractMessageContent, getContentType, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys-md'
 import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { READ_STATUS } from '../constants'
@@ -129,7 +129,10 @@ export default class DBMessage implements Message {
     const currentUserID = ctx.auth!.me!.id
     const id = mapMessageID(message.key)
     const messageContent = extractMessageContent(message.message)
-    const messageInner = messageContent ? Object.values(messageContent)[0] : undefined
+    const messageType = getContentType(messageContent)
+    const messageInner = messageType && messageContent ? messageContent[messageType] : undefined
+
+    const contextInfo = typeof messageInner === 'object' && messageInner && ('contextInfo' in messageInner) ? messageInner.contextInfo : undefined
 
     let senderID = message.key.fromMe ? currentUserID : (message.key.participant || message.participant || message.key.remoteJid!)
     senderID = jidNormalizedUser(senderID)
@@ -155,7 +158,7 @@ export default class DBMessage implements Message {
       text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
       textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
       timestamp: new Date(timestamp),
-      forwardedCount: messageInner?.contextInfo?.forwardingScore,
+      forwardedCount: contextInfo?.forwardingScore || undefined,
       senderID,
       isSender: !!message.key.fromMe,
       isDeleted,
@@ -164,13 +167,13 @@ export default class DBMessage implements Message {
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
       links: link ? [link] : undefined,
-      parseTemplate: isAction || !!(messageInner?.contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
+      parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
       isAction,
       action,
       // todo: review logic, this is incorrect:
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
       behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
-      expiresInSeconds: messageInner?.contextInfo?.expiration,
+      expiresInSeconds: contextInfo?.expiration || undefined,
     }
 
     const dbMsg = new DBMessage()
