@@ -19,6 +19,8 @@ export const PRESENCE_MAP: { [T in ActivityType]: WAPresence } = {
   [ActivityType.RECORDING_VOICE]: 'recording',
   [ActivityType.RECORDING_VIDEO]: 'recording',
   [ActivityType.CUSTOM]: 'available',
+  [ActivityType.OFFLINE]: 'unavailable',
+  [ActivityType.ONLINE]: 'available'
 }
 
 export const numberFromJid = (jid: string) => {
