@@ -5,26 +5,31 @@ __metadata:
   version: 5
   cacheKey: 8
 
-"@adiwajshing/baileys-md@git+https://github.com/adiwajshing/baileys#multi-device":
-  version: 4.0.0
-  resolution: "@adiwajshing/baileys-md@https://github.com/adiwajshing/baileys.git#commit=f09e0f85ccf93e47a7ca81a35df7928ed24623f4"
+"@adiwajshing/baileys-md@portal:../baileys-md::locator=%40textshq%2Fplatform-whatsapp-md%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@adiwajshing/baileys-md@portal:../baileys-md::locator=%40textshq%2Fplatform-whatsapp-md%40workspace%3A."
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
     curve25519-js: ^0.0.4
+    jimp: ^0.16.1
     libsignal: "git+https://github.com/adiwajshing/libsignal-node"
     music-metadata: ^7.4.1
     node-cache: ^5.1.2
     pino: ^6.7.0
     protobufjs: ^6.10.1
-    ws: ^8.0.0
-  peerDependencies:
-    jimp: ^0.16.1
     qrcode-terminal: ^0.12.0
     sharp: ^0.29.3
-  checksum: 74ac048e631b5a74c16902d48b6102114f4ec8d019279c37ccc72bf07bbcfa660c39e2d235ff6383c3bc890be871374acb96fd8010fa600ed9696e0177e6eb98
+    ws: ^8.0.0
+  dependenciesMeta:
+    jimp:
+      optional: true
+    qrcode-terminal:
+      optional: true
+    sharp:
+      optional: true
   languageName: node
-  linkType: hard
+  linkType: soft
 
 "@babel/code-frame@npm:7.12.11":
   version: 7.12.11
@@ -1351,10 +1356,10 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=ddaaa21e8ff3ea569984df25840c49f2c94c5977"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=ffea457430c1934ca604d35ca542d14ceb439abb"
   dependencies:
     form-data: ^4.0.0
-  checksum: ef7ab0ef41b5612fdffad8da9927a44265367ce400055a19180866b31a9034a91247467d1f9f8da65e856ea7fc44c59c9d831a4eee667b4a405ab1f5c82bd0f7
+  checksum: fb45d736b3d43b4416f3ee0ef134af94f9386ee9606faf5e15fdbefe7250d6d5bdb2f947160c1dc2493e2388871d47949ce719395412fa0aba9e4fb63e5ef2cd
   languageName: node
   linkType: hard
 
@@ -2682,10 +2687,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"color-name@npm:~1.1.4":
+"color-name@npm:^1.0.0, color-name@npm:~1.1.4":
   version: 1.1.4
   resolution: "color-name@npm:1.1.4"
   checksum: b0445859521eb4021cd0fb0cc1a75cecf67fceecae89b63f62b201cca8d345baf8b952c966862a9d9a2632987d4f6581f0ec8d957dfacece86f0a7919316f610
+  languageName: node
+  linkType: hard
+
+"color-string@npm:^1.9.0":
+  version: 1.9.0
+  resolution: "color-string@npm:1.9.0"
+  dependencies:
+    color-name: ^1.0.0
+    simple-swizzle: ^0.2.2
+  checksum: 93c6678b847f8cfa47d19677fd19e1d4b19d7a33f100644400357c298266080b5bca64e5f874fa8ac8cc0aa0606ad44f7a838b4e6fd05e6affea190a68555bb4
+  languageName: node
+  linkType: hard
+
+"color@npm:^4.0.1":
+  version: 4.2.0
+  resolution: "color@npm:4.2.0"
+  dependencies:
+    color-convert: ^2.0.1
+    color-string: ^1.9.0
+  checksum: a5e7d8e8b4cdc3a005da8f0d9a41c63f74c46ab0865d834e950891a5c171141e8e88cbb958a501bd6d80ec57448fee4f630d9910f9533524ea9324e4bc9a3c35
   languageName: node
   linkType: hard
 
@@ -4512,6 +4537,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"is-arrayish@npm:^0.3.1":
+  version: 0.3.2
+  resolution: "is-arrayish@npm:0.3.2"
+  checksum: 977e64f54d91c8f169b59afcd80ff19227e9f5c791fa28fa2e5bce355cbaf6c2c356711b734656e80c9dd4a854dd7efcf7894402f1031dfc5de5d620775b4d5f
+  languageName: node
+  linkType: hard
+
 "is-bigint@npm:^1.0.1":
   version: 1.0.2
   resolution: "is-bigint@npm:1.0.2"
@@ -6115,6 +6147,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:^4.2.0":
+  version: 4.2.0
+  resolution: "node-addon-api@npm:4.2.0"
+  dependencies:
+    node-gyp: latest
+  checksum: 52ea6ff01a882766ceec74a0752c0cf9571fa72559a7a3e8969779fa5ae113a2d63cb54dd267fa83a533ab2b7617131d4a6996114701f4ca27246d2513b0e5a5
+  languageName: node
+  linkType: hard
+
 "node-cache@npm:^5.1.2":
   version: 5.1.2
   resolution: "node-cache@npm:5.1.2"
@@ -6993,6 +7034,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"qrcode-terminal@npm:^0.12.0":
+  version: 0.12.0
+  resolution: "qrcode-terminal@npm:0.12.0"
+  bin:
+    qrcode-terminal: ./bin/qrcode-terminal.js
+  checksum: 51638d11d080e06ef79ef2d5cfe911202159e48d2873d6a80a3c5489b4b767acf4754811ceba4e113db8f41f61a06c163bcb17e6e18e6b34e04a7a5155dac974
+  languageName: node
+  linkType: hard
+
 "qrcode.react@npm:^1.0.1":
   version: 1.0.1
   resolution: "qrcode.react@npm:1.0.1"
@@ -7484,6 +7534,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sharp@npm:^0.29.3":
+  version: 0.29.3
+  resolution: "sharp@npm:0.29.3"
+  dependencies:
+    color: ^4.0.1
+    detect-libc: ^1.0.3
+    node-addon-api: ^4.2.0
+    node-gyp: latest
+    prebuild-install: ^7.0.0
+    semver: ^7.3.5
+    simple-get: ^4.0.0
+    tar-fs: ^2.1.1
+    tunnel-agent: ^0.6.0
+  checksum: d496cdd546c9abe743aebcee013731295f735687819a18c2bdcbba6f31a6b259f3da95af5c11260a8fedc9d4ab95697f5f8c4f3cd65232792b5cfb876bea7c9a
+  languageName: node
+  linkType: hard
+
 "shebang-command@npm:^1.2.0":
   version: 1.2.0
   resolution: "shebang-command@npm:1.2.0"
@@ -7556,6 +7623,15 @@ __metadata:
     once: ^1.3.1
     simple-concat: ^1.0.0
   checksum: 8af4fb788be27af3586395857a1617be133391a7356b007a76379f5eb2ad1c19ea6a13ba9467b0fe790b9e468f9fb124639779b62eb21e6d3ab2cb9b2850cb8d
+  languageName: node
+  linkType: hard
+
+"simple-swizzle@npm:^0.2.2":
+  version: 0.2.2
+  resolution: "simple-swizzle@npm:0.2.2"
+  dependencies:
+    is-arrayish: ^0.3.1
+  checksum: a7f3f2ab5c76c4472d5c578df892e857323e452d9f392e1b5cf74b74db66e6294a1e1b8b390b519fa1b96b5b613f2a37db6cffef52c3f1f8f3c5ea64eb2d54c0
   languageName: node
   linkType: hard
 
@@ -8018,7 +8094,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tar-fs@npm:^2.0.0":
+"tar-fs@npm:^2.0.0, tar-fs@npm:^2.1.1":
   version: 2.1.1
   resolution: "tar-fs@npm:2.1.1"
   dependencies:

@@ -47,5 +47,8 @@
     "jest": "^26.6.3",
     "typescript": "^4.1.2"
   },
+  "resolutions": {
+    "@adiwajshing/baileys-md": "portal:../baileys-md"
+  },
   "packageManager": "yarn@3.1.0"
 }
