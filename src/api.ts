@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata } from '@adiwajshing/baileys'
+import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus } from '@textshq/platform-sdk'
 import P from 'pino'
 import type { Connection } from 'typeorm'
@@ -20,6 +20,8 @@ import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
 import fetchThreads from './utils/fetch-threads'
 import downloadMessage from './utils/download-message'
+import getMessageCompose from './utils/get-message-compose'
+import getEphemeralOptions from './utils/get-ephemeral-options'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
@@ -435,116 +437,39 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  ephemeralOptions = async (threadID: string): Promise<Partial<MiscMessageGenerationOptions>> => {
-    const item = await this.db.getRepository(DBThread).findOne({ id: threadID })
-    return { ephemeralExpiration: item?.messageExpirySeconds }
-  }
-
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
       if (this.connState.connection !== 'open') {
         await this.client!.waitForConnectionUpdate(u => u.connection === 'open', 30_000)
       }
 
-      let content: AnyRegularMessageContent
-      let { text, mimeType } = msgContent
-      let sendAdditionalTextMessage = false
-
-      const opts: MiscMessageGenerationOptions = await this.ephemeralOptions(threadID)
-
-      if (msgContent.mentionedUserIDs) {
-        for (const mention of msgContent.mentionedUserIDs) {
-          const { user } = jidDecode(mention)
-          // @+14151231234 => @14151231234
-          text = text!.replace('@+' + user, '@' + user)
-        }
-      }
-
-      const buffer = msgContent.fileBuffer || (msgContent.filePath ? { url: msgContent.filePath! } : undefined)
-
-      if (buffer) {
-        let media: AnyMediaMessageContent
-        if (mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
-        else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
-        else if (mimeType?.includes('image/')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
-        else if (mimeType?.includes('audio/')) media = { audio: buffer, ptt: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
-        else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
-
-        if (mimeType?.endsWith('/ogg')) {
-          mimeType = 'audio/ogg; codecs=opus'
-        }
-
-        media.mimetype = mimeType || 'application/octet-stream'
-        content = media
-        if (!!text && !('caption' in media)) {
-          sendAdditionalTextMessage = true
-        }
-      } else {
-        content = {
-          text: text!,
-          mentions: msgContent.mentionedUserIDs,
-        }
-      }
-      const messages: WAMessage[] = []
-      const firstMessageID = generateMessageID()
-
-      let quotedMsg: WAMessage | undefined
-      if (options?.quotedMessageID) {
-        const msg = await this.db.getRepository(DBMessage).findOneOrFail({
-          id: options!.quotedMessageID,
-          threadID: options!.quotedMessageThreadID,
-        })
-        if (msg) {
-          quotedMsg = msg.original.message
-        } else {
-          throw new Error('could not find message to quote')
-        }
-      }
-
-      messages.push(
-        await this.client!.sendMessage(
-          threadID,
-          content,
-          {
-            messageId: firstMessageID,
-            quoted: quotedMsg,
-            ...opts,
-          },
-        ),
-      )
-
-      if (sendAdditionalTextMessage) {
-        const secondMessageID = generateMessageID()
-        messages.push(
-          await this.client!.sendMessage(threadID, { text: text! }, {
-            messageId: secondMessageID,
-            ...opts,
-          }),
-        )
-      }
-
-      return messages.map(message => {
+      const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
+      const messages: DBMessage[] = []
+      for (const { compose, options } of msgCompositions) {
+        const message = await this.client!.sendMessage(threadID, compose, { ...options, waitForAck: true })
         const mappedMsg = new DBMessage()
         mappedMsg.original = { message, info: { reads: {}, deliveries: {} } }
         mappedMsg.mapFromOriginal(this)
-        return mappedMsg
-      })
+
+        messages.push(mappedMsg)
+      }
+
+      return messages
     })
   )
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
-    const forwardMsg = await this.db.getRepository(DBMessage).findOneOrFail({
+    const { original: { message } } = await this.db.getRepository(DBMessage).findOneOrFail({
       id: messageID,
       threadID,
     })
-    const forward = forwardMsg.original.message
     await Promise.all(
       threadIDs!.map(
         async tid => (
           this.client!.sendMessage(
             tid,
-            { forward },
-            { ...(await this.ephemeralOptions(threadID)) },
+            { forward: message },
+            { ...(await getEphemeralOptions(this.db, threadID)) },
           )
         ),
       ),
