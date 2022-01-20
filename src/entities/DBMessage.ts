@@ -1,12 +1,13 @@
 import { extractMessageContent, getContentType, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
+import { serialize, deserialize } from 'v8'
 import { READ_STATUS } from '../constants'
-import type { MappingContext } from '../types'
+import type { FullBaileysMessage, MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText } from './DBMessage-util'
+import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'cursor'])
@@ -65,14 +66,34 @@ export default class DBMessage implements Message {
   @Column({ type: 'boolean', nullable: false, default: false })
   isAction: boolean
 
-  @Column({ type: 'text' })
-  _original?: string
+  @Column({
+    type: 'blob',
+    transformer: {
+      from: (buff: Buffer | null) => {
+        const result = buff ? deserialize(buff) : undefined
+        if (result) {
+          result.message = WAProto.WebMessageInfo.decode(result.message)
+        }
+
+        return result
+      },
+      to: (item: FullBaileysMessage | null) => {
+        if (item) {
+          return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
+        }
+        return null
+      },
+    },
+  })
+  original: FullBaileysMessage
 
   @Column({ type: 'varchar', length: 64 })
   cursor?: string
 
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
   behavior?: MessageBehavior
+
+  _original?: string
 
   textAttributes?: TextAttributes
 
@@ -95,38 +116,27 @@ export default class DBMessage implements Message {
     }
   }
 
-  update(partial: Partial<WAMessage>) {
-    const update: Partial<DBMessage> = { }
-    if (partial.status) {
-      if (partial.key!.fromMe) {
-        if (isJidGroup(partial.key!.remoteJid!)) {
-          if (typeof this.seen === 'object') {
-            const p = jidNormalizedUser(partial.participant!)
-            this.seen[p] = new Date()
-          } else {
-            // cannot unambigously determine seen
-          }
-        } else {
-          update.seen = READ_STATUS.includes(partial.status)
-        }
-      } else if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ && !update.seen) {
-        update.seen = true
+  update(partial: Partial<WAMessage>, ctx: MappingContext) {
+    if (this.original.info && partial.status && partial.key?.fromMe) {
+      const p = jidNormalizedUser(partial.participant!)
+      if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ) {
+        this.original.info.reads[p] = new Date()
+      } else if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.DELIVERY_ACK) {
+        this.original.info.deliveries[p] = new Date()
       }
     }
 
-    if (partial.messageStubType) {
-      update.text = ''
-      update.attachments = []
-      update.isDeleted = true
+    if (!partial.key?.fromMe && partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ && !this.original.seenByMe) {
+      this.original.seenByMe = true
     }
 
-    Object.assign(this, update)
-
-    return update
+    Object.assign(this.original.message, partial)
+    this.mapFromOriginal(ctx)
   }
 
-  static fromOriginal = (message: WAMessage, ctx: MappingContext) => {
-    const currentUserID = ctx.auth!.me!.id
+  mapFromOriginal(ctx: MappingContext) {
+    const { message, info } = this.original
+    const currentUserID = ctx.meID || ''
     const id = mapMessageID(message.key)
     const messageContent = extractMessageContent(message.message)
     const messageType = getContentType(messageContent)
@@ -174,11 +184,9 @@ export default class DBMessage implements Message {
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
       behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
       expiresInSeconds: contextInfo?.expiration || undefined,
+      seen: mapMessageSeen(message, info),
     }
 
-    const dbMsg = new DBMessage()
-    Object.assign(dbMsg, mapped)
-
-    return dbMsg
+    Object.assign(this, mapped)
   }
 }

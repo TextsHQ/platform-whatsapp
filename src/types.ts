@@ -1,9 +1,14 @@
-import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant } from '@adiwajshing/baileys'
-import type { Connection, EntityManager } from 'typeorm'
+import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, MessageInfo, WAMessage } from '@adiwajshing/baileys'
 
 export type FullBaileysChat = {
   chat: Partial<Chat>
   metadata: GroupMetadata | undefined
+}
+
+export type FullBaileysMessage = {
+  message: WAMessage
+  info?: MessageInfo
+  seenByMe?: boolean
 }
 
 export type FullChatParticipant = {
@@ -13,6 +18,7 @@ export type FullChatParticipant = {
 
 export type MappingContext = {
   accountID: string
-  db: Connection | EntityManager
-  readonly auth: AuthenticationCreds | undefined
+  meID: string | undefined
 }
+
+export type AnyAuthenticationCreds = AuthenticationCreds | LegacyAuthenticationCreds

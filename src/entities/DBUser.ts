@@ -23,13 +23,15 @@ export default class DBUser implements User {
 
   imgURL?: string
 
+  shouldFireEvent?: boolean
+
   static fromOriginal = (item: Contact | Chat, ctx: MappingContext): DBUser => {
     const user = new DBUser()
     user.id = jidNormalizedUser(item.id)
     user.fullName = item.name || ('notify' in item ? item.notify || item.verifiedName : undefined) || ''
     user.phoneNumber = numberFromJid(user.id)!
     user.isVerified = 'verifiedName' in item ? !!item.verifiedName : false
-    user.isSelf = areJidsSameUser(item.id, ctx.auth!.me!.id)
+    user.isSelf = areJidsSameUser(item.id, ctx.meID || '')
     return user
   }
 

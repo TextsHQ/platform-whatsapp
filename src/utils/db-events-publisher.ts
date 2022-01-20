@@ -25,7 +25,10 @@ export type DBEventListener<T> = {
   publish<E extends keyof EventMap<T>>(event: E, data: EventMap<T>[E]): void
 }
 
-export class DBEventsPublisher<T> implements EntitySubscriberInterface<T> {
+/**
+ * listens for TypeORM events and generates events for them that we can use to update the state
+ */
+export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implements EntitySubscriberInterface<T> {
   entity: new () => T
 
   eventPublish: DBEventListener<T>['publish']
@@ -49,12 +52,16 @@ export class DBEventsPublisher<T> implements EntitySubscriberInterface<T> {
     return p
   }
 
+  shouldPublish(entity: T | undefined) {
+    return entity?.shouldFireEvent !== false
+  }
+
   afterInsert(event: InsertEvent<T>) {
-    this.eventPublish('insert', event.entity)
+    this.shouldPublish(event.entity) && this.eventPublish('insert', event.entity)
   }
 
   afterUpdate(event: UpdateEvent<T>) {
-    if (!event.entity) return
+    if (!event.entity || !this.shouldPublish(event.entity as T)) return
 
     const key = this.getId(event.entity as T, event.metadata)
     const update: Partial<T> = {}
@@ -69,7 +76,9 @@ export class DBEventsPublisher<T> implements EntitySubscriberInterface<T> {
     if (!event.entity && !event.databaseEntity) return
 
     const entity = event.entity || event.databaseEntity
-    const deleteItem = this.getId(entity, event.metadata)
-    this.eventPublish('delete', deleteItem)
+    if (this.shouldPublish(entity)) {
+      const deleteItem = this.getId(entity, event.metadata)
+      this.eventPublish('delete', deleteItem)
+    }
   }
 }

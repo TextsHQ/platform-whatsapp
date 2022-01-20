@@ -1,4 +1,3 @@
-import AccountCredentials from './AccountCredentials'
 import AccountKeyValue from './AccountKeyValue'
 import DBMessage from './DBMessage'
 import DBParticipant from './DBParticipant'
@@ -11,5 +10,4 @@ export default [
   DBUser,
   DBThread,
   AccountKeyValue,
-  AccountCredentials,
 ]

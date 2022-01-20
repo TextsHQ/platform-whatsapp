@@ -13,7 +13,11 @@ const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
   'sender-key-memory': 'sender-key-memory',
 }
 
-export const makeDBKeyStore = (db: Connection, mutex: (func: () => Promise<void>) => Promise<void>): DBKeyStore => {
+/**
+ * Key store required for baileys.
+ * Stores all keys in the sqlite database
+ */
+export const makeDBKeyStore = (db: Connection): DBKeyStore => {
   const repo = db.getRepository(AccountKeyValue)
 
   return {
@@ -48,16 +52,19 @@ export const makeDBKeyStore = (db: Connection, mutex: (func: () => Promise<void>
         }
       }
 
-      await mutex(
-        async () => {
+      await db.transaction(
+        async db => {
+          const repo = db.getRepository(AccountKeyValue)
+
           if (updates.length) {
-            await repo.save(updates)
+            await repo.save(updates, { transaction: false })
           }
 
           if (deletions.length) {
             await repo.createQueryBuilder()
               .delete()
               .where(deletions.map(d => `(id='${d.id}' AND category='${d.category}')`).join(' OR '))
+              .useTransaction(false)
               .execute()
           }
         },

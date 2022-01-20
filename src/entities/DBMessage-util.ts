@@ -1,5 +1,5 @@
-import { areJidsSameUser, extractMessageContent, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview } from '@textshq/platform-sdk'
+import { areJidsSameUser, extractMessageContent, isJidGroup, jidDecode, jidNormalizedUser, MessageInfo, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen, UNKNOWN_DATE } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -129,6 +129,18 @@ const PAYMENT_STATUS_MAP = {
   [WAProto.PaymentInfo.PaymentInfoStatus.CANCELLED]: 'Cancelled',
   [WAProto.PaymentInfo.PaymentInfoStatus.WAITING_FOR_PAYER]: 'Waiting for payer',
   [WAProto.PaymentInfo.PaymentInfoStatus.WAITING]: 'Waiting',
+}
+
+export const mapMessageSeen = (message: WAMessage, msgInfo: MessageInfo | undefined): MessageSeen => {
+  if (msgInfo) {
+    const seenMap: MessageSeen = {}
+    for (const jid of Object.keys(msgInfo.reads)) {
+      seenMap[jid] = msgInfo.reads[jid]
+    }
+    return seenMap
+  }
+
+  return message.status === WAMessageStatus.READ
 }
 
 export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserId: string): MessagePreview | undefined => {

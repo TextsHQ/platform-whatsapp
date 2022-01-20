@@ -1,6 +1,7 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
+import type { AnyAuthenticationCreds, MappingContext } from '../types'
 
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
   open: ConnectionStatus.CONNECTED,
@@ -53,7 +54,7 @@ export function safeJSONStringify(obj: any) {
 export const canReconnect = (error?: Error) => {
   // @ts-expect-error
   const statusCode: number = error?.output?.statusCode || 0
-  const isReconnecting = statusCode !== DisconnectReason.loggedOut && statusCode !== DisconnectReason.multideviceMismatch
+  const isReconnecting = statusCode !== DisconnectReason.loggedOut && statusCode !== 403
   return {
     isReconnecting,
     statusCode,
@@ -106,8 +107,8 @@ export const unmapMessageID = (id: string) => {
 
 export async function updateItems<
   T extends { id: string },
-  D extends { id: string, update: (t: Partial<T>) => void },
-  >(updates: Partial<T>[], repo: Repository<D>, upsert?: (update: Partial<T>) => D | Promise<D>) {
+  D extends { id: string, update: (t: Partial<T>, ctx: MappingContext) => void },
+  >(updates: Partial<T>[], repo: Repository<D>, ctx: MappingContext, upsert?: (update: Partial<T>) => D | Promise<D>) {
   const map: { [jid: string]: D } = { }
   const jids = updates.map(c => jidNormalizedUser(c.id!))
   const dbItems = await repo.find({
@@ -121,7 +122,7 @@ export async function updateItems<
   for (const update of updates) {
     const dbItem = map[update.id!]
     if (dbItem) {
-      dbItem.update(update)
+      dbItem.update(update, ctx)
     } else if (upsert) {
       dbItems.push(await upsert(update))
     }
@@ -135,3 +136,15 @@ export async function updateItems<
 export const shouldExcludeMessage = (msg: WAMessage) =>
   msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
     || isJidBroadcast(msg.key.remoteJid || '')
+
+export const decodeSerializedSession = (sess: string) => {
+  const parsed: AnyAuthenticationCreds = JSON.parse(sess, BufferJSON.reviver)
+  if ('encKey' in parsed) {
+    if (typeof parsed.encKey === 'string') {
+      parsed.encKey = Buffer.from(parsed.encKey, 'base64')
+      // @ts-expect-error
+      parsed.macKey = Buffer.from(parsed.macKey, 'base64')
+    }
+  }
+  return parsed
+}

@@ -37,6 +37,8 @@ export default class DBParticipant {
   })
   thread?: DBThread
 
+  shouldFireEvent?: boolean
+
   static fromOriginal = ({ threadID, item }: FullChatParticipant): DBParticipant => {
     const p = new DBParticipant()
     Object.assign(p, {

@@ -1,9 +1,11 @@
 import { Chat, isJidGroup, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
-import { CHAT_MUTE_DURATION_S, TEN_YEARS_IN_SECONDS } from '../constants'
+import { CHAT_MUTE_DURATION_S } from '../constants'
 import type { FullBaileysChat, MappingContext } from '../types'
 import { profilePictureUrl, safeJSONStringify, threadType } from '../utils/generics'
+import BinaryEncodedColumn from './BinaryEncodedColumn'
+import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import DBParticipant from './DBParticipant'
 
 @Entity()
@@ -41,7 +43,13 @@ export default class DBThread implements Thread {
   @Column({ type: 'int', unsigned: true, nullable: true, default: null })
   messageExpirySeconds?: number
 
-  @Column({ type: 'text' })
+  @Column({ type: 'boolean', nullable: false, default: false })
+  /// for groups, we need the metadata to fully map description & participants
+  requiresMapWithMetadata: boolean
+
+  @Column({ ...BinaryEncodedColumn, nullable: false })
+  original: FullBaileysChat
+
   _original?: string
 
   imgURL?: string
@@ -55,42 +63,18 @@ export default class DBThread implements Thread {
   @OneToMany(() => DBParticipant, ({ thread }) => thread)
   participantsList?: DBParticipant[]
 
-  @AfterLoad()
-  computeProperties() {
-    this.isUnread = !!this.unreadCount
-    this.participants = {
-      items: this.participantsList?.map(p => p.toParticipant()) || [],
-      hasMore: false,
-    }
-    this.messages = { items: [], hasMore: true }
-  }
+  shouldFireEvent?: boolean
 
-  update(chat: Partial<Chat>) {
-    if (typeof chat.unreadCount !== 'undefined') {
-      this.isUnread = !!chat.unreadCount
-      if (chat.unreadCount! > 0) {
-        this.unreadCount = (this.unreadCount || 0) + chat.unreadCount!
-      } else {
-        this.unreadCount = chat.unreadCount || 0
+  update(update: Partial<Chat>, ctx: MappingContext) {
+    if (update.unreadCount && update.unreadCount > 0) {
+      if (this.original.chat.unreadCount && this.original.chat.unreadCount > 0) {
+        update = { ...update }
+        update.unreadCount! += this.original.chat.unreadCount
       }
     }
-    if (typeof chat.archive !== 'undefined') { this.isArchived = chat.archive }
-    if (typeof chat.readOnly !== 'undefined') { this.isReadOnly = !!chat.readOnly }
-    if (typeof chat.conversationTimestamp !== 'undefined') {
-      this.timestamp = new Date(toNumber(chat.conversationTimestamp!) * 1000)
-    }
-    if (typeof chat.ephemeralExpiration !== 'undefined') {
-      this.messageExpirySeconds = chat.ephemeralExpiration!
-    }
-    if ('mute' in chat) {
-      if (chat.mute) {
-        if (chat.mute < 0) this.mutedUntil = new Date(CHAT_MUTE_DURATION_S)
-        else this.mutedUntil = new Date(+chat.mute)
-      } else {
-        // @ts-expect-error
-        this.mutedUntil = null
-      }
-    }
+    Object.assign(this.original.chat, update)
+
+    this.mapFromOriginal(ctx)
   }
 
   static prepareForSending<T extends Partial<DBThread>>(item: T, accountID: string): T {
@@ -102,14 +86,30 @@ export default class DBThread implements Thread {
       // @ts-expect-error
       item.mutedUntil = item.mutedUntil ? 'forever' : null
     }
+    if (item.original) {
+      item._original = safeJSONStringify(item.original)
+    }
+    if (typeof item.participantsList !== 'undefined') {
+      if (!item.messages) {
+        item.messages = { items: [], hasMore: true }
+      }
+      item.participants = {
+        items: item.participantsList.map(p => p.toParticipant()) || [],
+        hasMore: false,
+      }
+    }
+    if (item.id) {
+      item.imgURL = profilePictureUrl(accountID, item.id!)
+    }
+
     delete item.participantsList
     delete item.unreadCount
-    item.imgURL = isJidGroup(item.id!) ? profilePictureUrl(accountID, item.id!) : undefined
+    delete item.original
     return item
   }
 
-  static fromOriginal = (raw: FullBaileysChat, ctx: MappingContext): DBThread => {
-    const { chat, metadata } = raw
+  mapFromOriginal(ctx: MappingContext) {
+    const { chat, metadata } = this.original
     const threadID = jidNormalizedUser(chat.id!)
     if (!chat.conversationTimestamp) {
       chat.conversationTimestamp = 0
@@ -118,7 +118,7 @@ export default class DBThread implements Thread {
       texts.Sentry.captureException(new Error('stories thread being mapped'))
     }
     const type = threadType(threadID)!
-    const baileysParticipants = type === 'single' ? [chat, ctx.auth!.me!] : (metadata?.participants || [])
+    const baileysParticipants = type === 'single' ? [chat, { id: ctx.meID }] : (metadata?.participants || [])
 
     const participants: DBParticipant[] = []
     const participantSet = new Set<string>()
@@ -126,25 +126,30 @@ export default class DBThread implements Thread {
     for (const item of baileysParticipants) {
       const id = jidNormalizedUser(item.id!)
       if (!participantSet.has(id)) {
-        participants.push(DBParticipant.fromOriginal({ threadID, item }))
+        const participant = DBParticipant.fromOriginal({ threadID, item })
+        participant.shouldFireEvent = this.shouldFireEvent
+        participants.push(participant)
         participantSet.add(id)
       }
     }
 
-    const item = new DBThread()
     const partial: Partial<DBThread> = {
+      // if it's a group and we do not have metadata
+      requiresMapWithMetadata: type !== 'single' && !metadata,
       id: threadID,
       title: chat.name || '',
-      _original: safeJSONStringify(raw),
+      unreadCount: chat.unreadCount || 0,
       type,
       createdAt: metadata ? new Date(metadata.creation * 1000) : undefined,
       participantsList: participants,
+      isArchived: !!chat.archive,
+      isReadOnly: !!chat.readOnly,
+      timestamp: new Date(toNumber(chat.conversationTimestamp!) * 1000),
+      messageExpirySeconds: chat.ephemeralExpiration!,
+      mutedUntil: chat.mute
+        ? (chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute))
+        : null as any,
     }
-    Object.assign(item, partial)
-
-    item.update(chat)
-    item.computeProperties()
-
-    return item
+    Object.assign(this, partial)
   }
 }
