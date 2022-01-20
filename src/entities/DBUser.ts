@@ -1,4 +1,4 @@
-import { areJidsSameUser, Chat, Contact, jidNormalizedUser } from '@adiwajshing/baileys-md'
+import { areJidsSameUser, Chat, Contact, jidNormalizedUser } from '@adiwajshing/baileys'
 import type { User } from '@textshq/platform-sdk'
 import { Column, Entity, PrimaryColumn } from 'typeorm'
 import type { MappingContext } from '../types'

@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast } from '@adiwajshing/baileys-md'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {

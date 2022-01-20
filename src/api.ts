@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, GroupMetadata } from '@adiwajshing/baileys-md'
+import makeSocket, { AnyMediaMessageContent, AnyRegularMessageContent, AuthenticationCreds, BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, downloadContentFromMessage, extractMessageContent, generateMessageID, MiscMessageGenerationOptions, SocketConfig, UNAUTHORIZED_CODES, WAMessage, areJidsSameUser, WAProto, WAMessageUpdate, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, jidDecode, GroupMetadata, Contact } from '@adiwajshing/baileys'
 import { debounce } from 'lodash'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ServerEventType, ConnectionStatus, MessageBehavior } from '@textshq/platform-sdk'
 import P from 'pino'
@@ -547,47 +547,66 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('chats.set', async ({ messages, chats, contacts }) => {
-      texts.log('got history')
+    ev.on('chats.set', async ({ chats, isLatest }) => {
+      texts.log('got chats history')
       await this.mutexedTransaction(
         async () => {
-          if (chats.length) {
-            const metadatas = await this.client!.groupFetchAllParticipating()
-            const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
-            texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
+          if (isLatest) {
+            // remove everything
+            await this.db.getRepository(DBThread).delete({ })
           }
 
-          if (messages.length) {
-            const dbMessages = messages.map(m => DBMessage.fromOriginal(m, this))
-            await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
-
-            texts.log({ messages: dbMessages.length }, 'saved last message history')
-          }
-
-          if (contacts.length) {
-            const items: DBUser[] = []
-            // only save individual contacts
-            for (const item of contacts) {
-              if (jidDecode(item.id).server === 's.whatsapp.net') {
-                items.push(DBUser.fromOriginal(item, this))
-              }
-            }
-            await this.db.getRepository(DBUser).save(items, { chunk: 500 })
-          }
+          const metadatas = await this.client!.groupFetchAllParticipating()
+          const { chats: threads, participants } = await this.upsertWAChats(chats, metadatas)
+          texts.log({ chats: threads.length, participants: participants.length }, 'saved chats history')
 
           this.decrementNewLoginCounter()
         },
       )
     })
 
-    ev.on('contacts.upsert', async contacts => {
+    ev.on('messages.set', async ({ messages, isLatest }) => {
+      texts.log('got chats history')
       await this.mutexedTransaction(
         async () => {
-          const items = contacts.map(item => DBUser.fromOriginal(item, this))
-          await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+          if (isLatest) {
+            // remove everything
+            await this.db.getRepository(DBMessage).delete({ })
+          }
+
+          const dbMessages = messages.map(m => {
+            const mappedMsg = DBMessage.fromOriginal(m, this)
+            mappedMsg.shouldFireEvent = false
+            return mappedMsg
+          })
+          await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+
+          texts.log({ messages: dbMessages.length }, 'saved last message history')
         },
       )
     })
+
+    const contactsUpsert = (contacts: Contact[]) => (
+      this.mutexedTransaction(
+        async () => {
+          const items: DBUser[] = []
+          // only save individual contacts
+          for (const item of contacts) {
+            if (jidDecode(item.id).server === 's.whatsapp.net') {
+              items.push(DBUser.fromOriginal(item, this))
+            }
+          }
+          await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+        },
+      )
+    )
+
+    ev.on('contacts.set', ({ contacts }) => {
+      texts.log('got contact history')
+      contactsUpsert(contacts)
+    })
+
+    ev.on('contacts.upsert', contacts => contactsUpsert(contacts))
 
     ev.on('chats.update', async updates => {
       updates = updates.filter(u => !isJidBroadcast(u.id!))
@@ -653,9 +672,6 @@ export default class WhatsAppAPI implements PlatformAPI {
           const mappedMsg = DBMessage.fromOriginal(msg, this)
           if (type !== 'notify') {
             mappedMsg.behavior = MessageBehavior.KEEP_READ
-            if (type === 'prepend') {
-              mappedMsg.shouldFireEvent = false
-            }
           }
           mapped.push(mappedMsg)
         }
@@ -663,9 +679,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.mutexedTransaction(
         db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }),
       )
-      if (type === 'prepend') {
-        this.fetchedAllMessages = true
-      }
     })
 
     ev.on('messages.update', async updates => {

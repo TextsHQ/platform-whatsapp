@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryColumn } from 'typeorm'
-import type { AuthenticationCreds } from '@adiwajshing/baileys-md'
+import type { AuthenticationCreds } from '@adiwajshing/baileys'
 import BinaryEncodedColumn from './BinaryEncodedColumn'
 
 @Entity()

@@ -1,4 +1,4 @@
-import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant } from '@adiwajshing/baileys-md'
+import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant } from '@adiwajshing/baileys'
 import type { Connection, EntityManager } from 'typeorm'
 
 export type FullBaileysChat = {

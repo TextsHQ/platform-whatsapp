@@ -1,4 +1,4 @@
-import { Chat, isJidGroup, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys-md'
+import { Chat, isJidGroup, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { AfterLoad, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S, TEN_YEARS_IN_SECONDS } from '../constants'

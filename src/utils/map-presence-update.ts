@@ -1,4 +1,4 @@
-import type { PresenceData } from '@adiwajshing/baileys-md'
+import type { PresenceData } from '@adiwajshing/baileys'
 import { ActivityType, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 
 export default function mapPresenceUpdate(threadID: string, presenceUpdates: { [_: string]: PresenceData }) {

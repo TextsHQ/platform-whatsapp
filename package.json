@@ -1,5 +1,5 @@
 {
-  "name": "@textshq/platform-whatsapp-md",
+  "name": "@textshq/platform-whatsapp",
   "version": "0.2.6",
   "main": "./dist/index.js",
   "files": [
@@ -18,7 +18,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys-md": "git+https://github.com/adiwajshing/baileys#multi-device",
+    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys#multi-device",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
     "@types/lodash": "^4.14.178",
     "better-sqlite3": "^7.4.5",
@@ -28,7 +28,7 @@
     "lodash": "^4.17.21",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
-    "pino": "^6.7.0",
+    "pino": "^7.0.0",
     "qrcode.react": "^1.0.1",
     "react": "^17.0.2",
     "typeorm": "^0.2.41",
@@ -46,9 +46,6 @@
     "husky": "^4.3.0",
     "jest": "^26.6.3",
     "typescript": "^4.1.2"
-  },
-  "resolutions": {
-    "@adiwajshing/baileys-md": "portal:../baileys-md"
   },
   "packageManager": "yarn@3.1.0"
 }

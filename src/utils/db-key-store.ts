@@ -1,5 +1,5 @@
 import type { Connection } from 'typeorm'
-import type { SignalKeyStore, SignalDataTypeMap } from '@adiwajshing/baileys-md'
+import type { SignalKeyStore, SignalDataTypeMap } from '@adiwajshing/baileys'
 import AccountKeyValue from '../entities/AccountKeyValue'
 
 type DBKeyStore = SignalKeyStore & { clear: () => Promise<void> }
