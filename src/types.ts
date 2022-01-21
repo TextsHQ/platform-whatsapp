@@ -2,7 +2,7 @@ import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipan
 
 export type FullBaileysChat = {
   chat: Partial<Chat>
-  metadata: GroupMetadata | undefined
+  metadata: GroupMetadata | undefined | null
 }
 
 export type FullBaileysMessage = {

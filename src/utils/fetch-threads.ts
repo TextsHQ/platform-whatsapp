@@ -40,7 +40,10 @@ export default async (db: Connection, sock: AnyWASocket, mappingCtx: MappingCont
           await Promise.all(
             items.map(async item => {
               if (item.type === 'group' && item.requiresMapWithMetadata) {
-                const metadata = await sock.groupMetadata(item.id, item.isReadOnly)
+                const metadata = await (
+                  sock.groupMetadata(item.id, item.isReadOnly)
+                    .catch(() => null)
+                )
                 item.original.metadata = metadata
                 item.shouldFireEvent = false
                 item.mapFromOriginal(mappingCtx)
@@ -89,7 +92,7 @@ export default async (db: Connection, sock: AnyWASocket, mappingCtx: MappingCont
     )
   }
 
-  const oldestCursor = items.length ? `${items[items.length - 1].timestamp.toJSON()},${items[items.length - 1].id}` : undefined
+  const oldestCursor = items.length ? `${items[items.length - 1].timestamp?.toJSON()},${items[items.length - 1].id}` : undefined
   const processedItems = items.map(
     item => {
       const result = DBThread.prepareForSending(item, mappingCtx.accountID)
