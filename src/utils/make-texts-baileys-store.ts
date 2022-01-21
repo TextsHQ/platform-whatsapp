@@ -265,6 +265,7 @@ export default (
               const thread = new DBThread()
               thread.original = { chat: update, metadata }
               thread.mapFromOriginal(mappingCtx)
+              await db.getRepository(DBParticipant).save(thread.participantsList!)
               return thread
             }
             : undefined,
