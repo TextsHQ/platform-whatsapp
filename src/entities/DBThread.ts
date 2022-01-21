@@ -1,11 +1,10 @@
-import { Chat, isJidGroup, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys'
+import { Chat, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
-import { AfterLoad, Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
 import type { FullBaileysChat, MappingContext } from '../types'
 import { profilePictureUrl, safeJSONStringify, threadType } from '../utils/generics'
 import BinaryEncodedColumn from './BinaryEncodedColumn'
-import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import DBParticipant from './DBParticipant'
 
 @Entity()
@@ -32,7 +31,7 @@ export default class DBThread implements Thread {
   type: ThreadType
 
   @Column({ type: 'datetime', nullable: false })
-  timestamp: Date
+  timestamp?: Date
 
   @Column({ type: 'datetime', nullable: true, default: null })
   createdAt?: Date
@@ -102,6 +101,12 @@ export default class DBThread implements Thread {
       item.imgURL = profilePictureUrl(accountID, item.id!)
     }
 
+    if (item.timestamp) {
+      if (Number.isNaN(item.timestamp.getTime())) {
+        item.timestamp = undefined
+      }
+    }
+
     delete item.participantsList
     delete item.unreadCount
     delete item.original
@@ -135,7 +140,7 @@ export default class DBThread implements Thread {
 
     const partial: Partial<DBThread> = {
       // if it's a group and we do not have metadata
-      requiresMapWithMetadata: type !== 'single' && !metadata,
+      requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
       id: threadID,
       title: chat.name || '',
       unreadCount: chat.unreadCount || 0,
