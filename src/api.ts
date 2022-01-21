@@ -22,6 +22,7 @@ import fetchThreads from './utils/fetch-threads'
 import downloadMessage from './utils/download-message'
 import getMessageCompose from './utils/get-message-compose'
 import getEphemeralOptions from './utils/get-ephemeral-options'
+import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
@@ -95,6 +96,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log(`init with DB path: ${dbPath}`)
 
     this.db = await getConnection(accountID, dbPath)
+    dbMutexAllTransactions(this.db)
+    
     this.dataStore = makeTextsBaileysStore(
       this.db,
       config.logger!.child({ stream: 'store' }),
