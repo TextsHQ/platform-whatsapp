@@ -111,7 +111,8 @@ export default (
             })
             break
           case 'insert':
-            const dbItem = item as DBMessage
+            const dbItem = DBMessage.prepareForSending(item as DBMessage, accountID)
+
             publishEvent({
               type: ServerEventType.STATE_SYNC,
               objectName: 'message',
@@ -122,12 +123,14 @@ export default (
             break
           case 'update':
             const { key, update } = item as any
+            const processedUpdate = DBMessage.prepareForSending(update as Partial<DBMessage>, accountID)
+
             publishEvent({
               type: ServerEventType.STATE_SYNC,
               objectName: 'message',
               objectIDs: { threadID: key.threadID },
               mutationType: 'update',
-              entries: [{ ...key, ...update }],
+              entries: [{ ...key, ...processedUpdate }],
             })
             break
         }

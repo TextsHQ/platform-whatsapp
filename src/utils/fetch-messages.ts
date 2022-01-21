@@ -70,7 +70,7 @@ export default async (
   }
 
   return {
-    items,
+    items: items.map(item => DBMessage.prepareForSending(item, mappingCtx.accountID)),
     hasMore: items.length >= MESSAGE_PAGE_SIZE,
     oldestCursor: items[items.length - 1]?.cursor,
   }

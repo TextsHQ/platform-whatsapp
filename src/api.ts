@@ -97,7 +97,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.db = await getConnection(accountID, dbPath)
     dbMutexAllTransactions(this.db)
-    
+
     this.dataStore = makeTextsBaileysStore(
       this.db,
       config.logger!.child({ stream: 'store' }),
@@ -456,7 +456,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         mappedMsg.original = { message, info: { reads: {}, deliveries: {} } }
         mappedMsg.mapFromOriginal(this)
 
-        messages.push(mappedMsg)
+        messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))
       }
 
       return messages

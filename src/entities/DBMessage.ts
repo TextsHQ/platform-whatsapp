@@ -105,15 +105,22 @@ export default class DBMessage implements Message {
 
   shouldFireEvent?: boolean
 
-  @AfterLoad()
-  computeProperties() {
-    if (this.text) {
-      const { text, textAttributes } = mapTextAttributes(this.text, () => undefined)!
+  static prepareForSending<T extends Partial<DBMessage>>(item: T, accountID: string): T {
+    item = { ...item }
+    if (item.text) {
+      const { text, textAttributes } = mapTextAttributes(item.text, () => undefined)!
       if (textAttributes) {
-        this.text = text
-        this.textAttributes = textAttributes
+        item.text = text
+        item.textAttributes = textAttributes
       }
     }
+    if (item.original) {
+      item._original = JSON.stringify(item.original)
+    }
+
+    delete item.original
+
+    return item
   }
 
   update(partial: Partial<WAMessage>, ctx: MappingContext) {
