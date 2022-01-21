@@ -306,6 +306,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
         if (connection === 'close') {
           const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error)
+          let reconnectDelayMs = 2000
           // magic of switching between multi-device
           if (statusCode === DisconnectReason.multideviceMismatch) {
             const newType = this.connectionType === 'md' ? 'legacy' : 'md'
@@ -313,13 +314,14 @@ export default class WhatsAppAPI implements PlatformAPI {
             else if (newType === 'legacy') this.session = newLegacyAuthCreds()
 
             texts.log(`multi-device mismatch (switching to "${newType}")`)
+            reconnectDelayMs = 0 // no need to delay QR generation
           }
           texts.log('disconnected, reconnecting: ', isReconnecting)
           // auto reconnect logic
           if (isReconnecting) {
             update.connection = 'connecting'
             this.client = undefined
-            this.connectInternal(2000)
+            this.connectInternal(reconnectDelayMs)
           } else if (statusCode === DisconnectReason.loggedOut || statusCode === 403) {
             makeDBKeyStore(this.db).clear()
             this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
