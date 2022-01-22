@@ -15,7 +15,7 @@ import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
 import { shouldExcludeMessage, updateItems, mapMessageID, profilePictureUrl } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 
-type StoreBindContext = Pick<AnyWASocket, 'groupMetadata'>
+type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 
 const DEFAULT_CHUNK_SIZE = 2500
 
@@ -144,7 +144,7 @@ export default (
     }),
   )
 
-  const bind = (ev: BaileysEventEmitter, { groupMetadata }: StoreBindContext) => {
+  const bind = (ev: BaileysEventEmitter, { groupMetadata, type: connType }: StoreBindContext) => {
     const upsertWAChats = async (
       db: Connection | EntityManager,
       chats: Chat[],
@@ -279,7 +279,10 @@ export default (
     })
 
     ev.on('messages.set', async ({ messages, isLatest }) => {
-      logger.info({ length: messages.length }, 'got messages history')
+      if (!isLatest && connType === 'legacy') {
+        return
+      }
+      logger.info({ length: messages.length, isLatest }, 'got messages history')
       await db.transaction(async db => {
         let key = 0
         if (isLatest) {
