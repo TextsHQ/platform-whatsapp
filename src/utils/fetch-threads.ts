@@ -1,6 +1,6 @@
 import { AnyWASocket, areJidsSameUser } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
-import type { Connection } from 'typeorm'
+import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -10,7 +10,7 @@ import { numberFromJid } from './generics'
 
 const THREAD_PAGE_SIZE = 15
 
-export default async (db: Connection, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg) => {
+export default async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     if (pagination?.cursor) {

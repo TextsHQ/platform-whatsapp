@@ -18,7 +18,7 @@
     }
   },
   "dependencies": {
-    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys#multi-device",
+    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
     "@types/lodash": "^4.14.178",
     "better-sqlite3": "^7.4.5",

@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageUpdate } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
@@ -187,6 +187,67 @@ export default (
       await db.getRepository(DBUser).save(meUser)
     }
 
+    async function updateMessages<T extends { key: WAMessageKey }>(updates: T[], applyUpdate: (msg: DBMessage, update: T) => void) {
+      // create a map for which thread ID has number of read messages
+      const readMsgsUpdateMap: { [threadId: string]: number } = {}
+      // map for messageId => update for easy access
+      const map: { [id: string]: T } = {}
+      for (const update of updates) {
+        const msgId = mapMessageID(update.key)
+        const id = `${update.key.remoteJid!},${msgId}`
+        map[id] = update
+      }
+
+      await db.transaction(
+        async db => {
+          const repo = db.getRepository(DBMessage)
+          const chatRepo = db.getRepository(DBThread)
+          // find all the messages to be updated
+          const qb = repo
+            .createQueryBuilder()
+            .where(new Brackets(
+              qb => {
+                for (const { key } of updates) {
+                  const msgId = mapMessageID(key)
+                  qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+                }
+                return qb
+              },
+            ))
+          const dbItems = await qb.getMany()
+          // update each message & save
+          for (const item of dbItems) {
+            const id = `${item.threadID},${item.id!}`
+            const wasSeenEarlier = item.original.seenByMe
+            applyUpdate(item, map[id])
+            // if the message was just marked seen
+            // and it's not from the user themselves
+            // add to the thread read counter
+            if (!wasSeenEarlier && item.original.seenByMe) {
+              readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
+              readMsgsUpdateMap[item.threadID] += 1
+            }
+          }
+          await repo.save(dbItems as any[])
+          logger.info({ updates }, `updating ${dbItems.length}/${updates.length} messages`)
+          // after messages are saved, if there are any updates to thread read counters
+          // execute those updates
+          const threadIds = Object.keys(readMsgsUpdateMap)
+          if (threadIds.length) {
+            const chats = await chatRepo.find({ id: In(threadIds) })
+            for (const chat of chats) {
+              // if the chat had unread messages
+              if (chat.unreadCount > 0) {
+                chat.update({ unreadCount: 0 }, mappingCtx)
+                logger.info({ id: chat.id }, 'marked chat unread')
+              }
+            }
+            await chatRepo.save(chats, { chunk: 50 })
+          }
+        },
+      )
+    }
+
     ev.on('creds.update', ({ me }) => {
       me && saveMeUser(me)
     })
@@ -252,7 +313,10 @@ export default (
       contactsUpsert(contacts)
     })
 
-    ev.on('contacts.upsert', contacts => contactsUpsert(contacts))
+    ev.on('contacts.upsert', contacts => {
+      logger.info({ length: contacts.length }, 'upserting contacts')
+      contactsUpsert(contacts)
+    })
 
     ev.on('chats.update', async updates => {
       updates = updates.filter(u => !isJidBroadcast(u.id!))
@@ -310,7 +374,7 @@ export default (
       logger.info({ updates }, `updating ${updated.length}/${updates.length} contacts`)
     })
 
-    ev.on('messages.upsert', async ({ messages, type }) => {
+    ev.on('messages.upsert', ({ messages, type }) => {
       const mapped: DBMessage[] = []
       for (const msg of messages) {
         if (!shouldExcludeMessage(msg)) {
@@ -325,69 +389,16 @@ export default (
           mapped.push(mappedMsg)
         }
       }
-      await db.transaction(db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }))
+      logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
+      db.transaction(db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }))
     })
 
     ev.on('messages.update', async updates => {
-      // create a map for which thread ID has number of read messages
-      const readMsgsUpdateMap: { [threadId: string]: number } = {}
-      // map for messageId => update for easy access
-      const map: { [id: string]: WAMessageUpdate } = {}
-      for (const update of updates) {
-        const msgId = mapMessageID(update.key)
-        const id = `${update.key.remoteJid!},${msgId}`
-        map[id] = update
-      }
+      updateMessages(updates, (msg, { update, key }) => msg.update({ ...update, key }, mappingCtx))
+    })
 
-      await db.transaction(
-        async db => {
-          const repo = db.getRepository(DBMessage)
-          const chatRepo = db.getRepository(DBThread)
-          // find all the messages to be updated
-          const qb = repo
-            .createQueryBuilder()
-            .where(new Brackets(
-              qb => {
-                for (const { key } of updates) {
-                  const msgId = mapMessageID(key)
-                  qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
-                }
-                return qb
-              },
-            ))
-          const dbItems = await qb.getMany()
-          // update each message & save
-          for (const item of dbItems) {
-            const id = `${item.threadID},${item.id!}`
-            const wasSeenEarlier = item.original.seenByMe
-            item.update({ ...map[id].update, key: map[id].key }, mappingCtx)
-            // if the message was just marked seen
-            // and it's not from the user themselves
-            // add to the thread read counter
-            if (!wasSeenEarlier && item.original.seenByMe) {
-              readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
-              readMsgsUpdateMap[item.threadID] += 1
-            }
-          }
-          await repo.save(dbItems as any[])
-          logger.info({ updates }, `updating ${dbItems.length}/${updates.length} messages`)
-          // after messages are saved, if there are any updates to thread read counters
-          // execute those updates
-          const threadIds = Object.keys(readMsgsUpdateMap)
-          if (threadIds.length) {
-            const chats = await chatRepo.find({ id: In(threadIds) })
-            for (const chat of chats) {
-              // if the chat had unread messages
-              if (chat.unreadCount > 0) {
-                const msgsRead = readMsgsUpdateMap[chat.id]
-                chat.unreadCount = Math.max(chat.unreadCount - msgsRead, 0)
-              }
-            }
-            await chatRepo.save(chats, { chunk: 50 })
-            logger.info({ readMsgsUpdateMap }, `updating ${chats.length} thread read counts`)
-          }
-        },
-      )
+    ev.on('message-receipt.update', async updates => {
+      updateMessages(updates, (msg, { receipt }) => msg.updateFromReceipt(receipt, mappingCtx))
     })
 
     ev.on('messages.delete', async item => {

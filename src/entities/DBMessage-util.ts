@@ -1,5 +1,6 @@
-import { areJidsSameUser, extractMessageContent, isJidGroup, jidDecode, jidNormalizedUser, MessageInfo, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen, UNKNOWN_DATE } from '@textshq/platform-sdk'
+import { areJidsSameUser, extractMessageContent, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
+import { toNumber } from 'lodash'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -131,15 +132,16 @@ const PAYMENT_STATUS_MAP = {
   [WAProto.PaymentInfo.PaymentInfoStatus.WAITING]: 'Waiting',
 }
 
-export const mapMessageSeen = (message: WAMessage, msgInfo: MessageInfo | undefined): MessageSeen => {
-  if (msgInfo) {
+export const mapMessageSeen = (message: WAMessage): MessageSeen => {
+  if ((!message.status || message.status! < WAMessageStatus.READ) && isJidGroup(message.key.remoteJid || '')) {
     const seenMap: MessageSeen = {}
-    for (const jid of Object.keys(msgInfo.reads)) {
-      seenMap[jid] = msgInfo.reads[jid]
+    for (const { userJid, readTimestamp } of message.userReceipt || []) {
+      if (readTimestamp) {
+        seenMap[userJid] = new Date(toNumber(readTimestamp) * 1000)
+      }
     }
     return seenMap
   }
-
   return message.status === WAMessageStatus.READ
 }
 

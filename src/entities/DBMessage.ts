@@ -1,8 +1,7 @@
-import { extractMessageContent, getContentType, isJidGroup, jidNormalizedUser, toNumber, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
-import { AfterLoad, Column, Entity, Index, PrimaryColumn } from 'typeorm'
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
-import { READ_STATUS } from '../constants'
 import type { FullBaileysMessage, MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
@@ -118,22 +117,21 @@ export default class DBMessage implements Message {
       item._original = JSON.stringify(item.original)
     }
 
+    if (typeof item.seen === 'object' && item.seen) {
+      for (const key in item.seen) {
+        if (typeof item.seen[key] === 'string') {
+          item.seen[key] = new Date(item.seen[key])
+        }
+      }
+    }
+
     delete item.original
 
     return item
   }
 
   update(partial: Partial<WAMessage>, ctx: MappingContext) {
-    if (this.original.info && partial.status && partial.key?.fromMe) {
-      const p = jidNormalizedUser(partial.participant!)
-      if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ) {
-        this.original.info.reads[p] = new Date()
-      } else if (partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.DELIVERY_ACK) {
-        this.original.info.deliveries[p] = new Date()
-      }
-    }
-
-    if (!partial.key?.fromMe && partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ && !this.original.seenByMe) {
+    if (!this.isSender && partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ) {
       this.original.seenByMe = true
     }
 
@@ -141,8 +139,18 @@ export default class DBMessage implements Message {
     this.mapFromOriginal(ctx)
   }
 
+  updateFromReceipt(receipt: MessageUserReceipt, ctx: MappingContext) {
+    updateMessageWithReceipt(this.original.message, receipt)
+
+    if (!this.isSender && areJidsSameUser(receipt.userJid, ctx.meID || '') && receipt.readTimestamp) {
+      this.original.seenByMe = true
+    }
+
+    this.mapFromOriginal(ctx)
+  }
+
   mapFromOriginal(ctx: MappingContext) {
-    const { message, info } = this.original
+    const { message } = this.original
     const currentUserID = ctx.meID || ''
     const id = mapMessageID(message.key)
     const messageContent = extractMessageContent(message.message)
@@ -191,7 +199,7 @@ export default class DBMessage implements Message {
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
       behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
       expiresInSeconds: contextInfo?.expiration || undefined,
-      seen: mapMessageSeen(message, info),
+      seen: mapMessageSeen(message),
     }
 
     Object.assign(this, mapped)

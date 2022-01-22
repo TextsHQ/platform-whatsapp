@@ -1,4 +1,4 @@
-import { AnyWASocket, isJidGroup, WAMessageKey } from '@adiwajshing/baileys'
+import { AnyWASocket, isJidGroup, WAMessageKey, WAProto } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -52,9 +52,14 @@ export default async (
       await Promise.all(
         items.map(
           async message => {
-            if (message.original.message.key.fromMe && !message.original.info) {
+            if (
+              message.original.message.key.fromMe
+              && !message.original.downloadedReceipts
+              && message.original.message.status! < WAProto.WebMessageInfo.WebMessageInfoStatus.READ
+            ) {
               try {
-                message.original.info = await conn.messageInfo(threadID, message.original.message.key.id!)
+                message.original.message.userReceipt = await conn.messageInfo(threadID, message.original.message.key.id!)
+                message.original.downloadedReceipts = true
                 message.mapFromOriginal(mappingCtx)
                 messagesToSave.push(message)
               } catch {

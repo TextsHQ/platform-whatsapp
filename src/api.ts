@@ -404,7 +404,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    const result = await fetchThreads(this.db, this.client!, this, pagination)
+    const result = await this.db.transaction(
+      db => fetchThreads(db, this.client!, this, pagination),
+    )
     return result
   }
 
@@ -413,7 +415,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    const result = await fetchMessages(this.db, this.client!, this, threadID, pagination)
+    const result = await this.db.transaction(
+      db => fetchMessages(db, this.client!, this, threadID, pagination),
+    )
     return result
   }
 
@@ -453,7 +457,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       for (const { compose, options } of msgCompositions) {
         const message = await this.client!.sendMessage(threadID, compose, { ...options, waitForAck: true })
         const mappedMsg = new DBMessage()
-        mappedMsg.original = { message, info: { reads: {}, deliveries: {} } }
+        mappedMsg.original = { message, downloadedReceipts: true }
         mappedMsg.mapFromOriginal(this)
 
         messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))

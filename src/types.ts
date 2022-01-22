@@ -1,4 +1,4 @@
-import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, MessageInfo, WAMessage } from '@adiwajshing/baileys'
+import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, WAMessage } from '@adiwajshing/baileys'
 
 export type FullBaileysChat = {
   chat: Partial<Chat>
@@ -7,8 +7,9 @@ export type FullBaileysChat = {
 
 export type FullBaileysMessage = {
   message: WAMessage
-  info?: MessageInfo
   seenByMe?: boolean
+  /** only for legacy group chat messages */
+  downloadedReceipts?: boolean
 }
 
 export type FullChatParticipant = {
