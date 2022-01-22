@@ -1,4 +1,5 @@
 import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, WAMessage } from '@adiwajshing/baileys'
+import type { Logger } from 'pino'
 
 export type FullBaileysChat = {
   chat: Partial<Chat>
@@ -20,6 +21,7 @@ export type FullChatParticipant = {
 export type MappingContext = {
   accountID: string
   meID: string | undefined
+  logger: Logger
 }
 
 export type AnyAuthenticationCreds = AuthenticationCreds | LegacyAuthenticationCreds

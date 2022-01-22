@@ -69,6 +69,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private dataDirPath: string
 
+  readonly logger = config.logger!.child({ stream: 'pw' })
+
   accountID: string
 
   db: Connection

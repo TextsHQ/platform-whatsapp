@@ -6,6 +6,7 @@ import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
+import chunkedWrite from './chunked-write'
 import { numberFromJid } from './generics'
 
 const THREAD_PAGE_SIZE = 15
@@ -42,7 +43,10 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
               if (item.type === 'group' && item.requiresMapWithMetadata) {
                 const metadata = await (
                   sock.groupMetadata(item.id, item.isReadOnly)
-                    .catch(() => null)
+                    .catch(error => {
+                      mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
+                      return error
+                    })
                 )
                 item.original.metadata = metadata
                 item.shouldFireEvent = false
@@ -54,9 +58,13 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
           )
 
           await Promise.all([
-            db.getRepository(DBThread).save(itemsToSave, { transaction: false }),
-            db.getRepository(DBParticipant).save(participantsToSave, { transaction: false }),
+            chunkedWrite(db.getRepository(DBThread), itemsToSave, 100),
+            chunkedWrite(db.getRepository(DBParticipant), participantsToSave, 100),
           ])
+
+          if (itemsToSave.length) {
+            mappingCtx.logger.info({ chats: itemsToSave.length }, 'updated metadatas')
+          }
         })(),
         (async () => {
           const messageRepo = db.getRepository(DBMessage)
