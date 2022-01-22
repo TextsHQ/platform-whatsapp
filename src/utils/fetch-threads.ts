@@ -71,8 +71,8 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
           const messages = await messageRepo
             .createQueryBuilder()
             .where(
-              `(thread_id, timestamp) IN (
-                  SELECT thread_id, MAX(timestamp) from db_message
+              `(thread_id, order_key) IN (
+                  SELECT thread_id, MAX(order_key) from db_message
                   WHERE thread_id IN (:...chats)
                   GROUP BY thread_id
                 )`,
@@ -91,7 +91,7 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
               chat.messages = {
                 hasMore: true,
                 items: [msg],
-                oldestCursor: msg.cursor,
+                oldestCursor: msg.orderKey.toString(),
               }
             }
           }

@@ -10,6 +10,8 @@ import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
 import chunkedWrite from './chunked-write'
 import { DBEventsPublisher } from './db-events-publisher'
+import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
+import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
 import { shouldExcludeMessage, updateItems, mapMessageID, profilePictureUrl } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 
@@ -278,10 +280,13 @@ export default (
     ev.on('messages.set', async ({ messages, isLatest }) => {
       logger.info({ length: messages.length }, 'got messages history')
       await db.transaction(async db => {
+        let key = 0
         if (isLatest) {
           // remove everything
           await db.getRepository(DBMessage).delete({})
           logger.info('cleared existing messages')
+        } else {
+          key = await dbGetEarliestMsgOrderKey(db) || 0
         }
 
         const dbMessages = messages.map(m => {
@@ -289,6 +294,10 @@ export default (
           mappedMsg.original = { message: m }
           mappedMsg.mapFromOriginal(mappingCtx)
           mappedMsg.shouldFireEvent = false
+          mappedMsg.orderKey = key
+
+          key -= 1
+
           return mappedMsg
         })
 
@@ -396,8 +405,16 @@ export default (
           mapped.push(mappedMsg)
         }
       }
+
       logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
-      db.transaction(db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }))
+      db.transaction(async db => {
+        let key = (await dbGetLatestMsgOrderKey(db)) || 0
+        for (const item of mapped) {
+          item.orderKey = key
+          key += 1
+        }
+        await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
+      })
     })
 
     ev.on('messages.update', async updates => {

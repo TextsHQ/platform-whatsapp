@@ -9,7 +9,7 @@ import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen } from './DBMessage-util'
 
 @Entity()
-@Index('fetch_idx', ['threadID', 'cursor'])
+@Index('fetch_idx', ['threadID', 'orderKey'])
 export default class DBMessage implements Message {
   @PrimaryColumn({ type: 'varchar', length: 64 })
   threadID: string
@@ -86,11 +86,13 @@ export default class DBMessage implements Message {
   })
   original: FullBaileysMessage
 
-  @Column({ type: 'varchar', length: 64 })
-  cursor?: string
+  @Column({ type: 'int', nullable: false, unique: true })
+  orderKey: number
 
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
   behavior?: MessageBehavior
+
+  cursor?: string
 
   _original?: string
 
@@ -123,6 +125,10 @@ export default class DBMessage implements Message {
           item.seen[key] = new Date(item.seen[key])
         }
       }
+    }
+
+    if (typeof item.orderKey !== 'undefined') {
+      item.cursor = item.orderKey?.toString()
     }
 
     delete item.original
@@ -177,7 +183,6 @@ export default class DBMessage implements Message {
     const mapped: Message = {
       _original: safeJSONStringify(message),
       id,
-      cursor: timestamp + ',' + id,
       threadID: message.key.remoteJid!,
       textHeading: [...messageHeading(message)].join('\n'),
       text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),

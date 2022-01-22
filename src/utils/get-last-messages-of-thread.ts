@@ -16,7 +16,7 @@ export default async (db: Connection | EntityManager, threadID: string) => {
       isAction: false,
       isSender: false,
     },
-    order: { cursor: 'DESC' },
+    order: { orderKey: 'DESC' },
     transaction: false,
   })
 
@@ -28,7 +28,7 @@ export default async (db: Connection | EntityManager, threadID: string) => {
     .createQueryBuilder('msg')
     .where('thread_id = :chatId', { chatId: threadID })
     .andWhere('NOT msg.is_action')
-    .andWhere('msg.cursor > :cursor', { cursor: lastMsgFromOther.cursor })
+    .andWhere('msg.order_key > :order_key', { cursor: lastMsgFromOther.orderKey })
     .orderBy('cursor', 'ASC')
     .useTransaction(false)
     .getMany()
