@@ -43,7 +43,7 @@ export default async (
         return mappedMsg
       })
       await db.getRepository(DBMessage).save(dbMessages, { transaction: false })
-      console.log(beforeKey, dbMessages.map(m => ({ text: m.text, stamp: m.timestamp })))
+      // console.log(beforeKey, dbMessages.map(m => ({ text: m.text, stamp: m.timestamp })))
       const missingMessageCount = MESSAGE_PAGE_SIZE - items.length
       items.splice(0, 0, ...dbMessages.slice(-missingMessageCount))
     }
