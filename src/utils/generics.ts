@@ -138,7 +138,7 @@ export const shouldExcludeMessage = (msg: WAMessage) =>
     || isJidBroadcast(msg.key.remoteJid || '')
 
 export const decodeSerializedSession = (sess: string) => {
-  const parsed: AnyAuthenticationCreds = JSON.parse(sess, BufferJSON.reviver)
+  const parsed: AnyAuthenticationCreds = typeof sess === 'string' ? JSON.parse(sess, BufferJSON.reviver) : sess
   if ('encKey' in parsed) {
     if (typeof parsed.encKey === 'string') {
       parsed.encKey = Buffer.from(parsed.encKey, 'base64')
