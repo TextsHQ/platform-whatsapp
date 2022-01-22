@@ -19,15 +19,13 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
       return [new Date(date), id] as const
     }
   })()
-  const cursorClause = cursor
-    ? `(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`
-    : undefined
+  const cursorClause = cursor ? `(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'localtime'), '${cursor[1]}')` : undefined
   const selectClause = `(SELECT id FROM db_thread ${cursorClause ? `WHERE ${cursorClause}` : ''} ORDER BY timestamp DESC LIMIT ${THREAD_PAGE_SIZE})`
   const items = await repo
     .createQueryBuilder('thread')
     .leftJoinAndSelect('thread.participantsList', 'participant')
     .leftJoinAndSelect('participant.user', 'user')
-    .innerJoin(selectClause, 't2', 't2.id = thread.id')
+    .innerJoin(selectClause, 't2', 't2.id = thread.id', { cursorStamp: cursor?.[0]?.getTime(), cursorId: cursor?.[1] })
     .orderBy('timestamp', 'DESC')
     .addOrderBy('user.is_self', 'ASC')
     .getMany()
@@ -45,10 +43,10 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
                   sock.groupMetadata(item.id, item.isReadOnly)
                     .catch(error => {
                       mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
-                      return error
+                      return null
                     })
                 )
-                item.original.metadata = metadata
+                item.original = { ...item.original, metadata }
                 item.shouldFireEvent = false
                 item.mapFromOriginal(mappingCtx)
                 itemsToSave.push(item)
@@ -57,12 +55,11 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
             }),
           )
 
-          await Promise.all([
-            chunkedWrite(db.getRepository(DBThread), itemsToSave, 100),
-            chunkedWrite(db.getRepository(DBParticipant), participantsToSave, 100),
-          ])
-
           if (itemsToSave.length) {
+            await Promise.all([
+              db.getRepository(DBThread).save(itemsToSave),
+              chunkedWrite(db.getRepository(DBParticipant), participantsToSave, 100),
+            ])
             mappingCtx.logger.info({ chats: itemsToSave.length }, 'updated metadatas')
           }
         })(),
