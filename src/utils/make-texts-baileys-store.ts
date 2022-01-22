@@ -270,6 +270,7 @@ export default (
         if (isLatest) {
           // remove everything as we've got a new latest set of chats
           await db.getRepository(DBThread).delete({})
+          await db.getRepository(DBParticipant).delete({})
           logger.info('cleared existing chats')
         }
         const { chats: threads, participants } = await upsertWAChats(db, chats, {}, false)
