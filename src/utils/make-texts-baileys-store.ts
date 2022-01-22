@@ -1,5 +1,6 @@
 import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
+import { chunk } from 'lodash'
 import type { Logger } from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -7,11 +8,14 @@ import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
+import chunkedWrite from './chunked-write'
 import { DBEventsPublisher } from './db-events-publisher'
 import { shouldExcludeMessage, updateItems, mapMessageID, profilePictureUrl } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 
 type StoreBindContext = Pick<AnyWASocket, 'groupMetadata'>
+
+const DEFAULT_CHUNK_SIZE = 2500
 
 export default (
   db: Connection,
@@ -145,18 +149,16 @@ export default (
       metadatas: { [id: string]: GroupMetadata },
       shouldFireEvent?: boolean,
     ) => {
+      const totalParticipantList: DBParticipant[] = []
+      const addedParticipants = new Set<string>()
+
       const items = chats.map(chat => {
         const mapped = new DBThread()
         mapped.original = { chat, metadata: metadatas[chat.id] }
         mapped.shouldFireEvent = shouldFireEvent
         mapped.mapFromOriginal(mappingCtx)
-        return mapped
-      })
-      const totalParticipantList: DBParticipant[] = []
 
-      const addedParticipants = new Set<string>()
-      for (const { participantsList } of items) {
-        for (const item of participantsList!) {
+        for (const item of mapped.participantsList!) {
           const id = `${item.threadID},${item.id}`
           if (!addedParticipants.has(id)) {
             // when a participant is inserted alongside a thread,
@@ -165,13 +167,17 @@ export default (
             totalParticipantList.push(item)
             addedParticipants.add(id)
           } else {
-            logger.info({ participantsList, id }, 'duplicate participant')
+            logger.info({ threadID: chat.id, id }, 'duplicate participant')
           }
         }
-      }
 
-      await db.getRepository(DBThread).save(items, { chunk: 500 })
-      await db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
+        return mapped
+      })
+
+      await Promise.all([
+        chunkedWrite(db.getRepository(DBThread), items, DEFAULT_CHUNK_SIZE),
+        chunkedWrite(db.getRepository(DBParticipant), totalParticipantList, DEFAULT_CHUNK_SIZE),
+      ])
 
       return {
         chats,
@@ -285,7 +291,8 @@ export default (
           mappedMsg.shouldFireEvent = false
           return mappedMsg
         })
-        await db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+
+        await chunkedWrite(db.getRepository(DBMessage), dbMessages, DEFAULT_CHUNK_SIZE)
 
         logger.info({ messages: dbMessages.length }, 'saved message history')
       })
@@ -303,7 +310,7 @@ export default (
               items.push(mapped)
             }
           }
-          await db.getRepository(DBUser).save(items, { chunk: 500 })
+          await chunkedWrite(db.getRepository(DBUser), items, DEFAULT_CHUNK_SIZE)
         },
       )
     )
