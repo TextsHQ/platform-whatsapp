@@ -1,6 +1,6 @@
 import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
-import { chunk } from 'lodash'
+import { chunk, map } from 'lodash'
 import type { Logger } from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -195,6 +195,24 @@ export default (
       await db.getRepository(DBUser).save(meUser)
     }
 
+    const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WAMessageKey }[]) => {
+      const repo = db.getRepository(DBMessage)
+      // find all the messages to be updated
+      const qb = repo
+        .createQueryBuilder()
+        .where(new Brackets(
+          qb => {
+            for (const { key } of keys) {
+              const msgId = mapMessageID(key)
+              qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+            }
+            return qb
+          },
+        ))
+      const dbItems = await qb.getMany()
+      return dbItems
+    }
+
     async function updateMessages<T extends { key: WAMessageKey }>(updates: T[], applyUpdate: (msg: DBMessage, update: T) => void) {
       // create a map for which thread ID has number of read messages
       const readMsgsUpdateMap: { [threadId: string]: number } = {}
@@ -211,18 +229,7 @@ export default (
           const repo = db.getRepository(DBMessage)
           const chatRepo = db.getRepository(DBThread)
           // find all the messages to be updated
-          const qb = repo
-            .createQueryBuilder()
-            .where(new Brackets(
-              qb => {
-                for (const { key } of updates) {
-                  const msgId = mapMessageID(key)
-                  qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
-                }
-                return qb
-              },
-            ))
-          const dbItems = await qb.getMany()
+          const dbItems = await fetchMessagesInDB(db, updates)
           // update each message & save
           for (const item of dbItems) {
             const id = `${item.threadID},${item.id!}`
@@ -395,28 +402,44 @@ export default (
     })
 
     ev.on('messages.upsert', ({ messages, type }) => {
-      const mapped: DBMessage[] = []
-      for (const msg of messages) {
-        if (!shouldExcludeMessage(msg)) {
-          const mappedMsg = new DBMessage()
-          mappedMsg.original = { message: msg }
-          mappedMsg.mapFromOriginal(mappingCtx)
-
-          if (type !== 'notify') {
-            mappedMsg.behavior = MessageBehavior.KEEP_READ
-          }
-
-          mapped.push(mappedMsg)
-        }
-      }
-
       logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
+
       db.transaction(async db => {
         let key = (await dbGetLatestMsgOrderKey(db)) || 0
-        for (const item of mapped) {
-          item.orderKey = key
-          key += 1
+
+        const existingMessageMap: { [id: string]: DBMessage } = { }
+        const msgs = await fetchMessagesInDB(db, messages)
+        for (const msg of msgs) {
+          existingMessageMap[`${msg.threadID},${msg.id}`] = msg
         }
+
+        const mapped: DBMessage[] = []
+        for (const msg of messages) {
+          if (!shouldExcludeMessage(msg)) {
+            const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
+
+            const mappedMsg = existingMessageMap[uqId] || new DBMessage()
+            if (mappedMsg.original) {
+              mappedMsg.original.message = msg
+            } else {
+              mappedMsg.original = { message: msg }
+            }
+
+            if (!mappedMsg.orderKey) {
+              key += 1
+              mappedMsg.orderKey = key
+            }
+
+            mappedMsg.mapFromOriginal(mappingCtx)
+
+            if (type !== 'notify') {
+              mappedMsg.behavior = MessageBehavior.KEEP_READ
+            }
+
+            mapped.push(mappedMsg)
+          }
+        }
+
         await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
       })
     })
