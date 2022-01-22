@@ -337,10 +337,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('chats.set', () => {
-      this.canServeThreads = true
+
     })
 
     ev.on('messages.set', () => {
+      this.canServeThreads = true
       this.canServeMessages = true
     })
   }
