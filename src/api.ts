@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType } from '@textshq/platform-sdk'
 import P from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
@@ -23,6 +23,7 @@ import downloadMessage from './utils/download-message'
 import getMessageCompose from './utils/get-message-compose'
 import getEphemeralOptions from './utils/get-ephemeral-options'
 import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
+import hasSomeCachedData from './utils/has-some-cached-data'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
@@ -69,6 +70,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private dataDirPath: string
 
+  private refreshedThreadsInConnectionLifetime = false
+
   readonly logger = config.logger!.child({ stream: 'pw' })
 
   accountID: string
@@ -107,8 +110,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.publishEvent,
     )
 
-    const connectPromise = this.connect()
-    if (session) await connectPromise
+    const existingData = await hasSomeCachedData(this.db)
+    this.canServeThreads = existingData.hasChats
+    this.canServeMessages = existingData.hasMessages
+
+    process.nextTick(() => this.connect())
   }
 
   dispose = async () => {
@@ -237,6 +243,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
     this.connCallback = onEvent
+    if (this.connState.connection === 'connecting') {
+      this.connCallback({ status: ConnectionStatus.CONNECTING })
+    }
   }
 
   private loadWAMessageFromDB = async (key: WAProto.IMessageKey) => {
@@ -257,6 +266,23 @@ export default class WhatsAppAPI implements PlatformAPI {
     },
   )
 
+  private allowDataFetch() {
+    // since we already had all threads
+    // ask the Texts client to reload them for the user to get the latest data
+    if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime) {
+      this.publishEvent({
+        type: ServerEventType.RELOAD_ALL_THREADS,
+      })
+      this.publishEvent({
+        type: ServerEventType.THREAD_MESSAGES_REFRESH_ALL,
+      })
+
+      this.refreshedThreadsInConnectionLifetime = true
+    }
+    this.canServeThreads = true
+    this.canServeMessages = true
+  }
+
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     this.dataStore.bind(ev, this.client!)
 
@@ -271,8 +297,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
 
       if (receivedPendingNotifications && !this.isNewLogin) {
-        this.canServeMessages = true
-        this.canServeThreads = true
+        this.allowDataFetch()
       }
 
       if (connection) {
@@ -296,6 +321,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             })
             break
           case 'close':
+            this.refreshedThreadsInConnectionLifetime = false
             if (this.connectionLifetimeTransaction) {
               this.connectionLifetimeTransaction!.data = {
                 reason: lastDisconnect,
@@ -336,13 +362,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('chats.set', () => {
-
-    })
-
     ev.on('messages.set', () => {
-      this.canServeThreads = true
-      this.canServeMessages = true
+      this.allowDataFetch()
     })
   }
 
@@ -413,10 +434,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     return result
   }
 
+  async waitForConnectionOpen() {
+    while (this.connState.connection !== 'open') {
+      await delay(50)
+    }
+  }
+
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
     while (!this.canServeMessages) {
       await delay(50)
     }
+
+    await this.waitForConnectionOpen()
 
     const result = await this.db.transaction(
       db => fetchMessages(db, this.client!, this, threadID, pagination),
@@ -561,6 +590,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     msgID = msgID ? decodeURIComponent(msgID) : msgID
     switch (category) {
       case 'profile-picture': {
+        await this.waitForConnectionOpen()
+
         if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
           this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid).catch(() => '')
         }
