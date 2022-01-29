@@ -6,7 +6,7 @@ import P from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -30,6 +30,8 @@ type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
+
+const MAX_RECONNECT_TRIES = 10
 
 const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys' }),
@@ -71,6 +73,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private dataDirPath: string
 
   private refreshedThreadsInConnectionLifetime = false
+
+  private reconnectTriesLeft = MAX_RECONNECT_TRIES
 
   readonly logger = config.logger!.child({ stream: 'pw' })
 
@@ -147,7 +151,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (connection === 'open') {
           break
         }
-        if (connection === 'close' && !canReconnect(lastDisconnect?.error).isReconnecting) {
+        if (connection === 'close' && !canReconnect(lastDisconnect?.error, this.reconnectTriesLeft).isReconnecting) {
           break
         }
       }
@@ -313,6 +317,8 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.connectionTransaction!.finish()
             }
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: true })
+
+            this.reconnectTriesLeft = MAX_RECONNECT_TRIES
             break
           case 'connecting':
             texts.log('connect transaction started')
@@ -333,7 +339,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
 
         if (connection === 'close') {
-          const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error)
+          this.reconnectTriesLeft -= 1
+
+          const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error, this.reconnectTriesLeft)
           let reconnectDelayMs = 2000
           // magic of switching between multi-device
           if (statusCode === DisconnectReason.multideviceMismatch) {
@@ -344,13 +352,13 @@ export default class WhatsAppAPI implements PlatformAPI {
             texts.log(`multi-device mismatch (switching to "${newType}")`)
             reconnectDelayMs = 0 // no need to delay QR generation
           }
-          texts.log('disconnected, reconnecting: ', isReconnecting)
+          texts.log(`disconnected, reconnecting=${isReconnecting}, retries left=${this.reconnectTriesLeft}`)
           // auto reconnect logic
           if (isReconnecting) {
             update.connection = 'connecting'
             this.client = undefined
             this.connectInternal(reconnectDelayMs)
-          } else if (statusCode === DisconnectReason.loggedOut || statusCode === 403) {
+          } else if (LOGGED_OUT_CODES.includes(statusCode)) {
             makeDBKeyStore(this.db).clear()
             this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
             this.isNewLogin = true

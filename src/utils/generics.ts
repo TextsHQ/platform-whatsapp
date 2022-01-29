@@ -3,6 +3,17 @@ import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState,
 import { In, Repository } from 'typeorm'
 import type { AnyAuthenticationCreds, MappingContext } from '../types'
 
+export const LOGGED_OUT_CODES = [
+  DisconnectReason.loggedOut,
+  419,
+  403,
+]
+
+const NOT_RECONNECT_CODES = [
+  ...LOGGED_OUT_CODES,
+  500,
+]
+
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
   open: ConnectionStatus.CONNECTED,
   close: ConnectionStatus.DISCONNECTED,
@@ -51,10 +62,13 @@ export function safeJSONStringify(obj: any) {
   }
 }
 
-export const canReconnect = (error?: Error) => {
+export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
   // @ts-expect-error
   const statusCode: number = error?.output?.statusCode || 0
-  const isReconnecting = statusCode !== DisconnectReason.loggedOut && statusCode !== 403
+  const isReconnecting = !NOT_RECONNECT_CODES.includes(statusCode) // can be reconnected
+    && retriesLeft > 0 // some retries left
+    && statusCode !== 0 // was not an intentional close
+
   return {
     isReconnecting,
     statusCode,
