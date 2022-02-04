@@ -76,6 +76,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private reconnectTriesLeft = MAX_RECONNECT_TRIES
 
+  private loadedThreadSet = new Set<string>()
+
+  // private openedThreadSet = new Set<string>()
+
   readonly logger = config.logger!.child({ stream: 'pw' })
 
   accountID: string
@@ -270,19 +274,48 @@ export default class WhatsAppAPI implements PlatformAPI {
     },
   )
 
-  private allowDataFetch() {
+  private async allowDataFetch() {
     // since we already had all threads
     // ask the Texts client to reload them for the user to get the latest data
-    if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime) {
-      this.publishEvent({
-        type: ServerEventType.RELOAD_ALL_THREADS,
-      })
-      this.publishEvent({
-        type: ServerEventType.THREAD_MESSAGES_REFRESH_ALL,
-      })
-
+    if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
       this.refreshedThreadsInConnectionLifetime = true
+
+      const events: ServerEvent[] = []
+
+      await this.db.transaction(
+        async db => {
+          const { items: threads } = await fetchThreads(db, this.client!, this)
+          const newLoadedThreadSet = new Set<string>()
+          for (const thread of threads) {
+            events.push({
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'thread',
+              objectIDs: { threadID: thread.id },
+              mutationType: 'upsert',
+              entries: [thread],
+            })
+            newLoadedThreadSet.add(thread.id)
+          }
+
+          for (const threadID of Array.from(this.loadedThreadSet)) {
+            if (!newLoadedThreadSet.has(threadID)) {
+              events.push({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID },
+                mutationType: 'delete',
+                entries: [threadID],
+              })
+            }
+          }
+
+          this.loadedThreadSet = newLoadedThreadSet
+        },
+      )
+
+      this.publishEvent(...events)
     }
+
     this.canServeThreads = true
     this.canServeMessages = true
   }
@@ -439,6 +472,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     const result = await this.db.transaction(
       db => fetchThreads(db, this.client!, this, pagination),
     )
+    for (const item of result.items) {
+      this.loadedThreadSet.add(item.id)
+    }
     return result
   }
 
