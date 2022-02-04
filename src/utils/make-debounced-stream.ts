@@ -10,8 +10,8 @@ function makeDebouncedStream<T>(debounceIntervalMs: number, callback: (events: T
     }
   }, debounceIntervalMs)
 
-  return (ev: T) => {
-    events.push(ev)
+  return (...evs: T[]) => {
+    events.push(...evs)
     pushEvents()
   }
 }
