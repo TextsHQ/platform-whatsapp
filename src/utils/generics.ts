@@ -67,7 +67,7 @@ export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
   const statusCode: number = error?.output?.statusCode || 0
   const isReconnecting = !NOT_RECONNECT_CODES.includes(statusCode) // can be reconnected
     && retriesLeft > 0 // some retries left
-    && statusCode !== 0 // was not an intentional close
+    && !!error // was not an intentional close
 
   return {
     isReconnecting,
