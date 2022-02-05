@@ -82,7 +82,11 @@ export const makeMutex = () => {
       task = (async () => {
         // wait for the previous task to complete
         // if there is an error, we swallow so as to not block the queue
-        try { await task } catch { }
+        try {
+          await task
+        } catch {
+          // do nothing
+        }
         // execute the current task
         return code()
       })()

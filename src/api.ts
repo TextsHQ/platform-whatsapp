@@ -74,6 +74,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private refreshedThreadsInConnectionLifetime = false
 
+  private receivedLatestData = false
+
   private reconnectTriesLeft = MAX_RECONNECT_TRIES
 
   private loadedThreadSet = new Set<string>()
@@ -275,6 +277,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async allowDataFetch() {
+    this.receivedLatestData = true
     // since we already had all threads
     // ask the Texts client to reload them for the user to get the latest data
     if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
@@ -361,6 +364,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             break
           case 'close':
             this.refreshedThreadsInConnectionLifetime = false
+            this.receivedLatestData = false
             if (this.connectionLifetimeTransaction) {
               this.connectionLifetimeTransaction!.data = {
                 reason: lastDisconnect,
@@ -468,6 +472,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     while (!this.canServeThreads) {
       await delay(50)
     }
+    // prevent users from loading more threads while connection is opening, to prevent race conditions
+    if (pagination) {
+      await this.waitForConnectionOpen()
+    }
 
     const result = await this.db.transaction(
       db => fetchThreads(db, this.client!, this, pagination),
@@ -480,6 +488,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   async waitForConnectionOpen() {
     while (this.connState.connection !== 'open') {
+      await delay(50)
+    }
+  }
+
+  async waitForLatestData() {
+    while (!this.receivedLatestData) {
       await delay(50)
     }
   }
