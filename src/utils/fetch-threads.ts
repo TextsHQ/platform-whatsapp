@@ -83,8 +83,9 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
           }, { } as { [_: string]: DBMessage })
 
           for (const chat of items) {
-            const msg = messageMap[chat.id]
+            let msg = messageMap[chat.id]
             if (msg) {
+              msg = DBMessage.prepareForSending(msg, mappingCtx.accountID)
               chat.messages = {
                 hasMore: true,
                 items: [msg],
