@@ -277,7 +277,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async allowDataFetch() {
-    this.receivedLatestData = true
     // since we already had all threads
     // ask the Texts client to reload them for the user to get the latest data
     if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
@@ -321,6 +320,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.canServeThreads = true
     this.canServeMessages = true
+    this.receivedLatestData = true
   }
 
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
