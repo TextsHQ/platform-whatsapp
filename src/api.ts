@@ -315,7 +315,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       )
 
-      this.publishEvent(...events)
+      this.evCallback(events)
     }
 
     this.canServeThreads = true
