@@ -11,7 +11,7 @@ import { numberFromJid } from './generics'
 
 const THREAD_PAGE_SIZE = 15
 
-export default async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg) => {
+export default async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     if (pagination?.cursor) {
@@ -19,8 +19,19 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
       return [new Date(date), id] as const
     }
   })()
-  const cursorClause = cursor ? `(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'localtime'), '${cursor[1]}')` : undefined
-  const selectClause = `(SELECT id FROM db_thread ${cursorClause ? `WHERE ${cursorClause}` : ''} ORDER BY timestamp DESC LIMIT ${THREAD_PAGE_SIZE})`
+
+  const whereClauses: string[] = []
+  if (cursor) {
+    whereClauses.push(`(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'localtime'), '${cursor[1]}')`)
+  }
+
+  if (tillCursor) {
+    const [date, id] = tillCursor.split(',')
+    const till = new Date(date)
+    whereClauses.push(`timestamp > datetime(${till.getTime() / 1000}, 'unixepoch', 'localtime')`)
+  }
+
+  const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
   const items = await repo
     .createQueryBuilder('thread')
     .leftJoinAndSelect('thread.participantsList', 'participant')

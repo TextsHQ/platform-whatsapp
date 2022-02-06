@@ -80,6 +80,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loadedThreadSet = new Set<string>()
 
+  private earliestLoadedThreadCursor?: string
+
   // private openedThreadSet = new Set<string>()
 
   readonly logger = config.logger!.child({ stream: 'pw' })
@@ -286,30 +288,30 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       await this.db.transaction(
         async db => {
-          const { items: threads } = await fetchThreads(db, this.client!, this)
+          const { items: threads } = await fetchThreads(db, this.client!, this, undefined, this.earliestLoadedThreadCursor)
+
+          texts.log(`loaded ${threads.length} threads to refresh`)
+
+          events.push({
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'thread',
+            objectIDs: { },
+            mutationType: 'upsert',
+            entries: threads,
+          })
+
           const newLoadedThreadSet = new Set<string>()
           for (const thread of threads) {
-            events.push({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'thread',
-              objectIDs: { threadID: thread.id },
-              mutationType: 'upsert',
-              entries: [thread],
-            })
             newLoadedThreadSet.add(thread.id)
           }
 
-          for (const threadID of Array.from(this.loadedThreadSet)) {
-            if (!newLoadedThreadSet.has(threadID)) {
-              events.push({
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'thread',
-                objectIDs: { threadID },
-                mutationType: 'delete',
-                entries: [threadID],
-              })
-            }
-          }
+          events.push({
+            type: ServerEventType.STATE_SYNC,
+            objectName: 'thread',
+            objectIDs: { },
+            mutationType: 'delete',
+            entries: Array.from(this.loadedThreadSet).filter(threadID => !newLoadedThreadSet.has(threadID)),
+          })
 
           this.loadedThreadSet = newLoadedThreadSet
         },
@@ -472,17 +474,17 @@ export default class WhatsAppAPI implements PlatformAPI {
     while (!this.canServeThreads) {
       await delay(50)
     }
-    // prevent users from loading more threads while connection is opening, to prevent race conditions
-    if (pagination) {
-      await this.waitForConnectionOpen()
-    }
 
     const result = await this.db.transaction(
       db => fetchThreads(db, this.client!, this, pagination),
     )
+
     for (const item of result.items) {
       this.loadedThreadSet.add(item.id)
     }
+
+    this.earliestLoadedThreadCursor = result.oldestCursor
+
     return result
   }
 
