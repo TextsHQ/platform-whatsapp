@@ -1,10 +1,9 @@
-import { AnyWASocket, isJidGroup, WAMessageKey, WAProto } from '@adiwajshing/baileys'
+import { AnyWASocket, isJidGroup, WAProto } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import type { MappingContext } from '../types'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
-import { unmapMessageID } from './generics'
 
 const MESSAGE_PAGE_SIZE = 20
 const WA_MSG_FETCH_SIZE = MESSAGE_PAGE_SIZE * 2.5
@@ -22,13 +21,16 @@ export default async (
     .orderBy('order_key', 'DESC')
     .limit(MESSAGE_PAGE_SIZE)
   if (pagination?.cursor) {
-    qb = qb.andWhere(`order_key < '${pagination.cursor}'`)
+    qb = qb.andWhere(`order_key <= '${pagination.cursor}'`)
   }
-  const items = (await qb.getMany()).reverse()
+  let items = (await qb.getMany()).reverse()
+  // get the item of the cursor, so we can use extra info to fetch info from legacy connection
+  const cursorItem = items[0]
+  items = items.slice(1)
 
   if (conn.type === 'legacy') {
-    if (items.length < MESSAGE_PAGE_SIZE && items[0]) {
-      const beforeKey = items[0].original.message.key
+    if (items.length < MESSAGE_PAGE_SIZE && cursorItem) {
+      const beforeKey = cursorItem.original.message.key
 
       const msgs = await conn.fetchMessagesFromWA(threadID, WA_MSG_FETCH_SIZE, beforeKey ? { before: beforeKey } : undefined)
       let key = (await dbGetEarliestMsgOrderKey(db))! - msgs.length
