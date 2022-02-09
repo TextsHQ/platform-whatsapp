@@ -35,6 +35,15 @@ const info: PlatformInfo = {
     recordedAudioMimeType: 'audio/ogg',
     gifMimeType: 'video/mp4',
     supportsCaption: true,
+    maxSize: {
+      // https://faq.whatsapp.com/general/i-get-a-message-that-my-video-is-too-long-and-it-wont-send/
+      // "Note: For documents, the maximum file size allowed is 100 MB."
+      // "The maximum file size allowed for all media (photos, videos or voice messages) to be sent or forwarded through WhatsApp is 16 MB on all platforms."
+      image: 16 * 1024 * 1024,
+      video: 16 * 1024 * 1024,
+      audio: 16 * 1024 * 1024,
+      files: 100 * 1024 * 1024,
+    },
   },
   extra: {
     mentionsSupported: true,
