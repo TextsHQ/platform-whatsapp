@@ -2,7 +2,7 @@ import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
-  version: '2021.10.16',
+  version: '0.0.1',
   displayName: 'WhatsApp',
   tags: [],
   icon: `
