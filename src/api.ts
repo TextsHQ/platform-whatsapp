@@ -39,7 +39,7 @@ const config: Partial<SocketConfig> = {
   connectTimeoutMs: 120_000,
 }
 
-config.logger!.level = texts.IS_DEV ? 'debug' : 'silent'
+config.logger!.level = texts.isLoggingEnabled ? 'debug' : 'silent'
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: AnyWASocket
