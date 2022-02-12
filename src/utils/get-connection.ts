@@ -10,7 +10,7 @@ const getConnection = async (name: string, sqlitePath: string) => {
       database: sqlitePath,
       type: 'better-sqlite3',
       synchronize: true,
-      logging: texts.IS_DEV ? false : ['error'],
+      logging: texts.IS_DEV ? ['error'] : false,
       entities,
       migrations: [],
       cli: { migrationsDir: 'src/migrations' },
