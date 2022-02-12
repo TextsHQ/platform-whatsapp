@@ -17,7 +17,7 @@ import mapPresenceUpdate from './map-presence-update'
 
 type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 
-const DEFAULT_CHUNK_SIZE = 2500
+const DEFAULT_CHUNK_SIZE = 350
 
 export default (
   db: Connection,
