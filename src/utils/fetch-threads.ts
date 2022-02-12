@@ -22,13 +22,13 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
 
   const whereClauses: string[] = []
   if (cursor) {
-    whereClauses.push(`(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'localtime'), '${cursor[1]}')`)
+    whereClauses.push(`(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'utc'), '${cursor[1]}')`)
   }
 
   if (tillCursor) {
     const [date, id] = tillCursor.split(',')
     const till = new Date(date)
-    whereClauses.push(`timestamp > datetime(${till.getTime() / 1000}, 'unixepoch', 'localtime')`)
+    whereClauses.push(`timestamp > datetime(${till.getTime() / 1000}, 'unixepoch', 'utc')`)
   }
 
   const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
@@ -36,7 +36,7 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
     .createQueryBuilder('thread')
     .leftJoinAndSelect('thread.participantsList', 'participant')
     .leftJoinAndSelect('participant.user', 'user')
-    .innerJoin(selectClause, 't2', 't2.id = thread.id', { cursorStamp: cursor?.[0]?.getTime(), cursorId: cursor?.[1] })
+    .innerJoin(selectClause, 't2', 't2.id = thread.id')
     .orderBy('timestamp', 'DESC')
     .addOrderBy('user.is_self', 'ASC')
     .getMany()
