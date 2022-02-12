@@ -26,6 +26,8 @@ const THREAD_PAGE_SIZE = 15
 const MAX_OFFLINE_MESSAGES_WAIT_MS = 10_000
 const DELAY_CONN_STATUS_CHANGE = 20_000
 
+const DEFAULT_CHUNK_SIZE = 350
+
 const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys' }),
   browser: Browsers.appropriate('Chrome'),
@@ -438,8 +440,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     }
 
-    await this.db.getRepository(DBThread).save(items, { chunk: 500 })
-    await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: 500 })
+    await this.db.getRepository(DBThread).save(items, { chunk: DEFAULT_CHUNK_SIZE })
+    await this.db.getRepository(DBParticipant).save(totalParticipantList, { chunk: DEFAULT_CHUNK_SIZE })
 
     return {
       chats,
@@ -579,7 +581,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             mappedMsg.shouldFireEvent = false
             return mappedMsg
           })
-          await this.db.getRepository(DBMessage).save(dbMessages, { chunk: 500 })
+          await this.db.getRepository(DBMessage).save(dbMessages, { chunk: DEFAULT_CHUNK_SIZE })
 
           texts.log({ messages: dbMessages.length }, 'saved last message history')
         },
@@ -596,7 +598,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               items.push(DBUser.fromOriginal(item, this))
             }
           }
-          await this.db.getRepository(DBUser).save(items, { chunk: 500 })
+          await this.db.getRepository(DBUser).save(items, { chunk: DEFAULT_CHUNK_SIZE })
         },
       )
     )
@@ -653,7 +655,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         async db => {
           const repo = db.getRepository(DBThread)
           const chats = await repo.find({ id: In(ids) })
-          await repo.remove(chats, { chunk: 500 })
+          await repo.remove(chats, { chunk: DEFAULT_CHUNK_SIZE })
         },
       )
     })
@@ -677,7 +679,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
       }
       await this.mutexedTransaction(
-        db => db.getRepository(DBMessage).save(mapped, { chunk: 500 }),
+        db => db.getRepository(DBMessage).save(mapped, { chunk: DEFAULT_CHUNK_SIZE }),
       )
     })
 
@@ -735,7 +737,7 @@ export default class WhatsAppAPI implements PlatformAPI {
                 chat.unreadCount = Math.max(chat.unreadCount - msgsRead, 0)
               }
             }
-            await chatRepo.save(chats, { chunk: 50 })
+            await chatRepo.save(chats, { chunk: DEFAULT_CHUNK_SIZE })
             texts.log({ readMsgsUpdateMap }, `updating ${chats.length} thread read counts`)
           }
         },
