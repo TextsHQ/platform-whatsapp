@@ -13,6 +13,7 @@ export default async (
   conn: AnyWASocket,
   mappingCtx: MappingContext,
   threadID: string,
+  waitForConnectionOpen: () => Promise<void>,
   pagination?: PaginationArg,
 ) => {
   let qb = await db.getRepository(DBMessage)
@@ -24,13 +25,19 @@ export default async (
     qb = qb.andWhere(`order_key <= '${pagination.cursor}'`)
   }
   let items = (await qb.getMany()).reverse()
-  // get the item of the cursor, so we can use extra info to fetch info from legacy connection
-  const cursorItem = items[0]
-  items = items.slice(1)
+
+  let cursorItem: DBMessage | undefined
+  if (pagination?.cursor) {
+    // get the item of the cursor, so we can use extra info to fetch info from legacy connection
+    cursorItem = items[0]
+    items = items.slice(1)
+  }
 
   if (conn.type === 'legacy') {
     if (items.length < MESSAGE_PAGE_SIZE && cursorItem) {
       const beforeKey = cursorItem.original.message.key
+
+      await waitForConnectionOpen()
 
       const msgs = await conn.fetchMessagesFromWA(threadID, WA_MSG_FETCH_SIZE, beforeKey ? { before: beforeKey } : undefined)
       let key = (await dbGetEarliestMsgOrderKey(db))! - msgs.length
@@ -61,6 +68,8 @@ export default async (
               && message.original.message.status! < WAProto.WebMessageInfo.WebMessageInfoStatus.READ
             ) {
               try {
+                await waitForConnectionOpen()
+
                 message.original.message.userReceipt = await conn.messageInfo(threadID, message.original.message.key.id!)
                 message.original.downloadedReceipts = true
                 message.mapFromOriginal(mappingCtx)

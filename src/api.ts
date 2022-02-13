@@ -82,8 +82,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private earliestLoadedThreadCursor?: string
 
-  // private openedThreadSet = new Set<string>()
-
   readonly logger = config.logger!.child({ stream: 'pw' })
 
   accountID: string
@@ -505,10 +503,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    await this.waitForConnectionOpen()
-
     const result = await this.db.transaction(
-      db => fetchMessages(db, this.client!, this, threadID, pagination),
+      db => fetchMessages(db, this.client!, this, threadID, () => this.waitForConnectionOpen(), pagination),
     )
     return result
   }
@@ -598,9 +594,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendActivityIndicator = async (type: ActivityType, threadID: string) => {
-    if (this.connState.connection === 'open') {
-      await this.client!.sendPresenceUpdate(PRESENCE_MAP[type], threadID)
-    }
+    await this.waitForConnectionOpen()
+    await this.client!.sendPresenceUpdate(PRESENCE_MAP[type], threadID)
   }
 
   updateThread = async (threadID: string, updates: Partial<Thread>) => {
@@ -675,6 +670,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
     if (!isJidBroadcast(jid)) {
+      await this.waitForConnectionOpen()
       await this.client!.presenceSubscribe(jid)
         .catch(err => console.error(`error in presence: ${err}`))
     }
