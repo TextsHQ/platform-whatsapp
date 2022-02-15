@@ -80,6 +80,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loadedThreadSet = new Set<string>()
 
+  private openedThreadId: string | undefined
+
   private earliestLoadedThreadCursor?: string
 
   readonly logger = config.logger!.child({ stream: 'pw' })
@@ -290,6 +292,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
           texts.log(`loaded ${threads.length} threads to refresh`)
 
+          const newLoadedThreadSet = new Set<string>()
+          for (const thread of threads) {
+            newLoadedThreadSet.add(thread.id)
+            events.push({
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'message',
+              objectIDs: { threadID: thread.id },
+              mutationType: 'delete-all',
+            })
+          }
+
           events.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'thread',
@@ -298,11 +311,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             entries: threads,
           })
 
-          const newLoadedThreadSet = new Set<string>()
-          for (const thread of threads) {
-            newLoadedThreadSet.add(thread.id)
-          }
-
           events.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'thread',
@@ -310,6 +318,17 @@ export default class WhatsAppAPI implements PlatformAPI {
             mutationType: 'delete',
             entries: Array.from(this.loadedThreadSet).filter(threadID => !newLoadedThreadSet.has(threadID)),
           })
+
+          if (this.openedThreadId) {
+            const { items: messages } = await fetchMessages(db, this.client!, this, this.openedThreadId, () => this.waitForConnectionOpen(), undefined)
+            events.push({
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'message',
+              objectIDs: { },
+              mutationType: 'upsert',
+              entries: messages,
+            })
+          }
 
           this.loadedThreadSet = newLoadedThreadSet
         },
@@ -663,6 +682,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   onThreadSelected = async (threadID: string) => {
+    this.openedThreadId = threadID
+
     if (!threadID) {
       return
     }
