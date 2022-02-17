@@ -32,6 +32,7 @@ const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys' }),
   browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 120_000,
+  version: [2, 2204, 13],
 }
 
 config.logger!.level = texts.IS_DEV ? 'debug' : 'silent'
