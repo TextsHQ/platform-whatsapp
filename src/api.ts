@@ -1,8 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata } from '@adiwajshing/baileys'
+import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType } from '@textshq/platform-sdk'
-import P from 'pino'
+import P, { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
@@ -84,7 +84,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private earliestLoadedThreadCursor?: string
 
-  readonly logger = config.logger!.child({ stream: 'pw' })
+  private latestWAVersion: WAVersion
+
+  readonly logger = config.logger!.child({ stream: 'pw' }) as Logger
 
   accountID: string
 
@@ -109,6 +111,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.session = session ? decodeSerializedSession(session) : undefined
     this.accountID = accountID
 
+    const { version, isLatest } = await fetchLatestBaileysVersion()
+    this.latestWAVersion = version
+    texts.log(`fetched WA version ${version.join('.')}, isLatest: ${isLatest}`)
+
     const dbPath = path.join(dataDirPath, 'db.sqlite')
     texts.log(`init with DB path: ${dbPath}`)
 
@@ -117,6 +123,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.dataStore = makeTextsBaileysStore(
       this.db,
+      // @ts-expect-error
       config.logger!.child({ stream: 'store' }),
       this,
       this.publishEvent,

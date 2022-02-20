@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@git+https://github.com/adiwajshing/baileys":
   version: 4.0.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=e7c2d4e117925f16967de86810775e22d035ef5a"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=75582e4541e0682c4241556774889f312d86d82e"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -23,7 +23,7 @@ __metadata:
     jimp: ^0.16.1
     qrcode-terminal: ^0.12.0
     sharp: ^0.29.3
-  checksum: 1453c119b16d54188d21530870b28ad6803de47263ad42d04c50c5614e229a5a3cf42a170cef681ecff6fb60f641169ca80a1ef64ebc3ab800fb1a228c5af7f7
+  checksum: 96a8fdbcdf86556883e48aa812120886f59cc488811b72dd97f29c149aa201b8239c4601ac2d746336ed9718a10d02968eb59039a911d5bcb2b552103f8bf98c
   languageName: node
   linkType: hard
 
@@ -1371,6 +1371,7 @@ __metadata:
     "@types/jest": ^26.0.19
     "@types/lodash": ^4.14.178
     "@types/match-sorter": ^4.0.0
+    "@types/pino": ^7.0.5
     "@types/qrcode.react": ^1.0.2
     "@types/react": 17.0.21
     better-sqlite3: ^7.4.5
@@ -1383,7 +1384,7 @@ __metadata:
     lodash: ^4.17.21
     match-sorter: ^4.2.1
     mem: ^8.0.0
-    pino: ^7.0.0
+    pino: ^7.8.0
     qrcode.react: ^1.0.1
     react: ^17.0.2
     typeorm: ^0.2.41
@@ -1575,6 +1576,15 @@ __metadata:
   version: 4.0.0
   resolution: "@types/parse-json@npm:4.0.0"
   checksum: fd6bce2b674b6efc3db4c7c3d336bd70c90838e8439de639b909ce22f3720d21344f52427f1d9e57b265fcb7f6c018699b99e5e0c208a1a4823014269a6bf35b
+  languageName: node
+  linkType: hard
+
+"@types/pino@npm:^7.0.5":
+  version: 7.0.5
+  resolution: "@types/pino@npm:7.0.5"
+  dependencies:
+    pino: "*"
+  checksum: f1c59f7d9a7b717e014e93a6e3f235cf824c93696f6530d41316a6188eb6e3846ce44941d2641665c6a4d0dc64a63ea24e277b2acff52e766ad7169e1a20f973
   languageName: node
   linkType: hard
 
@@ -6716,6 +6726,26 @@ __metadata:
   version: 4.0.0
   resolution: "pino-std-serializers@npm:4.0.0"
   checksum: 89d487729b58c9d3273a0ee851ead068d6d2e2ccc1af8e1c1d28f1b3442423679bec7ec04d9a2aba36f94f335e82be9f4de19dc4fbc161e71c136aaa15b85ad3
+  languageName: node
+  linkType: hard
+
+"pino@npm:*, pino@npm:^7.8.0":
+  version: 7.8.0
+  resolution: "pino@npm:7.8.0"
+  dependencies:
+    fast-redact: ^3.0.0
+    on-exit-leak-free: ^0.2.0
+    pino-abstract-transport: v0.5.0
+    pino-std-serializers: ^4.0.0
+    process-warning: ^1.0.0
+    quick-format-unescaped: ^4.0.3
+    real-require: ^0.1.0
+    safe-stable-stringify: ^2.1.0
+    sonic-boom: ^2.2.1
+    thread-stream: ^0.13.0
+  bin:
+    pino: bin.js
+  checksum: 0be8a440f81e7e2f4a22156e5886d550c618d6609572f0f262ccbc15077b702ee56c17d8bff7779361a74e64e4257f533b6038f46845e583315895ac6babc753
   languageName: node
   linkType: hard
 

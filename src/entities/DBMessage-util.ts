@@ -1,7 +1,6 @@
 import { areJidsSameUser, extractMessageContent, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
 import { toNumber } from 'lodash'
-import type { Long } from 'typeorm'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -9,7 +8,7 @@ const participantAdded = (message: WAMessage) =>
     ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
     : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
 
-const numberToBigInt = (number: Number | Long) => BigInt(number.toString())
+const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
 const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
   if (exp) {
