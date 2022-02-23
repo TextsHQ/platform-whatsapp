@@ -41,32 +41,27 @@ export default class WhatsAppAuth extends React.Component<Props> {
           <li>Point your phone to this screen</li>
         </ol>
         <div className="text-center" style={{ position: 'relative' }}>
-          {
-            qrValue ? (
-              <>
-                <QRCode size={256} value={qrValue} includeMargin />
-                <div style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-                >
-                  <WALogo />
-                </div>
-              </>
-            )
-              : (
-                <div>
-                  Loading...
-                </div>
-              )
-          }
+          {qrValue ? (
+            <>
+              <QRCode size={256} value={qrValue} includeMargin />
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              >
+                <WALogo />
+              </div>
+            </>
+          ) : <div>Loading...</div>}
         </div>
+        <br />
+        <div>This integration works with and without Multi-Device joined.</div>
       </div>
     )
   }
