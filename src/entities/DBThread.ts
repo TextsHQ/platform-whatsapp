@@ -97,7 +97,7 @@ export default class DBThread implements Thread {
         hasMore: false,
       }
     }
-    if (item.id) {
+    if (item.id && item.type !== 'single') {
       item.imgURL = profilePictureUrl(accountID, item.id!)
     }
 
