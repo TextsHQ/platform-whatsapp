@@ -24,6 +24,7 @@ import getMessageCompose from './utils/get-message-compose'
 import getEphemeralOptions from './utils/get-ephemeral-options'
 import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 import hasSomeCachedData from './utils/has-some-cached-data'
+import setParticipantUsers from './utils/set-participant-users'
 
 type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
@@ -473,14 +474,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     thread.original = { chat, metadata }
     thread.shouldFireEvent = false
     thread.mapFromOriginal(this)
-    DBThread.prepareForSending(thread, this.accountID)
 
     if (thread.type === 'group') {
       await this.db.getRepository(DBThread).save(thread)
       await this.db.getRepository(DBParticipant).save(thread.participantsList!)
     }
 
-    return thread
+    await setParticipantUsers(this.db, thread.participantsList!)
+
+    return DBThread.prepareForSending(thread, this.accountID)
   }
 
   deleteThread = async (threadID: string) => {
