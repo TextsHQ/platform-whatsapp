@@ -313,6 +313,8 @@ export default class WhatsAppAPI implements PlatformAPI {
             })
           }
 
+          const threadsToDelete = Array.from(this.loadedThreadSet).filter(threadID => !newLoadedThreadSet.has(threadID))
+
           events.push({
             type: ServerEventType.STATE_SYNC,
             objectName: 'thread',
@@ -321,13 +323,15 @@ export default class WhatsAppAPI implements PlatformAPI {
             entries: threads,
           })
 
-          events.push({
-            type: ServerEventType.STATE_SYNC,
-            objectName: 'thread',
-            objectIDs: { },
-            mutationType: 'delete',
-            entries: Array.from(this.loadedThreadSet).filter(threadID => !newLoadedThreadSet.has(threadID)),
-          })
+          if (threadsToDelete.length) {
+            events.push({
+              type: ServerEventType.STATE_SYNC,
+              objectName: 'thread',
+              objectIDs: { },
+              mutationType: 'delete',
+              entries: threadsToDelete,
+            })
+          }
 
           if (this.openedThreadId) {
             const { items: messages } = await fetchMessages(db, this.client!, this, this.openedThreadId, () => this.waitForConnectionOpen(), undefined)
