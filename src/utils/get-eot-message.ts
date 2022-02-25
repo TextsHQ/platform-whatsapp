@@ -9,6 +9,7 @@ const getEotMessage = (threadID: string, orderKey: number): DBMessage => {
     timestamp: new Date(0),
     senderID: 'none',
     isSender: false,
+    isAction: true,
     text: 'Use WhatsApp on your phone to see older messages',
     cursor: (orderKey - 1)?.toString(),
   }
