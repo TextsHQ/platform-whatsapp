@@ -19,7 +19,7 @@ type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 
 const DEFAULT_CHUNK_SIZE = 350
 
-export default (
+const makeTextsBaileysStore = (
   db: Connection,
   logger: Logger,
   mappingCtx: MappingContext,
@@ -53,7 +53,12 @@ export default (
             break
           case 'update':
             const { key, update } = item as any
-            const processedUpdate = DBThread.prepareForSending(update, accountID)
+            const processedUpdate = DBThread.prepareForSending<Partial<DBThread>>(update, accountID)
+
+            if (!processedUpdate.messages?.items?.length) {
+              delete processedUpdate.messages
+            }
+
             publishEvent({
               type: ServerEventType.STATE_SYNC,
               objectName: 'thread',
@@ -510,3 +515,5 @@ export default (
     bind,
   }
 }
+
+export default makeTextsBaileysStore
