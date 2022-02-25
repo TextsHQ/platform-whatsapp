@@ -32,7 +32,9 @@ type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: s
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
-const MAX_RECONNECT_TRIES = 10
+const RECONNECT_DELAY_MS = 2500
+
+const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys' }),
@@ -406,7 +408,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.reconnectTriesLeft -= 1
 
           const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error, this.reconnectTriesLeft)
-          let reconnectDelayMs = 2000
+          let reconnectDelayMs = RECONNECT_DELAY_MS
           // magic of switching between multi-device
           if (statusCode === DisconnectReason.multideviceMismatch) {
             const newType = this.connectionType === 'md' ? 'legacy' : 'md'
