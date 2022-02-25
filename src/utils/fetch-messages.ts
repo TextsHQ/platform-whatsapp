@@ -4,11 +4,12 @@ import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import type { MappingContext } from '../types'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
+import getEotMessage from './get-eot-message'
 
 const MESSAGE_PAGE_SIZE = 20
 const WA_MSG_FETCH_SIZE = MESSAGE_PAGE_SIZE * 2.5
 
-export default async (
+const fetchMessages = async (
   db: Connection | EntityManager,
   conn: AnyWASocket,
   mappingCtx: MappingContext,
@@ -26,6 +27,8 @@ export default async (
   }
   let items = (await qb.getMany()).reverse()
 
+  let hasMore = false
+
   let cursorItem: DBMessage | undefined
   if (pagination?.cursor) {
     // get the item of the cursor, so we can use extra info to fetch info from legacy connection
@@ -33,7 +36,7 @@ export default async (
     items = items.slice(1)
   }
 
-  if (conn.type === 'legacy') {
+  if (conn?.type === 'legacy') {
     if (items.length < MESSAGE_PAGE_SIZE && cursorItem) {
       const beforeKey = cursorItem.original.message.key
 
@@ -75,7 +78,7 @@ export default async (
                 message.mapFromOriginal(mappingCtx)
                 messagesToSave.push(message)
               } catch {
-
+                // empty
               }
             }
           },
@@ -84,11 +87,22 @@ export default async (
 
       await db.getRepository(DBMessage).save(messagesToSave, { transaction: false })
     }
+  } else if (!conn) {
+    // if we do not have an active connection right now -- set hasMore to true
+    // so Texts can fetch messages again
+    hasMore = true
+  }
+
+  hasMore = hasMore || items.length >= MESSAGE_PAGE_SIZE
+  if (conn?.type === 'md' && !hasMore) {
+    items.splice(0, 0, getEotMessage(threadID, items[0]?.orderKey || 0))
   }
 
   return {
     items: items.map(item => DBMessage.prepareForSending(item, mappingCtx.accountID)),
-    hasMore: items.length >= MESSAGE_PAGE_SIZE,
+    hasMore,
     oldestCursor: items[0]?.orderKey.toString(),
   }
 }
+
+export default fetchMessages

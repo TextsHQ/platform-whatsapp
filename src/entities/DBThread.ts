@@ -1,4 +1,4 @@
-import { Chat, jidNormalizedUser, STORIES_JID, toNumber } from '@adiwajshing/baileys'
+import { Chat, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
@@ -45,6 +45,10 @@ export default class DBThread implements Thread {
   @Column({ type: 'boolean', nullable: false, default: false })
   /// for groups, we need the metadata to fully map description & participants
   requiresMapWithMetadata: boolean
+
+  @Column({ type: 'boolean', nullable: false, default: true })
+  /// primarily for MD, if we have message history on the primary device
+  hasMoreMessageHistory: boolean
 
   @Column({ ...BinaryEncodedColumn, nullable: false })
   original: FullBaileysChat
@@ -138,6 +142,11 @@ export default class DBThread implements Thread {
       }
     }
 
+    let mute: DBThread['mutedUntil'] | null = null
+    if (chat.mute) {
+      mute = chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute)
+    }
+
     const partial: Partial<DBThread> = {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
@@ -151,9 +160,9 @@ export default class DBThread implements Thread {
       isReadOnly: !!chat.readOnly,
       timestamp: new Date(toNumber(chat.conversationTimestamp!) * 1000),
       messageExpirySeconds: chat.ephemeralExpiration!,
-      mutedUntil: chat.mute
-        ? (chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute))
-        : null as any,
+      hasMoreMessageHistory: chat.endOfHistoryTransferType !== WAProto.Conversation.ConversationEndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
+      // @ts-expect-error
+      mutedUntil: mute,
     }
     Object.assign(this, partial)
   }

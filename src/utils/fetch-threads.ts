@@ -11,7 +11,7 @@ import { numberFromJid } from './generics'
 
 const THREAD_PAGE_SIZE = 15
 
-export default async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
+const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     if (pagination?.cursor) {
@@ -26,7 +26,7 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
   }
 
   if (tillCursor) {
-    const [date, id] = tillCursor.split(',')
+    const [date] = tillCursor.split(',')
     const till = new Date(date)
     whereClauses.push(`timestamp > datetime(${till.getTime() / 1000}, 'unixepoch', 'utc')`)
   }
@@ -130,3 +130,5 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, mapping
     hasMore: items.length >= THREAD_PAGE_SIZE,
   }
 }
+
+export default fetchThreads
