@@ -1,6 +1,5 @@
 import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
-import { chunk, map } from 'lodash'
 import type { Logger } from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -59,13 +58,16 @@ const makeTextsBaileysStore = (
               delete processedUpdate.messages
             }
 
-            publishEvent({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'thread',
-              objectIDs: { threadID: key.id },
-              mutationType: 'update',
-              entries: [{ ...processedUpdate, ...key }],
-            })
+            // if the update has more data than just the "id" & "_original" keys
+            if (Object.keys(processedUpdate).length > 2) {
+              publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { threadID: key.id },
+                mutationType: 'update',
+                entries: [{ ...processedUpdate, ...key }],
+              })
+            }
             break
         }
       },
