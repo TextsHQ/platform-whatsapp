@@ -25,7 +25,7 @@ const fetchMessages = async (
   if (pagination?.cursor) {
     qb = qb.andWhere(`order_key <= '${pagination.cursor}'`)
   }
-  let items = await qb.getMany()
+  let items = (await qb.getMany()).reverse()
 
   let hasMore = false
 
@@ -33,10 +33,8 @@ const fetchMessages = async (
   if (pagination?.cursor) {
     // get the item of the cursor, so we can use extra info to fetch info from legacy connection
     cursorItem = items[0]
-    items = items.slice(1)
+    items = items.slice(0, -1)
   }
-
-  items = items.reverse()
 
   if (conn?.type === 'legacy') {
     if (items.length < MESSAGE_PAGE_SIZE && cursorItem) {
