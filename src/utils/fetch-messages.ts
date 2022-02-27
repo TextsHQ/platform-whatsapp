@@ -101,7 +101,7 @@ const fetchMessages = async (
   return {
     items: items.map(item => DBMessage.prepareForSending(item, mappingCtx.accountID)),
     hasMore,
-    oldestCursor: items[0]?.orderKey.toString(),
+    oldestCursor: items[0]?.orderKey?.toString(),
   }
 }
 
