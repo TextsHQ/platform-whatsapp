@@ -1,12 +1,12 @@
 import DBMessage from '../entities/DBMessage'
 
 // end of history transfer message
-const getEotMessage = (threadID: string, orderKey: number): DBMessage => {
+const getEotMessage = (threadID: string, orderKey: number, timestamp: Date): DBMessage => {
   const msg = new DBMessage()
   const content: Partial<DBMessage> = {
     threadID,
     id: 'eot-msg',
-    timestamp: new Date(0),
+    timestamp: new Date((timestamp?.getTime() || 1) - 1),
     senderID: 'none',
     isSender: false,
     isAction: true,

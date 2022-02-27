@@ -95,7 +95,7 @@ const fetchMessages = async (
 
   hasMore = hasMore || items.length >= MESSAGE_PAGE_SIZE
   if (conn?.type === 'md' && !hasMore) {
-    items.splice(0, 0, getEotMessage(threadID, items[0]?.orderKey || 0))
+    items.splice(0, 0, getEotMessage(threadID, items[0]?.orderKey || 0, items[1]?.timestamp))
   }
 
   return {
