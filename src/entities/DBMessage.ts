@@ -109,7 +109,11 @@ export default class DBMessage implements Message {
   static prepareForSending<T extends Partial<DBMessage>>(item: T, accountID: string): T {
     item = { ...item }
     if (item.text) {
-      const { text, textAttributes } = mapTextAttributes(item.text, () => undefined)!
+      const { text, textAttributes } = mapTextAttributes(
+        item.text,
+        // add parenthesis so Texts can map id => name
+        id => (id.startsWith('{{') ? id : `{{${id}}}`),
+      )!
       if (textAttributes) {
         item.text = text
         item.textAttributes = textAttributes
