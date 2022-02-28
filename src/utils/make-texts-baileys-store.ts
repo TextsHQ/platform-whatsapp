@@ -35,7 +35,7 @@ const makeTextsBaileysStore = (
             publishEvent({
               type: ServerEventType.STATE_SYNC,
               objectName: 'thread',
-              objectIDs: { threadID: id },
+              objectIDs: {},
               mutationType: 'delete',
               entries: [id],
             })
@@ -45,7 +45,7 @@ const makeTextsBaileysStore = (
             publishEvent({
               type: ServerEventType.STATE_SYNC,
               objectName: 'thread',
-              objectIDs: { threadID: dbItem.id },
+              objectIDs: {},
               mutationType: 'upsert',
               entries: [dbItem],
             })
@@ -63,7 +63,7 @@ const makeTextsBaileysStore = (
               publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
-                objectIDs: { threadID: key.id },
+                objectIDs: {},
                 mutationType: 'update',
                 entries: [{ ...processedUpdate, ...key }],
               })
