@@ -737,6 +737,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         break
       case 'pin':
         mod = { pin: value }
+        break
       case 'mutedUntil':
         mod = { mute: value ? CHAT_MUTE_DURATION_S + Date.now() : null }
         break
