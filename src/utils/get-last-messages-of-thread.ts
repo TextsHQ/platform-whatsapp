@@ -28,7 +28,7 @@ const getLastMessagesOfThread = async (db: Connection | EntityManager, threadID:
     .createQueryBuilder('msg')
     .where('thread_id = :chatId', { chatId: threadID })
     .andWhere('NOT msg.is_action')
-    .andWhere('msg.order_key > :order_key', { cursor: lastMsgFromOther.orderKey })
+    .andWhere('msg.order_key > :orderKey', { orderKey: lastMsgFromOther.orderKey })
     .orderBy('order_key', 'ASC')
     .useTransaction(false)
     .getMany()
