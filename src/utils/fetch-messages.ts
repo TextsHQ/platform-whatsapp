@@ -75,6 +75,7 @@ const fetchMessages = async (
 
                 message.original.message.userReceipt = await conn.messageInfo(threadID, message.original.message.key.id!)
                 message.original.downloadedReceipts = true
+                message.shouldFireEvent = false
                 message.mapFromOriginal(mappingCtx)
                 messagesToSave.push(message)
               } catch {
