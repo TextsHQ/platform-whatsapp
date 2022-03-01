@@ -17,6 +17,8 @@ import mapPresenceUpdate from './map-presence-update'
 type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 
 const DEFAULT_CHUNK_SIZE = 350
+// redundant keys for threads
+const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', '_original'])
 
 const makeTextsBaileysStore = (
   db: Connection,
@@ -58,8 +60,11 @@ const makeTextsBaileysStore = (
               delete processedUpdate.messages
             }
 
+            const VALID_KEYS_UPDATED = Object.keys(processedUpdate).filter(
+              k => !THREAD_REDUNDANT_KEYS.has(k),
+            )
             // if the update has more data than just the "id" & "_original" keys
-            if (Object.keys(processedUpdate).length > 2) {
+            if (VALID_KEYS_UPDATED.length) {
               publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
