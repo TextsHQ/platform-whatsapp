@@ -75,7 +75,7 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
   afterRemove(event: RemoveEvent<T>) {
     if (!event.entity && !event.databaseEntity) return
 
-    const entity = event.entity || event.databaseEntity
+    const entity = event.databaseEntity || event.entity
     if (this.shouldPublish(entity)) {
       const deleteItem = this.getId(entity, event.metadata)
       this.eventPublish('delete', deleteItem)

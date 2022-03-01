@@ -469,6 +469,10 @@ const makeTextsBaileysStore = (
             const msgs = await repo.find({
               id: In(item.keys.map(mapMessageID)),
             })
+            logger.info(
+              { msgs: msgs.map(m => m.original.message.key) },
+              'deleting messages',
+            )
             await repo.remove(msgs)
           }
         },
