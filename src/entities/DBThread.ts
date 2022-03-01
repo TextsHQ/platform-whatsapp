@@ -106,7 +106,8 @@ export default class DBThread implements Thread {
     }
 
     if (item.timestamp) {
-      if (Number.isNaN(item.timestamp.getTime()) || !item.timestamp.getTime()) {
+      const time = item.timestamp.getTime()
+      if (Number.isNaN(time) || time === 0) {
         item.timestamp = undefined
       }
     }
