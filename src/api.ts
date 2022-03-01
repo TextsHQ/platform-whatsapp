@@ -236,12 +236,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       user = {
         id,
-        imgURL: profilePictureUrl(this.accountID, id),
         phoneNumber: numberFromJid(id),
       }
     }
     return {
       ...user,
+      imgURL: profilePictureUrl(this.accountID, user.id),
       displayText: user.phoneNumber!,
     }
   }
