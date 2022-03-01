@@ -148,6 +148,7 @@ export default class DBThread implements Thread {
       mute = chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute)
     }
     const createDate = metadata ? new Date(metadata.creation * 1000) : undefined
+    const stamp = toNumber(chat.conversationTimestamp || 0)
     const partial: Partial<DBThread> = {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
@@ -159,7 +160,7 @@ export default class DBThread implements Thread {
       participantsList: participants,
       isArchived: !!chat.archive,
       isReadOnly: !!chat.readOnly,
-      timestamp: (chat.conversationTimestamp ? new Date(toNumber(chat.conversationTimestamp) * 1000) : createDate) || new Date(0),
+      timestamp: (stamp > 0 ? new Date(stamp * 1000) : createDate) || new Date(0),
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration,
       hasMoreMessageHistory: chat.endOfHistoryTransferType !== WAProto.Conversation.ConversationEndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
       // @ts-expect-error
