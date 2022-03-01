@@ -116,8 +116,6 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, m
       stamp = new Date()
     }
     oldestCursor = `${stamp.toJSON()},${items[items.length - 1].id}`
-
-    console.log('oc ', oldestCursor, stamp)
   }
 
   const processedItems = items.map(
