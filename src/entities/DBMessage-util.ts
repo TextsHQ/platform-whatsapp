@@ -317,10 +317,18 @@ export function messageButtons(message: WAMessageContent) {
 }
 
 export function messageText(message: WAMessageContent, messageInner: any) {
-  if (message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING) {
-    const exp = message.protocolMessage.ephemeralExpiration
-    return getEphemeralMessageSettingChangedText(exp!, 'sender')
+  switch (message?.protocolMessage?.type) {
+    case WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING:
+      const exp = message.protocolMessage.ephemeralExpiration
+      return getEphemeralMessageSettingChangedText(exp!, 'sender')
+    case WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION:
+      return 'Chat History Synced'
+    case WAProto.ProtocolMessage.ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
+      return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.'
+    default:
+      break
   }
+
   const paymentMessage = message?.sendPaymentMessage || message?.requestPaymentMessage || message?.cancelPaymentRequestMessage || message?.declinePaymentRequestMessage
   if (paymentMessage) {
     if ('noteMessage' in paymentMessage) {

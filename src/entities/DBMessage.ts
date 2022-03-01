@@ -92,6 +92,9 @@ export default class DBMessage implements Message {
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
   behavior?: MessageBehavior
 
+  @Column({ type: 'boolean', default: false, nullable: false })
+  isHistoryMessage: boolean
+
   cursor?: string
 
   _original?: string
@@ -136,6 +139,7 @@ export default class DBMessage implements Message {
     }
 
     delete item.original
+    delete item.isHistoryMessage
 
     return item
   }
@@ -181,8 +185,10 @@ export default class DBMessage implements Message {
     const action = messageAction(message)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
-    const isEphemeralSetting = message?.message?.ephemeralMessage?.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
-    const isAction = !!((!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting)
+    const protocolMessageType = (message?.message || message?.message?.ephemeralMessage?.message)?.protocolMessage?.type
+    const isEphemeralSetting = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
+    const isHistoryMessage = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION
+    const isAction = !!((!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting || typeof protocolMessageType !== 'undefined')
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
@@ -212,5 +218,6 @@ export default class DBMessage implements Message {
     }
 
     Object.assign(this, mapped)
+    this.isHistoryMessage = isHistoryMessage
   }
 }
