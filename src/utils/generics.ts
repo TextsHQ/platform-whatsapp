@@ -152,7 +152,7 @@ export async function updateItems<
 }
 
 export const shouldExcludeMessage = (msg: WAMessage) =>
-  !!msg.message?.protocolMessage
+  msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
     || isJidBroadcast(msg.key.remoteJid || '')
 
 export const decodeSerializedSession = (sess: string) => {
