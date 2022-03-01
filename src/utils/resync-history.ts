@@ -21,6 +21,8 @@ const resyncHistory = async (db: Connection | EntityManager, client: WASocket) =
   for (const msg of msgs) {
     await client.processMessage(msg.original.message, {})
   }
+
+  await db.getRepository(DBMessage).save(msgs)
 }
 
 export default resyncHistory
