@@ -109,7 +109,17 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, m
     )
   }
 
-  const oldestCursor = items.length ? `${items[items.length - 1].timestamp?.toJSON()},${items[items.length - 1].id}` : undefined
+  let oldestCursor: string | undefined
+  if (items.length >= THREAD_PAGE_SIZE) {
+    let stamp = items[items.length - 1].timestamp
+    if (!stamp?.toJSON()) {
+      stamp = new Date()
+    }
+    oldestCursor = `${stamp.toJSON()},${items[items.length - 1].id}`
+
+    console.log('oc ', oldestCursor, stamp)
+  }
+
   const processedItems = items.map(
     item => {
       const result = DBThread.prepareForSending(item, mappingCtx.accountID)
