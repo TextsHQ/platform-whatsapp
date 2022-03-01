@@ -623,7 +623,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
     if (this.connState.connection === 'open') {
-      await readChat(this.db, this.client!, threadID, messageID)
+      await readChat(this.db, this.client!, this, threadID, messageID)
     }
   }
 

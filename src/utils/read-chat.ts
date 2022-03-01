@@ -2,13 +2,14 @@ import { AnyWASocket, isJidGroup, WAMessageKey } from '@adiwajshing/baileys'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
+import type { MappingContext } from '../types'
 import { unmapMessageID } from './generics'
 import getLastMessagesOfThread from './get-last-messages-of-thread'
 
 /**
  * utility function to mark a chat read
  */
-export default async (db: Connection | EntityManager, sock: AnyWASocket, threadID: string, messageID?: string) => {
+const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
   const repo = db.getRepository(DBThread)
   const item = await repo.findOne({ id: threadID })
 
@@ -43,7 +44,7 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, threadI
         }
       }
 
-      item.unreadCount = 0
+      item.update({ unreadCount: 0 }, ctx)
       await repo.save(item)
     } else if (item.unreadCount < 0) {
       // if the chat was unread
@@ -57,3 +58,5 @@ export default async (db: Connection | EntityManager, sock: AnyWASocket, threadI
     }
   }
 }
+
+export default readChat
