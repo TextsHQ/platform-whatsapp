@@ -151,7 +151,7 @@ export default class DBThread implements Thread {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
       id: threadID,
-      title: chat.name || '',
+      title: chat.name || metadata?.subject || '',
       unreadCount: chat.unreadCount || 0,
       type,
       createdAt: metadata ? new Date(metadata.creation * 1000) : undefined,
