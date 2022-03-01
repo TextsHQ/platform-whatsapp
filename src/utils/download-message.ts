@@ -2,7 +2,7 @@ import { AnyWASocket, downloadContentFromMessage, extractMessageContent, getCont
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
-export default async (db: Connection, sock: AnyWASocket, threadID: string, messageID: string) => {
+const downloadMessage = async (db: Connection, sock: AnyWASocket, threadID: string, messageID: string) => {
   const m = await db.getRepository(DBMessage).findOneOrFail({
     id: messageID,
     threadID,
@@ -22,3 +22,5 @@ export default async (db: Connection, sock: AnyWASocket, threadID: string, messa
 
   throw new Error('invalid message')
 }
+
+export default downloadMessage
