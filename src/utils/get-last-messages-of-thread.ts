@@ -7,7 +7,7 @@ import { unmapMessageID } from './generics'
  * fetches the last messages of a thread. Required for chat updates + reading chats
  * The function also ensures that the earliest message returned in the list must be from the other party in the chat (I don't know why, ask WA)
 */
-export default async (db: Connection | EntityManager, threadID: string) => {
+const getLastMessagesOfThread = async (db: Connection | EntityManager, threadID: string) => {
   const lastMsgs: Pick<WAMessage, 'key' | 'messageTimestamp'>[] = []
 
   const lastMsgFromOther = await db.getRepository(DBMessage).findOne({
@@ -29,7 +29,7 @@ export default async (db: Connection | EntityManager, threadID: string) => {
     .where('thread_id = :chatId', { chatId: threadID })
     .andWhere('NOT msg.is_action')
     .andWhere('msg.order_key > :order_key', { cursor: lastMsgFromOther.orderKey })
-    .orderBy('cursor', 'ASC')
+    .orderBy('order_key', 'ASC')
     .useTransaction(false)
     .getMany()
 
@@ -53,3 +53,5 @@ export default async (db: Connection | EntityManager, threadID: string) => {
 
   return lastMsgs
 }
+
+export default getLastMessagesOfThread
