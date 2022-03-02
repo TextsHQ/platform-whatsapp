@@ -173,7 +173,7 @@ export default class DBMessage implements Message {
 
     const contextInfo = typeof messageInner === 'object' && messageInner && ('contextInfo' in messageInner) ? messageInner.contextInfo : undefined
 
-    let senderID = message.key.fromMe ? currentUserID : (message.key.participant || message.participant || message.key.remoteJid!)
+    let senderID = message.key.fromMe ? currentUserID : (message.participant || message.key.participant || message.key.remoteJid!)
     senderID = jidNormalizedUser(senderID)
 
     const stubBasedMessage = messageStubText(message)

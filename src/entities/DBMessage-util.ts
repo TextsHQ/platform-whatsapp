@@ -49,13 +49,11 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: "You're now an admin",
   [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: "You're no longer an admin",
 
-  // todo: recheck if {{sender}} is accurate. we've had to replace sender with message.participant for a bunch of messages
   [WAMessageStubType.GROUP_CREATE]: '{{sender}} created this group',
   [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
   [WAMessageStubType.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WAMessageStubType.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [WAMessageStubType.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
-  // /end todo
 
   [WAMessageStubType.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   [WAMessageStubType.E2E_DEVICE_CHANGED]: '{{{{0}}}}\'s security code changed',
@@ -69,27 +67,25 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
   // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
-  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${message.participant}}} changed their phone number to a new number {{{{0}}}}`,
-  [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: message => `{{${message.participant}}} changed their phone number to a new number {{{{0}}}}`,
+  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
+  [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
   [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters![0], message.messageStubParameters![1]),
 
-  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: message => `{{${message.participant}}} changed the group description`,
-  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: message => `{{${message.participant}}} removed {{{{0}}}} from this group`,
-  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: message => `{{${message.participant}}} changed the group subject to "{{0}}"`,
-  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${message.participant}}} changed this group's icon`,
-  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: message => `{{${message.participant}}} joined using this group's invite link`,
+  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
+  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: '{{sender}} removed {{{{0}}}} from this group',
+  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to "{{0}}"',
+  [WAMessageStubType.GROUP_CHANGE_ICON]: '{{sender}} changed this group\'s icon',
+  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: '{{sender}} joined using this group\'s invite link',
 
   [WAMessageStubType.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters!.map(p => `{{${p}}}`).join(', ')} left`,
   [WAMessageStubType.GROUP_CHANGE_RESTRICT]: message => {
-    const actor = message.participant
-    if (message.messageStubParameters![0] === 'on') return `{{${actor}}} changed this group's settings to allow only admins to edit this group's info`
-    return `{{${actor}}} changed this group's settings to allow all participants to edit this group's info`
+    if (message.messageStubParameters![0] === 'on') return '{{sender}} changed this group\'s settings to allow only admins to edit this group\'s info'
+    return '{{sender}} changed this group\'s settings to allow all participants to edit this group\'s info'
   },
   [WAMessageStubType.GROUP_CHANGE_ANNOUNCE]: message => {
-    const actor = message.participant
-    if (message.messageStubParameters![0] === 'on') return `📢 {{${actor}}} changed this group's settings to allow only admins to send messages to this group`
-    return `📢 {{${actor}}} changed this group's settings to allow all participants to send messages to this group`
+    if (message.messageStubParameters![0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
+    return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
 }
 
@@ -176,25 +172,28 @@ export function messageStatus(status: number | string) {
 
 export function messageAction(message: WAMessage): MessageAction | undefined {
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType!]
+  const actorParticipantID = message.participant || message.key.participant || ''
   if (!actionType) return
   if (actionType === MessageActionType.THREAD_TITLE_UPDATED) {
     return {
       type: actionType,
       title: message.messageStubParameters![0],
-      actorParticipantID: message.participant!,
+      actorParticipantID,
     }
   }
   if (actionType === MessageActionType.GROUP_THREAD_CREATED) {
     return {
       type: actionType,
       title: message.messageStubParameters![0],
-      actorParticipantID: message.participant!,
+      actorParticipantID,
     }
   }
   return {
     type: actionType,
-    participantIDs: message.messageStubParameters ? message.messageStubParameters.map(p => p) : [message.participant!],
-    actorParticipantID: message.participant!,
+    participantIDs: message.messageStubParameters
+      ? message.messageStubParameters.map(p => p)
+      : [actorParticipantID],
+    actorParticipantID,
   }
 }
 
