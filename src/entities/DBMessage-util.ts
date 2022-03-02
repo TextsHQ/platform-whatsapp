@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
 import { toNumber } from 'lodash'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
@@ -223,7 +223,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
       fileName: `${c!.displayName}.vcf`,
     }))
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
-    const messageType = Object.keys(message)[0]
+    const messageType = getContentType(message)
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
 
