@@ -298,6 +298,9 @@ const makeTextsBaileysStore = (
     })
 
     ev.on('messages.set', async ({ messages, isLatest }) => {
+      if (!isLatest && connType === 'legacy') {
+        return
+      }
       logger.info({ length: messages.length, isLatest }, 'got messages history')
       await db.transaction(async db => {
         let key = 0
