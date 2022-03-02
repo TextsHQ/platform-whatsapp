@@ -159,9 +159,6 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
             output += `@${text}`
             entity.to = from + text.length + 1
             entity.mentionedUser = { id: content }
-            if (username) {
-              entity.mentionedUser.username = username
-            }
             break
           }
         }
