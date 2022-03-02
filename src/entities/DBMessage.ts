@@ -185,15 +185,13 @@ export default class DBMessage implements Message {
     const action = messageAction(message)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
-    const protocolMessageType = (message?.message || message?.message?.ephemeralMessage?.message)?.protocolMessage?.type
-    const isEphemeralSetting = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
+    const protocolMessageType = (message?.message?.ephemeralMessage?.message || message?.message)?.protocolMessage?.type
     const isHistoryMessage = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION
     const isAction = !!(
       (
         stubBasedMessage
         && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)
       )
-      || isEphemeralSetting
       || typeof protocolMessageType !== 'undefined'
     )
 
