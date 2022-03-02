@@ -21,7 +21,7 @@ const fetchMessages = async (
     .createQueryBuilder()
     .where('thread_id = :threadID', { threadID })
     .orderBy('order_key', 'DESC')
-    .limit(MESSAGE_PAGE_SIZE)
+    .limit(MESSAGE_PAGE_SIZE + (pagination?.cursor ? 1 : 0))
   if (pagination?.cursor) {
     qb = qb.andWhere(`order_key <= '${pagination.cursor}'`)
   }
