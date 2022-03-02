@@ -188,7 +188,14 @@ export default class DBMessage implements Message {
     const protocolMessageType = (message?.message || message?.message?.ephemeralMessage?.message)?.protocolMessage?.type
     const isEphemeralSetting = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING
     const isHistoryMessage = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION
-    const isAction = !!((!!stubBasedMessage && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)) || isEphemeralSetting || typeof protocolMessageType !== 'undefined')
+    const isAction = !!(
+      (
+        stubBasedMessage
+        && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)
+      )
+      || isEphemeralSetting
+      || typeof protocolMessageType !== 'undefined'
+    )
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
@@ -214,7 +221,7 @@ export default class DBMessage implements Message {
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
       behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
       expiresInSeconds: contextInfo?.expiration || undefined,
-      seen: mapMessageSeen(message),
+      seen: message.key.fromMe ? mapMessageSeen(message) : {},
     }
 
     Object.assign(this, mapped)
