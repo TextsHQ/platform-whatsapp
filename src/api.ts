@@ -14,7 +14,7 @@ import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
 import makeDebouncedStream from './utils/make-debounced-stream'
 import makeTextsBaileysStore from './utils/make-texts-baileys-store'
-import type { AnyAuthenticationCreds } from './types'
+import type { AnyAuthenticationCreds, LoginCallback, Transaction } from './types'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
@@ -25,10 +25,6 @@ import getEphemeralOptions from './utils/get-ephemeral-options'
 import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
-
-type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
-
-type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -207,6 +203,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (this.connectionType === 'md') {
       this.client = makeSocket({
         ...config,
+        version: this.latestWAVersion,
         auth: {
           creds: (this.session as any) || initAuthCreds(),
           keys: makeDBKeyStore(this.db),
