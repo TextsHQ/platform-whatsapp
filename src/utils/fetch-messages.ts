@@ -2,6 +2,7 @@ import { AnyWASocket, isJidGroup, WAProto } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
+import DBThread from '../entities/DBThread'
 import type { MappingContext } from '../types'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
 import getEotMessage from './get-eot-message'
@@ -96,7 +97,10 @@ const fetchMessages = async (
 
   hasMore = hasMore || items.length >= MESSAGE_PAGE_SIZE
   if (conn?.type === 'md' && !hasMore) {
-    items.unshift(getEotMessage(threadID, items[0]?.orderKey || 0, items[0]?.timestamp))
+    const thread = await db.getRepository(DBThread).findOne({ id: threadID })
+    if (thread?.hasMoreMessageHistory) {
+      items.unshift(getEotMessage(threadID, items[0]?.orderKey || 0, items[0]?.timestamp))
+    }
   }
 
   return {
