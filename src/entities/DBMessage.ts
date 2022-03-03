@@ -148,7 +148,13 @@ export default class DBMessage implements Message {
     if (!this.isSender && partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ) {
       this.original.seenByMe = true
     }
-
+    // we do not want to update timestamps
+    // when messages are decrypted after failures
+    // or due to any other reason
+    if (partial.messageTimestamp) {
+      partial = { ...partial }
+      delete partial.messageTimestamp
+    }
     Object.assign(this.original.message, partial)
     this.mapFromOriginal(ctx)
   }
