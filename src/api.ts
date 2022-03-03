@@ -14,7 +14,7 @@ import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
 import makeDebouncedStream from './utils/make-debounced-stream'
 import makeTextsBaileysStore from './utils/make-texts-baileys-store'
-import type { AnyAuthenticationCreds, LoginCallback, Transaction } from './types'
+import type { AnyAuthenticationCreds, LoginCallback, Receivable, Transaction } from './types'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
@@ -84,6 +84,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   private earliestLoadedThreadCursor?: string
 
   private latestWAVersion: WAVersion
+
+  // data recv for legacy connections
+  private recvDataSet = new Set<Receivable>()
 
   readonly logger = config.logger!.child({ stream: 'pw' }) as Logger
 
@@ -353,6 +356,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.receivedLatestData = true
   }
 
+  private onDataRecv = (type: Receivable) => {
+    this.recvDataSet.add(type)
+    // contacts & messages have been received
+    if (this.recvDataSet.size === 2) {
+      this.allowDataFetch()
+    }
+  }
+
   private registerCallbacks = async (ev: BaileysEventEmitter) => {
     this.dataStore.bind(ev, this.client!)
 
@@ -437,8 +448,13 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
-    ev.on('messages.set', () => {
-      this.allowDataFetch()
+    ev.on('contacts.set', () => {
+      this.onDataRecv('chats')
+    })
+    ev.on('messages.set', ({ isLatest }) => {
+      if (isLatest) {
+        this.onDataRecv('messages')
+      }
     })
   }
 

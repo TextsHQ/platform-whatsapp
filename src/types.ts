@@ -30,3 +30,5 @@ export type AnyAuthenticationCreds = AuthenticationCreds | LegacyAuthenticationC
 export type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 
 export type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
+
+export type Receivable = 'messages' | 'contacts' | 'chats'
