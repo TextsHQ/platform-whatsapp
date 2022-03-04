@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { AnyMediaMessageContent, areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
 import { toNumber } from 'lodash'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
@@ -226,6 +226,12 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
     const messageType = getContentType(message)
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
+    const content = message[messageType] as WAGenericMediaMessage
+
+    let fileSize: number | undefined
+    if ('fileLength' in content && !!content.fileLength) {
+      fileSize = toNumber(content.fileLength)
+    }
 
     const size = message.stickerMessage ? { width: 100, height: 100 } : { width: messageInner?.width, height: messageInner?.height }
     response.attachments = [{
@@ -238,6 +244,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
       posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
       srcURL: attachmentUrl(undefined, jid, id, fileName || ''),
       fileName: fileName || undefined,
+      fileSize,
     }]
     response.media = true
   } else if (message.productMessage?.product?.productImage) {
