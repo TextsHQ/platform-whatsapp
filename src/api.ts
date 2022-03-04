@@ -1176,7 +1176,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
+  getAsset = async (_, category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
     jid = decodeURIComponent(jid)
     msgID = msgID ? decodeURIComponent(msgID) : msgID
     switch (category) {
