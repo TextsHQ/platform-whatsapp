@@ -150,8 +150,7 @@ export default class DBMessage implements Message {
     }
     // we do not want to update timestamps
     // when messages are decrypted after failures
-    // or due to any other reason
-    if (partial.messageTimestamp) {
+    if (partial.messageTimestamp && this.original.message.messageStubType === WAMessageStubType.CIPHERTEXT) {
       partial = { ...partial }
       delete partial.messageTimestamp
     }
