@@ -1,10 +1,11 @@
 import { AnyMediaMessageContent, AnyRegularMessageContent, generateMessageID, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
-import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
+import type { MessageContent, MessageSendOptions, } from '@textshq/platform-sdk'
+import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import getEphemeralOptions from './get-ephemeral-options'
 
-export default async (db: Connection | EntityManager, threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
+const getMessageCompose = async (db: Connection | EntityManager, threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
   let content: AnyRegularMessageContent
   let { text, mimeType } = msgContent
   let sendAdditionalTextMessage = false
@@ -22,21 +23,39 @@ export default async (db: Connection | EntityManager, threadID: string, msgConte
   const buffer = msgContent.fileBuffer || (msgContent.filePath ? { url: msgContent.filePath! } : undefined)
 
   if (buffer) {
-    let media: AnyMediaMessageContent
-    if (mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
-    else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
-    else if (mimeType?.includes('image/')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
-    else if (mimeType?.includes('audio/')) media = { audio: buffer, ptt: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
-    else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
+    if (mimeType?.endsWith('/x-vcard') || mimeType?.endsWith('/vcf')) {
+      const vcardStr = (buffer as Buffer).toString('utf-8')
+      const parsed = parseVCard(vcardStr)
+      const displayName = parsed.fn?.[0]?.value
+      content = {
+        contacts: {
+          displayName,
+          contacts: [
+            { vcard: vcardStr, displayName },
+          ],
+        },
+      }
 
-    if (mimeType?.endsWith('/ogg')) {
-      mimeType = 'audio/ogg; codecs=opus'
-    }
+      if (text) {
+        sendAdditionalTextMessage = true
+      }
+    } else {
+      let media: AnyMediaMessageContent
+      if (mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
+      else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
+      else if (mimeType?.includes('image/')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
+      else if (mimeType?.includes('audio/')) media = { audio: buffer, ptt: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
+      else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
 
-    media.mimetype = mimeType || 'application/octet-stream'
-    content = media
-    if (!!text && !('caption' in media)) {
-      sendAdditionalTextMessage = true
+      if (mimeType?.endsWith('/ogg')) {
+        mimeType = 'audio/ogg; codecs=opus'
+      }
+
+      media.mimetype = mimeType || 'application/octet-stream'
+      content = media
+      if (!!text && !('caption' in media)) {
+        sendAdditionalTextMessage = true
+      }
     }
   } else {
     content = {
@@ -73,3 +92,5 @@ export default async (db: Connection | EntityManager, threadID: string, msgConte
 
   return composes
 }
+
+export default getMessageCompose
