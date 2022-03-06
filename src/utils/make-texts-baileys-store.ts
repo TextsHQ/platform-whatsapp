@@ -7,6 +7,7 @@ import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
+import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
 import { DBEventsPublisher } from './db-events-publisher'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
@@ -368,10 +369,14 @@ const makeTextsBaileysStore = (
           shouldUpsert
             ? async update => {
               const metadata = isJidGroup(update.id!) ? await groupMetadata(update.id!, true) : undefined
+
               const thread = new DBThread()
               thread.original = { chat: update, metadata }
               thread.mapFromOriginal(mappingCtx)
               await db.getRepository(DBParticipant).save(thread.participantsList!)
+              // add last message for upsert event
+              await addLastMessageToThreads(db, [thread], accountID)
+
               return thread
             }
             : undefined,

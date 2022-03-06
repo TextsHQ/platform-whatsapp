@@ -6,6 +6,7 @@ import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
+import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
 import { numberFromJid } from './generics'
 
@@ -74,37 +75,7 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, m
             mappingCtx.logger.info({ chats: itemsToSave.length }, 'updated metadatas')
           }
         })(),
-        (async () => {
-          const messageRepo = db.getRepository(DBMessage)
-          const messages = await messageRepo
-            .createQueryBuilder()
-            .where(
-              `(thread_id, order_key) IN (
-                  SELECT thread_id, MAX(order_key) from db_message
-                  WHERE thread_id IN (:...chats)
-                  GROUP BY thread_id
-                )`,
-              { chats: items.map(c => c.id) },
-            )
-            .getMany()
-
-          const messageMap = messages.reduce((dict, message) => {
-            dict[message.threadID] = message
-            return dict
-          }, { } as { [_: string]: DBMessage })
-
-          for (const chat of items) {
-            let msg = messageMap[chat.id]
-            if (msg) {
-              msg = DBMessage.prepareForSending(msg, mappingCtx.accountID)
-              chat.messages = {
-                hasMore: true,
-                items: [msg],
-                oldestCursor: msg.orderKey.toString(),
-              }
-            }
-          }
-        })(),
+        addLastMessageToThreads(db, items, mappingCtx.accountID),
       ],
     )
   }
