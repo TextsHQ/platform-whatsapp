@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions } from '@textshq/platform-sdk'
 import P, { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
@@ -125,7 +125,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.dataStore = makeTextsBaileysStore(
       this.db,
-      // @ts-expect-error
       config.logger!.child({ stream: 'store' }),
       this,
       this.publishEvent,
@@ -687,7 +686,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return true
   }
 
-  getAsset = async (category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
+  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
     jid = decodeURIComponent(jid)
     msgID = msgID ? decodeURIComponent(msgID) : msgID
     switch (category) {
