@@ -162,7 +162,8 @@ export default class DBThread implements Thread {
       isReadOnly: !!chat.readOnly,
       timestamp: (stamp > 0 ? new Date(stamp * 1000) : createDate) || new Date(0),
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration,
-      hasMoreMessageHistory: chat.endOfHistoryTransferType !== WAProto.Conversation.ConversationEndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
+      hasMoreMessageHistory: typeof chat.endOfHistoryTransferType !== 'undefined'
+        && chat.endOfHistoryTransferType !== WAProto.Conversation.ConversationEndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
       // @ts-expect-error
       mutedUntil: mute,
     }
