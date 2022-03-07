@@ -448,7 +448,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('contacts.set', () => {
-      this.onDataRecv('chats')
+      this.onDataRecv('contacts')
     })
     ev.on('messages.set', ({ isLatest }) => {
       if (isLatest) {
