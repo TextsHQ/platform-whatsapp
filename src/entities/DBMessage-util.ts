@@ -129,7 +129,11 @@ const PAYMENT_STATUS_MAP = {
 }
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
-  if (!message.status && isJidGroup(message.key.remoteJid || '')) {
+  if (message.status === WAMessageStatus.READ) {
+    return true
+  }
+
+  if (isJidGroup(message.key.remoteJid || '')) {
     const seenMap: MessageSeen = {}
     for (const { userJid, readTimestamp } of message.userReceipt || []) {
       if (readTimestamp) {
@@ -138,7 +142,8 @@ export const mapMessageSeen = (message: WAMessage): MessageSeen => {
     }
     return seenMap
   }
-  return message.status === WAMessageStatus.READ
+
+  return false
 }
 
 export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserId: string): MessagePreview | undefined => {
