@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes } from '@textshq/platform-sdk'
+import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes, texts } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
@@ -170,6 +170,12 @@ export default class DBMessage implements Message {
 
   mapFromOriginal(ctx: MappingContext) {
     const { message } = this.original
+
+    const threadID = message.key.remoteJid || ''
+    if(!threadID) {
+      texts.log(`[WARN] got msg with no thread: `, message)
+    }
+
     const currentUserID = ctx.meID || ''
     const id = mapMessageID(message.key)
     const messageContent = extractMessageContent(message.message)
@@ -203,7 +209,7 @@ export default class DBMessage implements Message {
     const mapped: Message = {
       _original: safeJSONStringify(message),
       id,
-      threadID: message.key.remoteJid!,
+      threadID,
       textHeading: [...messageHeading(message)].join('\n'),
       text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
       textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
