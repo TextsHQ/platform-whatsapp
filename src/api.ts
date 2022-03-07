@@ -134,7 +134,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.canServeThreads = existingData.hasChats
     this.canServeMessages = existingData.hasMessages
 
-    process.nextTick(() => this.connect())
+    this.connect()
   }
 
   dispose = async () => {
