@@ -1,7 +1,6 @@
 import { AnyWASocket, areJidsSameUser } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
-import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
@@ -12,7 +11,7 @@ import { numberFromJid } from './generics'
 
 const THREAD_PAGE_SIZE = 15
 
-const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
+const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | undefined, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     if (pagination?.cursor) {
@@ -50,7 +49,7 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket, m
           const participantsToSave: DBParticipant[] = []
           await Promise.all(
             items.map(async item => {
-              if (item.type === 'group' && item.requiresMapWithMetadata) {
+              if (item.type === 'group' && item.requiresMapWithMetadata && sock) {
                 const metadata = await (
                   sock.groupMetadata(item.id, item.isReadOnly)
                     .catch(error => {
