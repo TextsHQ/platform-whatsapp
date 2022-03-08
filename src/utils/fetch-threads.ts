@@ -1,4 +1,4 @@
-import { AnyWASocket, areJidsSameUser } from '@adiwajshing/baileys'
+import type { AnyWASocket } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 import DBParticipant from '../entities/DBParticipant'
@@ -93,10 +93,6 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
       const result = DBThread.prepareForSending(item, mappingCtx.accountID)
       for (const participant of result.participants.items) {
         DBUser.prepareForSending(participant, mappingCtx.accountID)
-      }
-      if (result.type === 'single' && !result.title) {
-        const otherParticipant = result.participants.items.find(p => areJidsSameUser(p.id, item.id))
-        item.title = otherParticipant?.fullName || numberFromJid(item.title) || item.title
       }
       return result
     },
