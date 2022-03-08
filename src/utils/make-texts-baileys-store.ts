@@ -359,7 +359,7 @@ const makeTextsBaileysStore = (
     })
 
     ev.on('chats.update', async updates => {
-      updates = updates.filter(u => !isJidBroadcast(u.id!))
+      updates = updates.filter(u => !isJidBroadcast(u.id!) && u.id)
       if (updates.length) {
         const shouldUpsert = !!updates.find(u => !!u.conversationTimestamp)
         const updated = await updateItems(
@@ -368,6 +368,8 @@ const makeTextsBaileysStore = (
           mappingCtx,
           shouldUpsert
             ? async update => {
+              logger.info(`upserting "${update.id!}"`)
+
               const metadata = isJidGroup(update.id!) ? await groupMetadata(update.id!, true) : undefined
 
               const thread = new DBThread()
@@ -381,7 +383,8 @@ const makeTextsBaileysStore = (
             }
             : undefined,
         )
-        logger.debug({ updates }, `updating ${updated.length}/${updates.length} chats`)
+
+        logger.debug({ updates }, `updated ${updated.length}/${updates.length} chats`)
       }
     })
 
