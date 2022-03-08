@@ -1,13 +1,12 @@
-import { AnyMediaMessageContent, areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
-import { toNumber } from 'lodash'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
     ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
     : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
-
+// @ts-expect-error
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
 const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
