@@ -23,14 +23,14 @@ export default class DBParticipant {
   @Column({ type: 'boolean', nullable: false, default: false })
   hasExited?: boolean
 
-  @ManyToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false })
+  @ManyToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({
     name: 'id',
     referencedColumnName: 'id',
   })
   user?: DBUser
 
-  @ManyToOne(() => DBThread, { createForeignKeyConstraints: false, cascade: false })
+  @ManyToOne(() => DBThread, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({
     name: 'thread_id',
     referencedColumnName: 'id',
