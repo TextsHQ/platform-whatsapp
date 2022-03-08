@@ -23,7 +23,7 @@ export default class DBParticipant {
   @Column({ type: 'boolean', nullable: false, default: false })
   hasExited?: boolean
 
-  @ManyToOne(() => DBUser, { createForeignKeyConstraints: false })
+  @ManyToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false })
   @JoinColumn({
     name: 'id',
     referencedColumnName: 'id',

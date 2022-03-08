@@ -63,7 +63,7 @@ export default class DBThread implements Thread {
 
   participants: Paginated<Participant>
 
-  @OneToMany(() => DBParticipant, ({ thread }) => thread)
+  @OneToMany(() => DBParticipant, ({ thread }) => thread, { cascade: false })
   participantsList?: DBParticipant[]
 
   shouldFireEvent?: boolean
