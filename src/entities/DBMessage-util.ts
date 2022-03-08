@@ -135,8 +135,9 @@ export const mapMessageSeen = (message: WAMessage): MessageSeen => {
   if (isJidGroup(message.key.remoteJid || '')) {
     const seenMap: MessageSeen = {}
     for (const { userJid, readTimestamp } of message.userReceipt || []) {
+      const readUnixStamp = toNumber(readTimestamp || 0)
       if (readTimestamp) {
-        seenMap[userJid] = new Date(toNumber(readTimestamp) * 1000)
+        seenMap[userJid] = new Date(readUnixStamp * 1000)
       }
     }
     return seenMap
