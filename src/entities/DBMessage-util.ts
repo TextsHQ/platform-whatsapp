@@ -334,7 +334,9 @@ export function messageText(message: WAMessageContent, messageInner: any) {
     case WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION:
       return 'Chat History Synced'
     case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_SHARE:
-      return 'App State Synced'
+      return 'App State Key Shared'
+    case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_REQUEST:
+      return 'App State Key Requested'
     case WAProto.ProtocolMessage.ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
       return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.'
     default:
