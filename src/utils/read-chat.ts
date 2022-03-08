@@ -40,7 +40,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
             remoteJid: threadID,
             ...unmapMessageID(msgs[0].id),
           }
-          sock.chatRead(key, msgs.length)
+          await sock.chatRead(key, msgs.length)
         }
       }
 
