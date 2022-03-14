@@ -13,6 +13,25 @@ const WALogo = () => (
   </svg>
 )
 
+const renderQR = (qrValue: string) => (
+  <>
+    <QRCode size={256} value={qrValue} includeMargin />
+    <div style={{
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+    >
+      <WALogo />
+    </div>
+  </>
+)
+
 export default class WhatsAppAuth extends React.Component<Props> {
   state: { qrValue?: string, error?: string } = {}
 
@@ -41,26 +60,8 @@ export default class WhatsAppAuth extends React.Component<Props> {
           <div><span>4</span>Point your phone to this screen</div>
         </div>
         <div className="text-center" style={{ position: 'relative' }}>
-          {qrValue ? (
-            <>
-              <QRCode size={256} value={qrValue} includeMargin />
-              <div style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-              >
-                <WALogo />
-              </div>
-            </>
-          ) : <div>Loading...</div>}
+          {qrValue ? renderQR(qrValue) : <p>Loading QR...</p>}
         </div>
-        <br />
         <footer>This integration works with and without Multi-Device joined.</footer>
       </div>
     )
