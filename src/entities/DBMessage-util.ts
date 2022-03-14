@@ -6,7 +6,7 @@ const participantAdded = (message: WAMessage) =>
   (message.participant
     ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
     : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
-// @ts-expect-error
+
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
 const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
