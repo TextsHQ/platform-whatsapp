@@ -33,13 +33,13 @@ export default class WhatsAppAuth extends React.Component<Props> {
     if (error) return error
     return (
       <div className="auth whatsapp-auth">
-        <ol>
-          <li>Open WhatsApp on your phone</li>
-          <li>Go to Settings or Menu</li>
+        <div className="list">
+          <div><span>1</span>Open WhatsApp on your phone</div>
+          <div><span>2</span>Go to Settings or Menu</div>
           {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-          <li>{'Tap on "Linked Devices", then "Link a Device"'}</li>
-          <li>Point your phone to this screen</li>
-        </ol>
+          <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
+          <div><span>4</span>Point your phone to this screen</div>
+        </div>
         <div className="text-center" style={{ position: 'relative' }}>
           {qrValue ? (
             <>
@@ -61,7 +61,7 @@ export default class WhatsAppAuth extends React.Component<Props> {
           ) : <div>Loading...</div>}
         </div>
         <br />
-        <div>This integration works with and without Multi-Device joined.</div>
+        <footer>This integration works with and without Multi-Device joined.</footer>
       </div>
     )
   }
