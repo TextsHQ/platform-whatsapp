@@ -224,6 +224,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
     this.evCallback = onEvent
+    onEvent([{
+      type: ServerEventType.TOAST,
+      toast: {
+        text: "This WhatsApp integration has been deprecated and will be removed in an update. You'll need to link WhatsApp again to use the new integration.",
+      },
+    }])
   }
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
