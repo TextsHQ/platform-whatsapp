@@ -585,7 +585,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
       if (this.connState.connection !== 'open') {
-        await this.client!.waitForConnectionUpdate(u => u.connection === 'open', 30_000)
+        await this.waitForConnectionOpen()
       }
 
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
