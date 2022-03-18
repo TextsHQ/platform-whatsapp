@@ -40,6 +40,23 @@ const config: Partial<SocketConfig> = {
 
 config.logger!.level = texts.isLoggingEnabled ? 'debug' : 'silent'
 
+async function checkUpdate(version: string) {
+  const latestWAVersion = await texts.fetch!(`https://web.whatsapp.com/check-update?version=${version}&platform=web`)
+  // {"isBroken":false,"isBelowSoft":false,"isBelowHard":false,"hardUpdateTime":null,"beta":null,"currentVersion":"2.2208.14"}
+  const json: {
+    isBroken: boolean
+    isBelowSoft: boolean
+    isBelowHard: boolean
+    hardUpdateTime: number | null
+    beta: boolean | null
+    currentVersion: string
+  } = JSON.parse(latestWAVersion.body.toString('utf-8'))
+  return {
+    version: json.currentVersion,
+    isExpired: json.isBelowHard || json.isBelowSoft,
+  }
+}
+
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: AnyWASocket
 
@@ -115,7 +132,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const { version, isLatest } = await fetchLatestBaileysVersion()
     this.latestWAVersion = version
-    texts.log(`fetched WA version ${version.join('.')}, isLatest: ${isLatest}`)
+    texts.log(`fetched latest WA version: ${version.join('.')}, isLatest: ${isLatest}`)
+    const update = await checkUpdate(version.join('.'))
+    if (update.isExpired) {
+      texts.log('version expired, updating', this.latestWAVersion, '→', update.version)
+      this.latestWAVersion = update.version.split('.').map(v => +v) as WAVersion
+    }
 
     const dbPath = path.join(dataDirPath, 'db.sqlite')
     texts.log(`init with DB path: ${dbPath}`)
