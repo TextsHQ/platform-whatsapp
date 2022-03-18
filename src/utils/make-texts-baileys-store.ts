@@ -438,6 +438,8 @@ const makeTextsBaileysStore = (
 
             const mappedMsg = existingMessageMap[uqId] || new DBMessage()
             if (mappedMsg.original) {
+              // replace message timestamp with the timestamp from the original
+              msg.messageTimestamp = mappedMsg.original.message.messageTimestamp
               mappedMsg.original.message = msg
             } else {
               mappedMsg.original = { message: msg }
