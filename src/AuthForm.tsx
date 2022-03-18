@@ -1,9 +1,6 @@
 import React from 'react'
 import QRCode from 'qrcode.react'
-
-import type WhatsAppAPI from './api'
-
-type Props = { api: WhatsAppAPI, login: () => void }
+import type { AuthProps } from '@textshq/platform-sdk'
 
 const WALogo = () => (
   <svg width="64" height="64" viewBox="0 0 64 64">
@@ -32,17 +29,17 @@ const renderQR = (qrValue: string) => (
   </>
 )
 
-export default class WhatsAppAuth extends React.Component<Props> {
+export default class WhatsAppAuth extends React.Component<AuthProps> {
   state: { qrValue?: string, error?: string } = {}
 
-  constructor(props: Props) {
+  constructor(props: AuthProps) {
     super(props)
     const { api, login } = this.props
-    api.onLoginEvent(({ qr: qrValue, isOpen, error }) => {
+    api!.onLoginEvent!(({ qr: qrValue, isOpen, error }) => {
       this.setState({ qrValue, error: error || this.state.error })
       if (isOpen) {
-        login()
-        api.onLoginEvent(() => { })
+        login!()
+        api!.onLoginEvent!(() => { })
       }
     })
   }
