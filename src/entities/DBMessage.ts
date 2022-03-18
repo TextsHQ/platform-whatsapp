@@ -6,7 +6,7 @@ import type { FullBaileysMessage, MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, isNotifyingMessage, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -228,7 +228,7 @@ export default class DBMessage implements Message {
       action,
       // todo: review logic, this is incorrect:
       // isErrored: !isAction && message.key.fromMe && message.status === 0,
-      behavior: !isNotifyingMessage(message, currentUserID) ? MessageBehavior.SILENT : undefined,
+      behavior: getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
     }

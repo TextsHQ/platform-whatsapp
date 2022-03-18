@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
+import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -202,17 +202,29 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
   }
 }
 
-export function isNotifyingMessage(message: WAMessage, currentUserId: string) {
+export function getNotificationType(message: WAMessage, currentUserId: string) {
+  if(message.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
+    return MessageBehavior.SILENT
+  }
   // only notify if
-  // not a broadcast
-  return !message.broadcast && (
-    // and some content
-    !!message.message || (
-      // or has a stub type that is important
-      NOTIFYING_STUB_TYPES.has(message.messageStubType!)
-      && !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))
-    )
-  )
+  if (
+    (
+      // not a broadcast
+      !message.broadcast && (
+        // and some content
+        !!message.message || (
+          // or has a stub type that is important
+          NOTIFYING_STUB_TYPES.has(message.messageStubType!)
+          && !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))
+        )
+      )
+    ) || !message.key.fromMe // no flag for fromMe messages
+  ) {
+    // default notify behaviour
+    return
+  }
+
+  return MessageBehavior.DONT_NOTIFY
 }
 
 export function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
