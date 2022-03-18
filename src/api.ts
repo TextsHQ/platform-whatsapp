@@ -34,7 +34,7 @@ const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
   logger: P().child({ class: 'texts-baileys' }),
-  browser: Browsers.ubuntu('Chrome'),
+  browser: Browsers.appropriate('Chrome'),
   connectTimeoutMs: 120_000,
 }
 
