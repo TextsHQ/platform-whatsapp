@@ -42,7 +42,7 @@ export const numberFromJid = (jid: string) => {
   }
 }
 
-export const getDataURIFromBuffer = (buff: Buffer, mimeType: string = '') =>
+export const getDataURIFromBuffer = (buff: Buffer, mimeType = '') =>
   `data:${mimeType};base64,${buff.toString('base64')}`
 
 export const hasUrl = (msg: WAMessage) => {
@@ -78,7 +78,7 @@ export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
 export const makeMutex = () => {
   let task = Promise.resolve() as Promise<any>
   return {
-    mutex<T>(code: () => Promise<T>):Promise<T> {
+    mutex<T>(code: () => Promise<T>): Promise<T> {
       task = (async () => {
         // wait for the previous task to complete
         // if there is an error, we swallow so as to not block the queue

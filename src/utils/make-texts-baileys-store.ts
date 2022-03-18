@@ -392,14 +392,12 @@ const makeTextsBaileysStore = (
       const metadataList = await Promise.all(
         upserts.map(update => (isJidGroup(update.id) ? groupMetadata(update.id, true) : undefined)),
       )
-      const metadataMap = metadataList.reduce(
-        (dict, item) => {
-          if (item) {
-            dict[item.id] = item
-          }
-          return dict
-        }, {} as { [id: string]: GroupMetadata },
-      )
+      const metadataMap = metadataList.reduce((dict, item) => {
+        if (item) {
+          dict[item.id] = item
+        }
+        return dict
+      }, {} as { [id: string]: GroupMetadata })
       const updated = await db.transaction(db => upsertWAChats(db, upserts, metadataMap))
       logger.info({ threads: updated.chats }, `upserted ${updated.chats.length} chats`)
     })

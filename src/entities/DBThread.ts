@@ -75,9 +75,9 @@ export default class DBThread implements Thread {
         update.unreadCount! += this.original.chat.unreadCount
       }
     }
-    if(update.conversationTimestamp && this.original.chat.conversationTimestamp) {
+    if (update.conversationTimestamp && this.original.chat.conversationTimestamp) {
       const newStamp = toNumber(update.conversationTimestamp)
-      if(newStamp < toNumber(this.original.chat.conversationTimestamp)) {
+      if (newStamp < toNumber(this.original.chat.conversationTimestamp)) {
         update = { ...update }
         delete update.conversationTimestamp
       }

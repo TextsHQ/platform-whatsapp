@@ -1,11 +1,11 @@
-import type { Connection, EntityManager } from "typeorm"
-import DBMessage from "../entities/DBMessage"
-import type DBThread from "../entities/DBThread"
+import type { Connection, EntityManager } from 'typeorm'
+import DBMessage from '../entities/DBMessage'
+import type DBThread from '../entities/DBThread'
 
-const addLastMessageToThreads = async(
+const addLastMessageToThreads = async (
   db: EntityManager | Connection,
   chats: DBThread[],
-  accountID: string
+  accountID: string,
 ) => {
   const messageRepo = db.getRepository(DBMessage)
   const messages = await messageRepo

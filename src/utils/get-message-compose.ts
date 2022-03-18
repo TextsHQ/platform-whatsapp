@@ -1,5 +1,5 @@
 import { AnyMediaMessageContent, AnyRegularMessageContent, generateMessageID, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
-import type { MessageContent, MessageSendOptions, } from '@textshq/platform-sdk'
+import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'

@@ -35,7 +35,7 @@
     "typeorm-naming-strategies": "^2.0.0"
   },
   "devDependencies": {
-    "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config",
+    "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main",
     "@types/bluebird": "^3.5.33",
     "@types/eslint": "^7.2.5",
     "@types/jest": "^26.0.19",

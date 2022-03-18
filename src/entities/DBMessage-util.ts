@@ -203,7 +203,7 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 }
 
 export function getNotificationType(message: WAMessage, currentUserId: string) {
-  if(message.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
+  if (message.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
     return MessageBehavior.SILENT
   }
   // only notify if

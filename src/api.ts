@@ -527,7 +527,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.loadedThreadSet.add(item.id)
     }
 
-    if(!this.earliestLoadedThreadCursor || result.oldestCursor! < this.earliestLoadedThreadCursor) {
+    if (!this.earliestLoadedThreadCursor || result.oldestCursor! < this.earliestLoadedThreadCursor) {
       this.earliestLoadedThreadCursor = result.oldestCursor
     }
 

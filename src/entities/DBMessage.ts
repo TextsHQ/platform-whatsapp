@@ -172,8 +172,8 @@ export default class DBMessage implements Message {
     const { message } = this.original
 
     const threadID = message.key.remoteJid || ''
-    if(!threadID) {
-      texts.log(`[WARN] got msg with no thread: `, message)
+    if (!threadID) {
+      texts.log('[WARN] got msg with no thread: ', message)
     }
 
     const currentUserID = ctx.meID || ''
