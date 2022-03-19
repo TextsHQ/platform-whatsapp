@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import P, { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
@@ -19,7 +19,7 @@ import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
 import fetchThreads from './utils/fetch-threads'
-import downloadMessage from './utils/download-message'
+import downloadMessage, { getAttachmentInfo } from './utils/download-message'
 import getMessageCompose from './utils/get-message-compose'
 import getEphemeralOptions from './utils/get-ephemeral-options'
 import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
@@ -724,7 +724,21 @@ export default class WhatsAppAPI implements PlatformAPI {
         return url
       }
       case 'attachment': {
-        const result = await downloadMessage(this.db, this.client!, jid, msgID)
+        const endByte = opts.range?.end ? opts.range?.end + 1 : opts.range?.end
+        const result = await downloadMessage(this.db, this.client!, jid, msgID, { startByte: opts.range?.start, endByte })
+        return result
+      }
+      default:
+        throw new Error('Unexpected attachment: ' + category)
+    }
+  }
+
+  getAssetInfo = async (_: GetAssetOptions, category: 'profile-picture' | 'attachment', jid: string, msgID: string): Promise<AssetInfo> => {
+    jid = decodeURIComponent(jid)
+    msgID = msgID ? decodeURIComponent(msgID) : msgID
+    switch (category) {
+      case 'attachment': {
+        const result = await getAttachmentInfo(this.db, jid, msgID)
         return result
       }
       default:
