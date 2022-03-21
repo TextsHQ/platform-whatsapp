@@ -5,9 +5,9 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@adiwajshing/baileys@git+https://github.com/adiwajshing/baileys":
+"@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.0.1
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=54d31edc1db14a8de7daa49c18d034c499005061"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=b7713673b2f966140e92a4a0b86c5b740eda3172"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -32,7 +32,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 97ee2457c721c16563a11c30948624125c9d33262e90ca71ef29d11ed07fb7cbb9b8b08bb31cf45b92cb788829c1223e2420ec25ae3c991107fbdf03f650f038
+  checksum: 6087a63f39788f070c7535109c388346126c84dc7ef105fea74f08501f09403447c7e8fdd46a7005e16d4fc28dba3c0d89f8e4b6b214dc789d0fd4922deaa954
   languageName: node
   linkType: hard
 
@@ -2426,7 +2426,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@textshq/platform-whatsapp@workspace:."
   dependencies:
-    "@adiwajshing/baileys": "git+https://github.com/adiwajshing/baileys"
+    "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master"
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main"
     "@types/bluebird": ^3.5.33
