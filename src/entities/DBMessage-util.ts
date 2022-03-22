@@ -57,7 +57,10 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.E2E_IDENTITY_CHANGED]: '{{{{0}}}}\'s security code changed',
   [WAMessageStubType.E2E_DEVICE_CHANGED]: '{{{{0}}}}\'s security code changed',
   [WAMessageStubType.E2E_IDENTITY_UNAVAILABLE]: 'Security code notifications are no longer available for this chat',
+  [WAMessageStubType.BIZ_PRIVACY_MODE_INIT_BSP]: 'This business works with other companies to manage this chat',
   [WAMessageStubType.BIZ_PRIVACY_MODE_TO_BSP]: 'This business is now working with other companies to manage this chat',
+  [WAMessageStubType.BIZ_PRIVACY_MODE_INIT_FB]: 'This business uses a secure service from the Facebook company to manage this chat',
+  [WAMessageStubType.BIZ_PRIVACY_MODE_TO_FB]: 'This business is now using a secure service from the Facebook company to manage this chat',
   [WAMessageStubType.GENERIC_NOTIFICATION]: '{{0}}',
 
   [WAMessageStubType.GROUP_PARTICIPANT_ADD]: participantAdded,
