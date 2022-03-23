@@ -625,6 +625,19 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
   )
 
+  addReaction = async (threadID: string, messageID: string, reactionKey: string) => {
+    const key: WAProto.IMessageKey = {
+      ...unmapMessageID(messageID),
+      remoteJid: threadID,
+    }
+    await this.client!.sendMessage(threadID, {
+      react: {
+        key,
+        text: reactionKey,
+      },
+    })
+  }
+
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
     const { original: { message } } = await this.db.getRepository(DBMessage).findOneOrFail({
       id: messageID,
