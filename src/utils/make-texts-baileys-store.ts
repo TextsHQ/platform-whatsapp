@@ -19,7 +19,7 @@ type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 
 const DEFAULT_CHUNK_SIZE = 350
 // redundant keys for threads
-const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', '_original'])
+const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', '_original', 'timestamp'])
 
 const makeTextsBaileysStore = (
   db: Connection,
