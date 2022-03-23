@@ -1,5 +1,6 @@
 import type { Connection } from 'typeorm'
 import { makeMutex } from './generics'
+import MAIN_LOGGER from './logger'
 
 /**
  * sqlite cannot run multiple transactions at the same time
@@ -7,11 +8,21 @@ import { makeMutex } from './generics'
  *
  * to prevent that, we queue each transaction with this wrapper
 */
-export default (db: Connection) => {
+const dbMutexAllTransactions = (db: Connection) => {
+  const logger = MAIN_LOGGER.child({ class: 'transactions' })
+
   const { mutex } = makeMutex()
   const { transaction } = db
-  db.transaction = async (...args) => {
-    const result = await mutex(() => transaction.apply(db, args))
-    return result
-  }
+  // eslint-disable-next-line no-param-reassign
+  db.transaction = async (...args) => mutex(async () => {
+    logger.trace({ }, 'starting transaction')
+    try {
+      const result = await transaction.apply(db, args)
+      return result
+    } finally {
+      logger.trace({ }, 'ended transaction')
+    }
+  })
 }
+
+export default dbMutexAllTransactions
