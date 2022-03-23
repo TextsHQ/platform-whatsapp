@@ -1,12 +1,12 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, TextAttributes, texts } from '@textshq/platform-sdk'
+import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes, texts } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
 import { mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -61,6 +61,9 @@ export default class DBMessage implements Message {
 
   @Column({ type: 'simple-json', nullable: true })
   action?: MessageAction
+
+  @Column({ type: 'simple-json', nullable: true })
+  reactions?: MessageReaction[]
 
   @Column({ type: 'boolean', nullable: false, default: false })
   isAction: boolean
@@ -168,6 +171,18 @@ export default class DBMessage implements Message {
     this.mapFromOriginal(ctx)
   }
 
+  updateWithReaction(reaction: WAProto.IReaction, ctx: MappingContext) {
+    const authorID = getKeyAuthor(reaction.key, ctx.meID || '')
+
+    let reactions = this.original.message.reactions || []
+    reactions = reactions.filter(r => getKeyAuthor(r.key, ctx.meID!) !== authorID)
+    reactions.push(reaction)
+
+    this.original.message.reactions = reactions
+
+    this.mapFromOriginal(ctx)
+  }
+
   mapFromOriginal(ctx: MappingContext) {
     const { message } = this.original
 
@@ -231,6 +246,7 @@ export default class DBMessage implements Message {
       behavior: getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
+      reactions: message.reactions?.length ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
     }
 
     Object.assign(this, mapped)

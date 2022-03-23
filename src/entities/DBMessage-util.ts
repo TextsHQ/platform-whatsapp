@@ -1,5 +1,5 @@
-import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageSeen } from '@textshq/platform-sdk'
+import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -128,6 +128,23 @@ const PAYMENT_STATUS_MAP = {
   [WAProto.PaymentInfo.PaymentInfoStatus.CANCELLED]: 'Cancelled',
   [WAProto.PaymentInfo.PaymentInfoStatus.WAITING_FOR_PAYER]: 'Waiting for payer',
   [WAProto.PaymentInfo.PaymentInfoStatus.WAITING]: 'Waiting',
+}
+
+export const getKeyAuthor = (key: WAMessageKey | undefined | null, meID: string) => (
+  (key?.fromMe ? meID : key?.participant || key?.remoteJid) || ''
+)
+
+export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string): MessageReaction[] => {
+  return reactions.map(
+    reaction => {
+      return {
+        id: reaction.key?.id || '',
+        reactionKey: reaction.text || '',
+        participantID: getKeyAuthor(reaction.key, meID),
+        emoji: true
+      }
+    }
+  )
 }
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
