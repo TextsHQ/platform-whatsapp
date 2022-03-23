@@ -156,7 +156,7 @@ export const mapMessageSeen = (message: WAMessage): MessageSeen => {
     const seenMap: MessageSeen = {}
     for (const { userJid, readTimestamp } of message.userReceipt || []) {
       const readUnixStamp = toNumber(readTimestamp || 0)
-      if (readTimestamp) {
+      if (readUnixStamp) {
         seenMap[userJid] = new Date(readUnixStamp * 1000)
       }
     }
