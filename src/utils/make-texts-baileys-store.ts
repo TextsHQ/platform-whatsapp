@@ -468,6 +468,12 @@ const makeTextsBaileysStore = (
       updateMessages(updates, (msg, { update, key }) => msg.update({ ...update, key }, mappingCtx))
     })
 
+    ev.on('messages.reaction', reaction => {
+      updateMessages([reaction], (msg, update) => {
+        msg.updateWithReaction(update.reaction, mappingCtx)
+      })
+    })
+
     ev.on('message-receipt.update', async updates => {
       updateMessages(updates, (msg, { receipt }) => msg.updateFromReceipt(receipt, mappingCtx))
     })
