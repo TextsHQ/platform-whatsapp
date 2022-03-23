@@ -15,7 +15,6 @@
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
-    "@types/lodash": "^4.14.178",
     "better-sqlite3": "^7.4.5",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
@@ -34,6 +33,7 @@
     "@types/bluebird": "^3.5.33",
     "@types/eslint": "^7.2.5",
     "@types/jest": "^26.0.19",
+    "@types/lodash": "^4.14.178",
     "@types/match-sorter": "^4.0.0",
     "@types/pino": "^7.0.5",
     "@types/qrcode.react": "^1.0.2",

@@ -134,18 +134,14 @@ export const getKeyAuthor = (key: WAMessageKey | undefined | null, meID: string)
   (key?.fromMe ? meID : key?.participant || key?.remoteJid) || ''
 )
 
-export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string): MessageReaction[] => {
-  return reactions.map(
-    reaction => {
-      return {
-        id: reaction.key?.id || '',
-        reactionKey: reaction.text || '',
-        participantID: getKeyAuthor(reaction.key, meID),
-        emoji: true
-      }
-    }
-  )
-}
+export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string): MessageReaction[] => reactions.map(
+  reaction => ({
+    id: reaction.key?.id || '',
+    reactionKey: reaction.text || '',
+    participantID: getKeyAuthor(reaction.key, meID),
+    emoji: true,
+  }),
+)
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
   if (message.status === WAMessageStatus.READ) {

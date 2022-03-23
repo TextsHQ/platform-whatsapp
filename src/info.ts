@@ -15,32 +15,13 @@ const info: PlatformInfo = {
   maxGroupTitleLength: 25,
   reactions: {
     supported: {
-      '❤️': {
-        title: 'Love',
-        render: '❤️',
-      },
-      '👍': {
-        title: 'Like',
-        render: '👍',
-      },
-      '😂': {
-        title: 'Laugh',
-        render: '😂',
-      },
-      '😯': {
-        title: 'Wow',
-        render: '😯',
-      },
-      '😢': {
-        title: 'Sad',
-        render: '😢',
-      },
-      '🙏': {
-        title: 'Pray',
-        render: '🙏',
-      },
+      '👍': { title: '👍', render: '👍' },
+      '❤️': { title: '❤️', render: '❤️' },
+      '😂': { title: '😂', render: '😂' },
+      '😯': { title: '😯', render: '😯' },
+      '😢': { title: '😢', render: '😢' },
+      '🙏': { title: '🙏', render: '🙏' },
     },
-    allowsMultipleReactionsToSingleMessage: false,
   },
   attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
