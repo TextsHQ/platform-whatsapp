@@ -205,9 +205,7 @@ const makeTextsBaileysStore = (
       const meUser = DBUser.fromOriginal(me, mappingCtx)
       meUser.isSelf = true
       meUser.imgURL = profilePictureUrl(accountID, meUser.id)
-      await db.transaction(
-        db => db.getRepository(DBUser).save(meUser),
-      )
+      await db.getRepository(DBUser).save(meUser)
     }
 
     const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WAMessageKey }[]) => {
@@ -258,7 +256,7 @@ const makeTextsBaileysStore = (
               readMsgsUpdateMap[item.threadID] += 1
             }
           }
-          await repo.save(dbItems as any[], { chunk: 50 })
+          await repo.save(dbItems as any[])
           logger.info({ updates }, `updating ${dbItems.length}/${updates.length} messages`)
           // after messages are saved, if there are any updates to thread read counters
           // execute those updates
@@ -364,33 +362,29 @@ const makeTextsBaileysStore = (
       updates = updates.filter(u => !isJidBroadcast(u.id!) && u.id)
       if (updates.length) {
         const shouldUpsert = !!updates.find(u => !!u.conversationTimestamp)
-        await db.transaction(
-          async db => {
-            const updated = await updateItems(
-              updates,
-              db.getRepository(DBThread),
-              mappingCtx,
-              shouldUpsert
-                ? async update => {
-                  logger.info(`upserting "${update.id!}"`)
+        const updated = await updateItems(
+          updates,
+          db.getRepository(DBThread),
+          mappingCtx,
+          shouldUpsert
+            ? async update => {
+              logger.info(`upserting "${update.id!}"`)
 
-                  const metadata = isJidGroup(update.id!) ? await groupMetadata(update.id!, true) : undefined
+              const metadata = isJidGroup(update.id!) ? await groupMetadata(update.id!, true) : undefined
 
-                  const thread = new DBThread()
-                  thread.original = { chat: update, metadata }
-                  thread.mapFromOriginal(mappingCtx)
-                  await db.getRepository(DBParticipant).save(thread.participantsList!)
-                  // add last message for upsert event
-                  await addLastMessageToThreads(db, [thread], accountID)
+              const thread = new DBThread()
+              thread.original = { chat: update, metadata }
+              thread.mapFromOriginal(mappingCtx)
+              await db.getRepository(DBParticipant).save(thread.participantsList!)
+              // add last message for upsert event
+              await addLastMessageToThreads(db, [thread], accountID)
 
-                  return thread
-                }
-                : undefined,
-            )
-
-            logger.debug({ updates }, `updated ${updated.length}/${updates.length} chats`)
-          },
+              return thread
+            }
+            : undefined,
         )
+
+        logger.debug({ updates }, `updated ${updated.length}/${updates.length} chats`)
       }
     })
 
@@ -470,7 +464,7 @@ const makeTextsBaileysStore = (
       })
     })
 
-    ev.on('messages.update', updates => {
+    ev.on('messages.update', async updates => {
       updateMessages(updates, (msg, { update, key }) => msg.update({ ...update, key }, mappingCtx))
     })
 

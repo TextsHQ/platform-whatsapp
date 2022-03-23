@@ -1,8 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, Awaitable } from '@textshq/platform-sdk'
-import type { Logger } from 'pino'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
+import P, { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
@@ -25,7 +25,6 @@ import getEphemeralOptions from './utils/get-ephemeral-options'
 import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
-import logger from './utils/logger'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -34,10 +33,12 @@ const RECONNECT_DELAY_MS = 2500
 const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
-  logger: logger.child({ class: 'texts-baileys' }),
+  logger: P().child({ class: 'texts-baileys' }),
   browser: Browsers.macOS('Chrome'),
   connectTimeoutMs: 120_000,
 }
+
+config.logger!.level = texts.isLoggingEnabled ? 'debug' : 'silent'
 
 async function checkUpdate(version: string) {
   const latestWAVersion = await texts.fetch!(`https://web.whatsapp.com/check-update?version=${version}&platform=web`)
@@ -222,9 +223,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.isNewLogin = !this.session
       texts.log('connecting, new login: ' + this.isNewLogin)
     }
-    // default MD connection
-    const connectionType = this.connectionType || 'md'
-    if (connectionType === 'md') {
+
+    if (this.connectionType === 'md') {
       this.client = makeSocket({
         ...config,
         version: this.latestWAVersion,
@@ -295,7 +295,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const jid = jidNormalizedUser(key.remoteJid!)
     const id = mapMessageID(key)
 
-    const repo = this.db.getRepository(DBMessage)
+    const repo = await this.db.getRepository(DBMessage)
     const dbmsg = await repo.findOneOrFail({ id, threadID: jid })
 
     return dbmsg.original.message
@@ -516,12 +516,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     thread.mapFromOriginal(this)
 
     if (thread.type === 'group') {
-      await this.db.transaction(
-        async db => {
-          await db.getRepository(DBThread).save(thread)
-          await db.getRepository(DBParticipant).save(thread.participantsList!)
-        },
-      )
+      await this.db.getRepository(DBThread).save(thread)
+      await this.db.getRepository(DBParticipant).save(thread.participantsList!)
     }
 
     await setParticipantUsers(this.db, thread.participantsList!)
@@ -685,9 +681,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
     if (this.connState.connection === 'open') {
-      await this.db.transaction(
-        db => readChat(db, this.client!, this, threadID, messageID),
-      )
+      await readChat(this.db, this.client!, this, threadID, messageID)
     }
   }
 
