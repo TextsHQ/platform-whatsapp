@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 import type { AnyAuthenticationCreds, MappingContext } from '../types'
 
@@ -151,9 +151,13 @@ export async function updateItems<
   return dbItems
 }
 
-export const shouldExcludeMessage = (msg: WAMessage) =>
-  msg.message?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
-    || isJidBroadcast(msg.key.remoteJid || '')
+export const shouldExcludeMessage = (msg: WAMessage) => {
+  if(isJidBroadcast(msg.key.remoteJid || '')) {
+    return true
+  }
+  const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
+  return content?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE || !!content?.reactionMessage
+}
 
 export const decodeSerializedSession = (sess: string) => {
   const parsed: AnyAuthenticationCreds = typeof sess === 'string' ? JSON.parse(sess, BufferJSON.reviver) : sess
