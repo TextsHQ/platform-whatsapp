@@ -13,6 +13,35 @@ const info: PlatformInfo = {
   loginMode: 'custom',
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
   maxGroupTitleLength: 25,
+  reactions: {
+    supported: {
+      '❤️': {
+        title: 'Love',
+        render: '❤️',
+      },
+      '👍': {
+        title: 'Like',
+        render: '👍',
+      },
+      '😂': {
+        title: 'Laugh',
+        render: '😂',
+      },
+      '😯': {
+        title: 'Wow',
+        render: '😯',
+      },
+      '😢': {
+        title: 'Sad',
+        render: '😢',
+      },
+      '🙏': {
+        title: 'Pray',
+        render: '🙏',
+      },
+    },
+    allowsMultipleReactionsToSingleMessage: false,
+  },
   attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
     Attribute.SUPPORTS_FORWARD,

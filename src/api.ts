@@ -629,16 +629,25 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
   )
 
-  addReaction = async (threadID: string, messageID: string, reactionKey: string) => {
+  addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
+
+  removeReaction = async (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, null)
+
+  private setReaction = async (threadID: string, messageID: string, reactionKey: string | null) => {
     const key: WAProto.IMessageKey = {
       ...unmapMessageID(messageID),
       remoteJid: threadID,
     }
+    const opts = await getEphemeralOptions(this.db, threadID)
     await this.client!.sendMessage(threadID, {
       react: {
         key,
         text: reactionKey,
+        senderTimestampMs: unixTimestampSeconds(),
       },
+    }, {
+      waitForAck: true,
+      ...opts,
     })
   }
 
