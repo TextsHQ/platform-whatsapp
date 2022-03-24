@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion } from '@adiwajshing/baileys'
+import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, Awaitable } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -26,6 +26,7 @@ import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
 import logger from './utils/logger'
+import getLatestWAVersion from './utils/get-latest-wa-version'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -37,23 +38,6 @@ const config: Partial<SocketConfig> = {
   logger: logger.child({ class: 'texts-baileys' }),
   browser: Browsers.macOS('Chrome'),
   connectTimeoutMs: 120_000,
-}
-
-async function checkUpdate(version: string) {
-  const latestWAVersion = await texts.fetch!(`https://web.whatsapp.com/check-update?version=${version}&platform=web`)
-  // {"isBroken":false,"isBelowSoft":false,"isBelowHard":false,"hardUpdateTime":null,"beta":null,"currentVersion":"2.2208.14"}
-  const json: {
-    isBroken: boolean
-    isBelowSoft: boolean
-    isBelowHard: boolean
-    hardUpdateTime: number | null
-    beta: boolean | null
-    currentVersion: string
-  } = JSON.parse(latestWAVersion.body.toString('utf-8'))
-  return {
-    version: json.currentVersion,
-    isExpired: json.isBelowHard || json.isBelowSoft,
-  }
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -129,13 +113,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.session = session ? decodeSerializedSession(session) : undefined
     this.accountID = accountID
 
-    const { version, isLatest } = await fetchLatestBaileysVersion()
-    this.latestWAVersion = version
-    texts.log(`fetched latest WA version: ${version.join('.')}, isLatest: ${isLatest}`)
-    const update = await checkUpdate(version.join('.'))
+    const { version } = DEFAULT_CONNECTION_CONFIG
+
+    const update = await getLatestWAVersion(version.join('.'))
     if (update.isExpired) {
       texts.log('version expired, updating', this.latestWAVersion, '→', update.version)
       this.latestWAVersion = update.version.split('.').map(v => +v) as WAVersion
+    } else {
+      this.latestWAVersion = version
     }
 
     const dbPath = path.join(dataDirPath, 'db.sqlite')
