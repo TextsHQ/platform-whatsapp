@@ -67,13 +67,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private dataStore: ReturnType<typeof makeTextsBaileysStore>
 
-  private session?: AnyAuthenticationCreds
+  private session: AnyAuthenticationCreds
 
   private dataDirPath: string
 
   private refreshedThreadsInConnectionLifetime = false
-
-  private receivedLatestData = false
 
   private reconnectTriesLeft = MAX_RECONNECT_TRIES
 
@@ -105,12 +103,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   get connectionType() {
     if (this.client) return this.client.type
-    if (this.session) return getAuthenticationCredsType(this.session)
+    return getAuthenticationCredsType(this.session)
   }
 
   init = async (session: string | undefined, { accountID, dataDirPath }: AccountInfo) => {
     this.dataDirPath = dataDirPath
-    this.session = session ? decodeSerializedSession(session) : undefined
+    // if session was there, use that -- otherwise init default credentials
+    this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
     this.accountID = accountID
 
     const { version } = DEFAULT_CONNECTION_CONFIG
@@ -162,6 +161,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.loginCallback = callback
   }
 
+  private getDefaultSession = () => {
+    // default MD credentials
+    return initAuthCreds()
+  }
+
   private connect = async () => {
     await this.connectInternal()
 
@@ -207,14 +211,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.isNewLogin = !this.session
       texts.log('connecting, new login: ' + this.isNewLogin)
     }
-    // default MD connection
-    const connectionType = this.connectionType || 'md'
-    if (connectionType === 'md') {
+    if (this.connectionType === 'md') {
       this.client = makeSocket({
         ...config,
         version: this.latestWAVersion,
         auth: {
-          creds: (this.session as any) || initAuthCreds(),
+          creds: this.session as any,
           keys: makeDBKeyStore(this.db),
         },
         getMessage: async key => {
@@ -359,7 +361,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.canServeThreads = true
     this.canServeMessages = true
-    this.receivedLatestData = true
   }
 
   private onDataRecv = (type: Receivable) => {
@@ -411,7 +412,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             break
           case 'close':
             this.refreshedThreadsInConnectionLifetime = false
-            this.receivedLatestData = false
             if (this.connectionLifetimeTransaction) {
               this.connectionLifetimeTransaction!.data = {
                 reason: lastDisconnect,
