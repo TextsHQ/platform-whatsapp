@@ -171,12 +171,14 @@ export default class DBMessage implements Message {
     this.mapFromOriginal(ctx)
   }
 
-  updateWithReaction(reaction: WAProto.IReaction, ctx: MappingContext) {
+  updateWithReaction(reaction: WAProto.IReaction, operation: 'add' | 'remove', ctx: MappingContext) {
     const authorID = getKeyAuthor(reaction.key, ctx.meID || '')
 
     let reactions = this.original.message.reactions || []
     reactions = reactions.filter(r => getKeyAuthor(r.key, ctx.meID!) !== authorID)
-    reactions.push(reaction)
+    if (operation === 'add') {
+      reactions.push(reaction)
+    }
 
     this.original.message.reactions = reactions
 

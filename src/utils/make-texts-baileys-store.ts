@@ -20,6 +20,7 @@ type StoreBindContext = Pick<AnyWASocket, 'groupMetadata' | 'type'>
 const DEFAULT_CHUNK_SIZE = 350
 // redundant keys for threads
 const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', '_original', 'timestamp'])
+const MSG_REDUNDANT_KEYS: Set<string> = new Set(['id', 'threadID', '_original'])
 
 const makeTextsBaileysStore = (
   db: Connection,
@@ -144,13 +145,20 @@ const makeTextsBaileysStore = (
             const { key, update } = item as any
             const processedUpdate = DBMessage.prepareForSending(update as Partial<DBMessage>, accountID)
 
-            publishEvent({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'message',
-              objectIDs: { threadID: key.threadID },
-              mutationType: 'update',
-              entries: [{ ...key, ...processedUpdate }],
-            })
+            const VALID_MSG_KEYS_UPDATED = Object.keys(processedUpdate).filter(
+              k => !MSG_REDUNDANT_KEYS.has(k),
+            )
+
+            if (VALID_MSG_KEYS_UPDATED.length) {
+              publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'message',
+                objectIDs: { threadID: key.threadID },
+                mutationType: 'update',
+                entries: [{ ...key, ...processedUpdate }],
+              })
+            }
+
             break
         }
       },
@@ -470,7 +478,7 @@ const makeTextsBaileysStore = (
 
     ev.on('messages.reaction', reaction => {
       updateMessages([reaction], (msg, update) => {
-        msg.updateWithReaction(update.reaction, mappingCtx)
+        msg.updateWithReaction(update.reaction, update.operation, mappingCtx)
       })
     })
 
