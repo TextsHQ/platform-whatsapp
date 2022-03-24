@@ -545,14 +545,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     return result
   }
 
-  async waitForConnectionOpen() {
+  private async waitForConnectionOpen() {
     while (this.connState.connection !== 'open') {
-      await delay(50)
-    }
-  }
-
-  async waitForLatestData() {
-    while (!this.receivedLatestData) {
       await delay(50)
     }
   }
@@ -595,9 +589,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
-      if (this.connState.connection !== 'open') {
-        await this.waitForConnectionOpen()
-      }
+      await this.waitForConnectionOpen()
 
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
       const messages: DBMessage[] = []
@@ -619,6 +611,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   removeReaction = async (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, null)
 
   private setReaction = async (threadID: string, messageID: string, reactionKey: string | null) => {
+    await this.waitForConnectionOpen()
+
     const key: WAProto.IMessageKey = {
       ...unmapMessageID(messageID),
       remoteJid: threadID,
@@ -637,6 +631,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
+    await this.waitForConnectionOpen()
     const { original: { message } } = await this.db.getRepository(DBMessage).findOneOrFail({
       id: messageID,
       threadID,
@@ -669,11 +664,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
-    if (this.connState.connection === 'open') {
-      await this.db.transaction(
-        db => readChat(db, this.client!, this, threadID, messageID),
-      )
-    }
+    await this.waitForConnectionOpen()
+    await this.db.transaction(
+      db => readChat(db, this.client!, this, threadID, messageID),
+    )
   }
 
   sendActivityIndicator = async (type: ActivityType, threadID: string) => {
