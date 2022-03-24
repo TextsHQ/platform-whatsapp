@@ -141,7 +141,7 @@ export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string
     participantID: getKeyAuthor(reaction.key, meID),
     emoji: true,
   }),
-).filter(r => r.reactionKey)
+)
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
   if (message.status === WAMessageStatus.READ) {
