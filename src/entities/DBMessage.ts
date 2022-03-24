@@ -248,7 +248,7 @@ export default class DBMessage implements Message {
       behavior: getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
-      reactions: message.reactions?.length ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
+      reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
     }
 
     Object.assign(this, mapped)
