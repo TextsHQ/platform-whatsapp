@@ -89,6 +89,8 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
     if (message.messageStubParameters![0] === 'on') return '📢 {{sender}} changed this group\'s settings to allow only admins to send messages to this group'
     return '📢 {{sender}} changed this group\'s settings to allow all participants to send messages to this group'
   },
+  [WAMessageStubType.BLOCK_CONTACT]: message =>
+    (message.messageStubParameters![0] ? 'You blocked this contact' : 'You unblocked this contact'),
 }
 
 const NOTIFYING_STUB_TYPES = new Set(
