@@ -220,7 +220,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           keys: makeDBKeyStore(this.db),
         },
         getMessage: async key => {
-          const msg = await this.loadWAMessageFromDB(key)
+          const msg = await this.loadWAMessageFromDBWithKey(key)
           return msg?.message || undefined
         },
       })
@@ -278,14 +278,18 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  private loadWAMessageFromDB = async (key: WAProto.IMessageKey) => {
+  private loadWAMessageFromDB = async (threadID: string, messageID: string) => {
+    const repo = this.db.getRepository(DBMessage)
+    const dbmsg = await repo.findOneOrFail({ id: messageID, threadID })
+
+    return dbmsg.original.message
+  }
+
+  private loadWAMessageFromDBWithKey = async (key: WAProto.IMessageKey) => {
     const jid = jidNormalizedUser(key.remoteJid!)
     const id = mapMessageID(key)
 
-    const repo = this.db.getRepository(DBMessage)
-    const dbmsg = await repo.findOneOrFail({ id, threadID: jid })
-
-    return dbmsg.original.message
+    return this.loadWAMessageFromDB(jid, id)
   }
 
   private publishEvent = makeDebouncedStream(
@@ -613,14 +617,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   private setReaction = async (threadID: string, messageID: string, reactionKey: string | null) => {
     await this.waitForConnectionOpen()
 
-    const key: WAProto.IMessageKey = {
-      ...unmapMessageID(messageID),
-      remoteJid: threadID,
-    }
+    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+
     const opts = await getEphemeralOptions(this.db, threadID)
     await this.client!.sendMessage(threadID, {
       react: {
-        key,
+        key: msg.key,
         text: reactionKey,
         senderTimestampMs: unixTimestampSeconds(),
       },
