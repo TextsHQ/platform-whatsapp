@@ -22,6 +22,7 @@ const info: PlatformInfo = {
       '😢': { title: '😢', render: '😢' },
       '🙏': { title: '🙏', render: '🙏' },
     },
+    canReactWithAllEmojis: true,
   },
   attributes: new Set([
     Attribute.SUPPORTS_ARCHIVE,
