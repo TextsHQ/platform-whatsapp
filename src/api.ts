@@ -126,7 +126,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     texts.log(`init with DB path: ${dbPath}`)
 
     this.db = await getConnection(accountID, dbPath)
-    dbMutexAllTransactions(this.db)
 
     this.dataStore = makeTextsBaileysStore(
       this.db,
