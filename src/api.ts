@@ -129,7 +129,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.dataStore = makeTextsBaileysStore(
       this.db,
-      config.logger!.child({ stream: 'store' }),
       this,
       this.publishEvent,
     )
@@ -160,10 +159,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.loginCallback = callback
   }
 
-  private getDefaultSession = () => {
+  private getDefaultSession = () =>
     // default MD credentials
-    return initAuthCreds()
-  }
+    initAuthCreds()
 
   private connect = async () => {
     await this.connectInternal()
