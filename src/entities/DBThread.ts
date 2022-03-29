@@ -76,8 +76,8 @@ export default class DBThread implements Thread {
       }
     }
     if (update.conversationTimestamp && this.original.chat.conversationTimestamp) {
-      const newStamp = toNumber(update.conversationTimestamp)
-      if (newStamp < toNumber(this.original.chat.conversationTimestamp)) {
+      const newStamp = +toNumber(update.conversationTimestamp)
+      if (newStamp < +toNumber(this.original.chat.conversationTimestamp)) {
         update = { ...update }
         delete update.conversationTimestamp
       }
@@ -155,7 +155,7 @@ export default class DBThread implements Thread {
       mute = chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute)
     }
     const createDate = metadata ? new Date(metadata.creation * 1000) : undefined
-    const stamp = toNumber(chat.conversationTimestamp || chat.lastMsgTimestamp || 0)
+    const stamp = +toNumber(chat.conversationTimestamp || chat.lastMsgTimestamp || 0)
     const partial: Partial<DBThread> = {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
