@@ -1,6 +1,5 @@
 import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
-import type { Logger } from 'pino'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
@@ -24,11 +23,12 @@ const MSG_REDUNDANT_KEYS: Set<string> = new Set(['id', 'threadID', '_original'])
 
 const makeTextsBaileysStore = (
   db: Connection,
-  logger: Logger,
   mappingCtx: MappingContext,
   publishEvent: (event: ServerEvent) => void,
 ) => {
-  const { accountID } = mappingCtx
+  const { accountID, logger } = mappingCtx
+
+  let lastSyncMsgRecv: Date | undefined
 
   db.subscribers.push(
     new DBEventsPublisher(DBThread, {
@@ -166,6 +166,9 @@ const makeTextsBaileysStore = (
   )
 
   const bind = (ev: BaileysEventEmitter, { groupMetadata, type: connType }: StoreBindContext) => {
+    // reset values
+    lastSyncMsgRecv = undefined
+
     const upsertWAChats = async (
       db: Connection | EntityManager,
       chats: Chat[],
@@ -306,6 +309,8 @@ const makeTextsBaileysStore = (
         const { chats: threads, participants } = await upsertWAChats(db, chats, {}, false)
         logger.info({ chats: threads.length, participants: participants.length }, 'saved chats history')
       })
+
+      lastSyncMsgRecv = new Date()
     })
 
     ev.on('messages.set', async ({ messages, isLatest }) => {
@@ -339,6 +344,8 @@ const makeTextsBaileysStore = (
 
         logger.info({ messages: dbMessages.length }, 'saved message history')
       })
+
+      lastSyncMsgRecv = new Date()
     })
 
     const contactsUpsert = (contacts: Contact[]) => (
@@ -358,9 +365,10 @@ const makeTextsBaileysStore = (
       )
     )
 
-    ev.on('contacts.set', ({ contacts }) => {
+    ev.on('contacts.set', async ({ contacts }) => {
       logger.info({ length: contacts.length }, 'got contact history')
-      contactsUpsert(contacts)
+      await contactsUpsert(contacts)
+      lastSyncMsgRecv = new Date()
     })
 
     ev.on('contacts.upsert', contacts => {
@@ -551,6 +559,7 @@ const makeTextsBaileysStore = (
   }
 
   return {
+    syncState: () => ({ lastSyncMsgRecv }),
     bind,
   }
 }
