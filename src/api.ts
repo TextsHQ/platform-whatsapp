@@ -522,7 +522,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const repo = this.db.getRepository(DBThread)
     const item = await repo.findOne({ id: threadID })
     if (item) {
-      await this.db.getRepository(DBThread).remove(item)
+      await repo.remove(item)
     }
   }
 
