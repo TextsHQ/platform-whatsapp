@@ -19,6 +19,7 @@ const renderQR = (qrValue: string) => (
       right: 0,
       top: 0,
       bottom: 0,
+      minWidth: 256,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
