@@ -19,7 +19,7 @@ const resyncHistory = async (db: Connection | EntityManager, client: WASocket) =
   texts.log(`using ${msgs.length} history messages`)
 
   for (const msg of msgs) {
-    await client.processMessage(msg.original.message, {})
+    await client.processMessage(msg.original.message)
   }
 
   await db.getRepository(DBMessage).save(msgs)
