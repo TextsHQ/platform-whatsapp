@@ -348,7 +348,7 @@ const makeTextsBaileysStore = (
       lastSyncMsgRecv = new Date()
     })
 
-    const contactsUpsert = (contacts: Contact[]) => (
+    const contactsUpsert = (contacts: Contact[], mode: 'insert' | 'save') => (
       db.transaction(
         async db => {
           const items: DBUser[] = []
@@ -360,20 +360,24 @@ const makeTextsBaileysStore = (
               items.push(mapped)
             }
           }
-          await chunkedWrite(db.getRepository(DBUser), items, DEFAULT_CHUNK_SIZE)
+          if (mode === 'insert') {
+            await chunkedWrite(db.getRepository(DBUser), items, DEFAULT_CHUNK_SIZE)
+          } else {
+            await db.getRepository(DBUser).save(items, { chunk: DEFAULT_CHUNK_SIZE })
+          }
         },
       )
     )
 
     ev.on('contacts.set', async ({ contacts }) => {
       logger.info({ length: contacts.length }, 'got contact history')
-      await contactsUpsert(contacts)
+      await contactsUpsert(contacts, 'insert')
       lastSyncMsgRecv = new Date()
     })
 
     ev.on('contacts.upsert', contacts => {
       logger.info({ length: contacts.length }, 'upserting contacts')
-      contactsUpsert(contacts)
+      contactsUpsert(contacts, 'save')
     })
 
     ev.on('chats.update', async updates => {
