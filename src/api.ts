@@ -298,6 +298,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async allowDataFetch() {
+    if (!this.canServeThreads) {
+      while (!this.dataStore.syncState().lastSyncMsgRecv) {
+        await delay(100)
+      }
+    }
     // since we already had all threads
     // ask the Texts client to reload them for the user to get the latest data
     if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
