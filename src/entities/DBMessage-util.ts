@@ -280,6 +280,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
       srcURL: attachmentUrl(undefined, jid, id, fileName || ''),
       fileName: fileName || undefined,
       fileSize,
+      isVoiceNote: message.audioMessage?.ptt || undefined,
     }]
     response.media = true
   } else if (message.productMessage?.product?.productImage) {
