@@ -1,9 +1,8 @@
-import { AnyWASocket, isJidGroup, WAMessageKey } from '@adiwajshing/baileys'
+import type { AnyWASocket } from '@adiwajshing/baileys'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContext } from '../types'
-import { unmapMessageID } from './generics'
 import getLastMessagesOfThread from './get-last-messages-of-thread'
 
 /**
@@ -23,7 +22,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
           },
           order: { timestamp: 'DESC' },
           take: item.unreadCount,
-          select: ['id', 'senderID'],
+          select: ['original'],
         })
 
       const msgIndex = messageID ? msgs.findIndex(m => m.id === messageID) : -1
@@ -31,15 +30,11 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
         msgs = msgs.slice(msgIndex)
       }
       if (msgs.length) {
+        const keys = msgs.map(m => m.original.message.key)
         if (sock.type === 'md') {
-          const isGroup = isJidGroup(threadID)
-          const participant = isGroup ? msgs[0].senderID : undefined
-          await sock.sendReadReceipt(threadID, participant!, msgs.map(m => unmapMessageID(m.id).id))
+          await sock.readMessages(keys)
         } else {
-          const key: WAMessageKey = {
-            remoteJid: threadID,
-            ...unmapMessageID(msgs[0].id),
-          }
+          const [key] = keys
           await sock.chatRead(key, msgs.length)
         }
       }
