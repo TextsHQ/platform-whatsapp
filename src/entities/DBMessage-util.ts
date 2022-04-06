@@ -45,8 +45,8 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.CALL_MISSED_GROUP_VIDEO]: 'Missed group video call',
   [WAMessageStubType.CALL_MISSED_GROUP_VOICE]: 'Missed group voice call',
 
-  [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: "You're now an admin",
-  [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: "You're no longer an admin",
+  [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: '{{{{0}}}} is now an admin',
+  [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: '{{{{0}}}} is no longer an admin',
 
   [WAMessageStubType.GROUP_CREATE]: '{{sender}} created this group',
   [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
@@ -66,7 +66,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_ADD]: participantAdded,
   [WAMessageStubType.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
 
-  [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: 'You notified {{{{0}}}} that you are trying to send a payment.',
+  [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: '{{sender}} notified {{{{0}}}} that you are trying to send a payment.',
   // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
   [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
