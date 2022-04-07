@@ -22,15 +22,18 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
           },
           order: { timestamp: 'DESC' },
           take: item.unreadCount,
-          select: ['original'],
+          select: ['id', 'original'],
         })
 
       const msgIndex = messageID ? msgs.findIndex(m => m.id === messageID) : -1
       if (msgIndex >= 0) {
         msgs = msgs.slice(msgIndex)
       }
+      const keys = msgs.map(m => m.original.message.key)
+
+      ctx.logger.debug({ keys }, 'reading msgs')
+
       if (msgs.length) {
-        const keys = msgs.map(m => m.original.message.key)
         if (sock.type === 'md') {
           await sock.readMessages(keys)
         } else {
