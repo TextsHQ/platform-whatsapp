@@ -5,12 +5,13 @@ import type { Connection } from 'typeorm'
 import type { MappingContext } from '../types'
 import fetchThreads from '../utils/fetch-threads'
 import getConnection from '../utils/get-connection'
-import logger from '../utils/logger'
+import getLogger from '../utils/get-logger'
 import makeTextsBaileysStore from '../utils/make-texts-baileys-store'
 
 const TEST_DATA_PATH = './test-data'
 const DB_PATH = `${TEST_DATA_PATH}/test-db.sqlite`
 const STREAMS_FOLDER = join(TEST_DATA_PATH, 'baileys-streams')
+const logger = getLogger(undefined)
 
 const getStreamFile = (name: string) => join(STREAMS_FOLDER, `${name}.log`)
 
@@ -29,7 +30,7 @@ describe('Database Sync Tests', () => {
       logger.info('removing existing DB')
       await unlink(DB_PATH)
     }
-    db = await getConnection('default', DB_PATH)
+    db = await getConnection('default', DB_PATH, logger)
     store = makeTextsBaileysStore(
       db,
       mappingCtx,

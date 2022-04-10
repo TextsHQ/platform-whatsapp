@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes, texts } from '@textshq/platform-sdk'
+import type { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
@@ -190,7 +190,7 @@ export default class DBMessage implements Message {
 
     const threadID = message.key.remoteJid || ''
     if (!threadID) {
-      texts.log('[WARN] got msg with no thread: ', message)
+      ctx.logger.warn({ key: message.key }, 'got msg with no thread')
     }
 
     const currentUserID = ctx.meID || ''

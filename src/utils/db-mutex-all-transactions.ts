@@ -1,6 +1,6 @@
+import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import { makeMutex } from './generics'
-import MAIN_LOGGER from './logger'
 
 /**
  * sqlite cannot run multiple transactions at the same time
@@ -8,8 +8,9 @@ import MAIN_LOGGER from './logger'
  *
  * to prevent that, we queue each transaction with this wrapper
 */
-const dbMutexAllTransactions = (db: Connection) => {
-  const logger = MAIN_LOGGER.child({ class: 'transactions' })
+const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
+  // eslint-disable-next-line no-param-reassign
+  logger = logger.child({ class: 'transactions' })
 
   const { mutex } = makeMutex()
   const { transaction } = db

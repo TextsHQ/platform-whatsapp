@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, fetchLatestBaileysVersion, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, Awaitable } from '@textshq/platform-sdk'
+import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, captureEventStream, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import getConnection from './utils/get-connection'
@@ -22,10 +22,9 @@ import fetchThreads from './utils/fetch-threads'
 import downloadMessage, { getAttachmentInfo } from './utils/download-message'
 import getMessageCompose from './utils/get-message-compose'
 import getEphemeralOptions from './utils/get-ephemeral-options'
-import dbMutexAllTransactions from './utils/db-mutex-all-transactions'
 import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
-import logger from './utils/logger'
+import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
@@ -35,7 +34,6 @@ const RECONNECT_DELAY_MS = 2500
 const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
-  logger: logger.child({ class: 'texts-baileys' }),
   browser: Browsers.macOS('Chrome'),
   connectTimeoutMs: 120_000,
 }
@@ -86,7 +84,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   // data recv for legacy connections
   private recvDataSet = new Set<Receivable>()
 
-  readonly logger = config.logger!.child({ stream: 'pw' }) as Logger
+  logger: Logger
 
   accountID: string
 
@@ -112,20 +110,24 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
     this.accountID = accountID
 
+    this.logger = getLogger(
+      path.join(dataDirPath, 'platform-whatsapp.log'),
+    ).child({ stream: 'pw' })
+
     const { version } = DEFAULT_CONNECTION_CONFIG
 
     const update = await getLatestWAVersion(version.join('.'))
     if (update.isExpired) {
-      texts.log('version expired, updating', this.latestWAVersion, '→', update.version)
+      this.logger.debug({ old: this.latestWAVersion, new: update.version }, 'version expired, updating')
       this.latestWAVersion = update.version.split('.').map(v => +v) as WAVersion
     } else {
       this.latestWAVersion = version
     }
 
     const dbPath = path.join(dataDirPath, 'db.sqlite')
-    texts.log(`init with DB path: ${dbPath}`)
+    this.logger.info({ dbPath, waVersion: this.latestWAVersion }, 'platform whatsapp init')
 
-    this.db = await getConnection(accountID, dbPath)
+    this.db = await getConnection(accountID, dbPath, this.logger)
 
     this.dataStore = makeTextsBaileysStore(
       this.db,
@@ -166,9 +168,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   private connect = async () => {
     await this.connectInternal()
 
+    let msSinceConnect = 0
     try {
       const start = Date.now()
-      while ((Date.now() - start) < config.connectTimeoutMs!) {
+      while (msSinceConnect < config.connectTimeoutMs!) {
         await delay(250)
         const { connection, lastDisconnect } = this.connState
         if (connection === 'open') {
@@ -177,12 +180,13 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (connection === 'close' && !canReconnect(lastDisconnect?.error, this.reconnectTriesLeft).isReconnecting) {
           break
         }
+        msSinceConnect = Date.now() - start
       }
       if (this.connState.connection === 'close') {
         throw this.connState.lastDisconnect?.error || new ConnectionError('failed to open')
       }
     } catch (error) {
-      texts.log('connect failed:', error)
+      this.logger.info({ msSinceConnect, trace: error.stack }, 'connect failed')
       const statusCode: number = error.output?.statusCode
       if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
       // ensure cleanup
@@ -191,7 +195,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw error
     }
 
-    texts.log('connected successfully')
+    this.logger.info('connected successfully')
   }
 
   private connectInternal = async (delayMs?: number) => {
@@ -206,11 +210,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     // set on app start only
     if (typeof this.isNewLogin === 'undefined') {
       this.isNewLogin = !this.session
-      texts.log('connecting, new login: ' + this.isNewLogin)
+      this.logger.info({ isNewLogin: this.isNewLogin }, 'connecting')
     }
+
+    const logger = this.logger.child({ class: 'baileys' })
+
     if (this.connectionType === 'md') {
       this.client = makeSocket({
         ...config,
+        logger,
         version: this.latestWAVersion,
         auth: {
           creds: this.session as any,
@@ -224,6 +232,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     } else {
       this.client = makeWALegacySocket({
         ...config,
+        logger,
         auth: this.session as any,
         phoneResponseTimeMs: MAX_PHONE_RESPONSE_TIME_MS,
       })
@@ -292,7 +301,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private publishEvent = makeDebouncedStream(
     250,
     (events: ServerEvent[]) => {
-      texts.log(`pushing ${events.length} events`)
+      this.logger.debug(`pushing ${events.length} events`)
       this.evCallback(events)
     },
   )
@@ -308,13 +317,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
       this.refreshedThreadsInConnectionLifetime = true
 
+      this.logger.info('refreshing data')
+
       const events: ServerEvent[] = []
 
       await this.db.transaction(
         async db => {
           const { items: threads } = await fetchThreads(db, this.client!, this, undefined, this.earliestLoadedThreadCursor)
 
-          texts.log(`loaded ${threads.length} threads to refresh`)
+          this.logger.info(`loaded ${threads.length} threads to refresh`)
 
           const newLoadedThreadSet = new Set<string>()
           for (const thread of threads) {
@@ -383,7 +394,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('connection.update', update => {
       Object.assign(this.connState, update)
 
-      texts.log('connection update:', update)
+      this.logger.info({ update }, 'connection updated')
       const { connection, lastDisconnect, qr, receivedPendingNotifications } = update
 
       if (qr) {
@@ -402,7 +413,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               name: 'Lifetime',
             })
             if (this.connectionTransaction) {
-              texts.log('finished connect transaction')
+              this.logger.debug('finished connect transaction')
               this.connectionTransaction!.data = { }
               this.connectionTransaction!.finish()
             }
@@ -411,7 +422,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.reconnectTriesLeft = MAX_RECONNECT_TRIES
             break
           case 'connecting':
-            texts.log('connect transaction started')
+            this.logger.debug('connect transaction started')
             this.connectionTransaction = texts.Sentry.startTransaction?.({
               name: 'Connect',
             })
@@ -439,10 +450,10 @@ export default class WhatsAppAPI implements PlatformAPI {
             if (newType === 'md') this.session = initAuthCreds()
             else if (newType === 'legacy') this.session = newLegacyAuthCreds()
 
-            texts.log(`multi-device mismatch (switching to "${newType}")`)
+            this.logger.info(`multi-device mismatch (switching to "${newType}")`)
             reconnectDelayMs = 0 // no need to delay QR generation
           }
-          texts.log(`disconnected, reconnecting=${isReconnecting}, retries left=${this.reconnectTriesLeft}`)
+          this.logger.info(`disconnected, reconnecting=${isReconnecting}, retries left=${this.reconnectTriesLeft}`)
           // auto reconnect logic
           if (isReconnecting) {
             update.connection = 'connecting'
@@ -787,7 +798,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     if (!!chat[key] === value) {
       // already done, nothing to do
-      texts.log(`ignoring patch as already done ${key}:${value} on ${threadID}`)
+      this.logger.info(`ignoring patch as already done ${key}:${value} on ${threadID}`)
       return
     }
 
