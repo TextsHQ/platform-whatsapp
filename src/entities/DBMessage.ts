@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes, texts } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
@@ -236,7 +236,7 @@ export default class DBMessage implements Message {
       isSender: !!message.key.fromMe,
       isDeleted,
       attachments,
-      buttons: messageButtons(messageContent!),
+      buttons: message.message ? messageButtons(normalizeMessageContent(message.message)) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
       links: link ? [link] : undefined,

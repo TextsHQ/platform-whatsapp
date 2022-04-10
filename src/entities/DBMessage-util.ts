@@ -354,8 +354,16 @@ export function messageButtons(message: WAMessageContent) {
         })
       }
     })
+  } else if (message?.buttonsMessage?.buttons?.length) {
+    for (const button of message.buttonsMessage.buttons) {
+      buttons.push({
+        label: button.buttonText!.displayText!,
+        linkURL: '',
+      })
+    }
   }
-  return buttons.length === 0 ? undefined : buttons
+
+  return buttons
 }
 
 export function messageText(message: WAMessageContent, messageInner: any) {
@@ -405,8 +413,15 @@ export function messageText(message: WAMessageContent, messageInner: any) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
   }
   if (message?.templateMessage) {
-    const txt = message.templateMessage.hydratedTemplate?.hydratedContentText || message.templateMessage.hydratedFourRowTemplate?.hydratedContentText
+    const txt = (message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate)?.hydratedContentText
     if (txt) return txt
+  }
+  if (message?.buttonsMessage) {
+    return message?.buttonsMessage?.contentText
+  }
+
+  if (message?.buttonsResponseMessage) {
+    return message?.buttonsResponseMessage?.selectedDisplayText
   }
   return message?.conversation
 }
