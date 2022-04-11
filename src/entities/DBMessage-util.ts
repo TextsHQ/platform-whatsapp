@@ -412,14 +412,14 @@ export function messageText(message: WAMessageContent, messageInner: any) {
   if (text) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
   }
-  if (message?.templateMessage) {
-    const txt = (message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate)?.hydratedContentText
+  if (message?.templateMessage || message?.highlyStructuredMessage) {
+    const templateMsg = message.templateMessage || message?.highlyStructuredMessage?.hydratedHsm
+    const txt = (templateMsg?.hydratedTemplate || templateMsg?.hydratedFourRowTemplate)?.hydratedContentText
     if (txt) return txt
   }
   if (message?.buttonsMessage) {
     return message?.buttonsMessage?.contentText
   }
-
   if (message?.buttonsResponseMessage) {
     return message?.buttonsResponseMessage?.selectedDisplayText
   }
