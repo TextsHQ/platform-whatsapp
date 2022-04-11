@@ -1,7 +1,9 @@
-import { AnyMediaMessageContent, AnyRegularMessageContent, generateMessageID, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
-import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
+import { AnyMediaMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
+import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
+
+import generateMessageID from './generate-message-id'
 import DBMessage from '../entities/DBMessage'
 import getEphemeralOptions from './get-ephemeral-options'
 
@@ -78,9 +80,12 @@ const getMessageCompose = async (db: Connection | EntityManager, threadID: strin
   }
 
   const composes: { compose: AnyRegularMessageContent, options: MiscMessageGenerationOptions }[] = []
+  const messageId = options?.pendingMessageID?.includes('-')
+    ? generateMessageID() // for ios
+    : options?.pendingMessageID
   composes.push({
     compose: content,
-    options: { messageId: generateMessageID(), quoted: quotedMsg, ...opts },
+    options: { messageId, quoted: quotedMsg, ...opts },
   })
 
   if (sendAdditionalTextMessage) {

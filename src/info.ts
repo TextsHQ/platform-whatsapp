@@ -1,4 +1,5 @@
 import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
+import generateMessageID from './utils/generate-message-id'
 
 const info: PlatformInfo = {
   name: 'whatsapp-baileys',
@@ -68,6 +69,7 @@ const info: PlatformInfo = {
       }
     },
   },
+  generateUniqueMessageID: generateMessageID,
   auth: texts.React?.lazy(() => import('./AuthForm')),
 }
 
