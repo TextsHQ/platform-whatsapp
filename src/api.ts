@@ -105,14 +105,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   init = async (session: string | undefined, { accountID, dataDirPath }: AccountInfo) => {
+    await fs.mkdir(dataDirPath, { recursive: true })
+
     this.dataDirPath = dataDirPath
     // if session was there, use that -- otherwise init default credentials
     this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
     this.accountID = accountID
 
-    this.logger = getLogger(
-      path.join(dataDirPath, 'platform-whatsapp.log'),
-    ).child({ stream: 'pw' })
+    this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
@@ -153,8 +153,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   login = async (): Promise<LoginResult> => ({ type: 'success' })
 
   logout = async () => {
-    await this.client?.logout()
-    await fs.rm(this.dataDirPath, { recursive: true })
+    try {
+      await this.client?.logout()
+    } finally {
+      await fs.rm(this.dataDirPath, { recursive: true })
+    }
   }
 
   onLoginEvent = (callback: LoginCallback) => {
