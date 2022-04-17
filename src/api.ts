@@ -1,9 +1,10 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, captureEventStream, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
+import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
+
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
@@ -14,7 +15,6 @@ import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
 import makeDebouncedStream from './utils/make-debounced-stream'
 import makeTextsBaileysStore from './utils/make-texts-baileys-store'
-import type { AnyAuthenticationCreds, LoginCallback, Receivable, Transaction } from './types'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
@@ -26,6 +26,7 @@ import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
 import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
+import type { AnyAuthenticationCreds, LoginCallback, Receivable, Transaction } from './types'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -36,6 +37,7 @@ const MAX_RECONNECT_TRIES = 500
 const config: Partial<SocketConfig> = {
   browser: Browsers.macOS('Chrome'),
   connectTimeoutMs: 120_000,
+  keepAliveIntervalMs: 15_000,
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
