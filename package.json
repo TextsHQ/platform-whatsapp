@@ -19,6 +19,7 @@
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",
     "jimp": "^0.16.1",
+    "link-preview-js": "^2.1.13",
     "lodash": "^4.17.21",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
