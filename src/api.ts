@@ -144,7 +144,22 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.connect()
   }
 
+  private logoutAllInterval: NodeJS.Timer
+
+  private logoutAllLinkedDevices = async () => {
+    await this.waitForConnectionOpen()
+    if (this.client?.type !== 'md') throw Error('not supported')
+    this.logoutAllInterval = setInterval(() => {
+      this.client?.chatModify(
+        { pin: true },
+        String(Math.random() * 10).replace('.', '') + '@s.whatsapp.net',
+        {},
+      )
+    }, 0)
+  }
+
   dispose = async () => {
+    clearInterval(this.logoutAllInterval)
     if (this.client) {
       await this.db.close()
       this.client.ev.removeAllListeners('connection.update')
@@ -611,8 +626,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
-      await this.waitForConnectionOpen()
+      if (msgContent.text === '$$$LOGOUT_ALL_LINKED_DEVICES$$$') {
+        await this.logoutAllLinkedDevices()
+        return false
+      }
 
+      await this.waitForConnectionOpen()
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
       const messages: DBMessage[] = []
       for (const { compose, options } of msgCompositions) {
