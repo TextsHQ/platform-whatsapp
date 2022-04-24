@@ -7,12 +7,12 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.1.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=a7e9dcf5124925867a2b1d376c80b3b188434a72"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=9c7d563d7c358cd606e5a8062c27b148b2501b8a"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
     futoin-hkdf: ^1.5.0
-    libsignal: "git+https://github.com/adiwajshing/libsignal-node#proto-patch"
+    libsignal: "git+https://github.com/adiwajshing/libsignal-node"
     music-metadata: ^7.4.1
     node-cache: ^5.1.2
     pino: ^7.0.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: e70db3c1d0f8e109075086b2fe76aee146d9e6fb410b9e9ce8afc313249f81a8504572393085c2c8d41bad45be8cb365686d9c0553c7361af06200e7a99c0743
+  checksum: cf80994674b65c4a9e17636e03871d4b7f70dac1889184b2e70cffae98d608b91dc3be4bd9a87937829c1a54788a7b476010b51bbd4b5d557bbfc4ad624015d5
   languageName: node
   linkType: hard
 
@@ -2409,10 +2409,10 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=9ce5479436f231d171a883789ca2f04f532ae727"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=6b4c9c9fca5d669fcf7c4f1f4431cd1090495b06"
   dependencies:
     form-data: ^4.0.0
-  checksum: d7069a6f6b0d64a8c99de3dcd09a4dc71d6474b1f0658682957c2c0a11a7230f57963b847d2ab06c920a367369ef1b7a915628d6ca6122826adbd5c761d141ef
+  checksum: bd861e22bacbe87d860cf107b045749d891db904c0bb5bb9f1eed0baa2066b0536b5c75db2e0b4347f853b7e637f4239c60ae1bc9f26f8522b7bca4a06bd0ba0
   languageName: node
   linkType: hard
 
@@ -4120,6 +4120,13 @@ __metadata:
   version: 3.0.11
   resolution: "csstype@npm:3.0.11"
   checksum: 95e56abfe9ca219ae065acb4e43f61771a03170eed919127f558dfa168240867aba7629c8d98a201a0dd06d9a5ce82686f0570031c928516c61816adbc7c877f
+  languageName: node
+  linkType: hard
+
+"curve25519-js@npm:^0.0.4":
+  version: 0.0.4
+  resolution: "curve25519-js@npm:0.0.4"
+  checksum: e2f31c7d3cf83bdfe34ecb52d572797400cf29dc5f7f5894b9a94caea349b2cc86f320de67a1679f20cf3c6381b3053dba3b70019e2ee75e7bf9a7b85b3999f7
   languageName: node
   linkType: hard
 
@@ -7050,12 +7057,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libsignal@git+https://github.com/adiwajshing/libsignal-node#proto-patch":
+"libsignal@git+https://github.com/adiwajshing/libsignal-node":
   version: 2.0.1
-  resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=a623b3dc389cfbcf7b8559598b6c88986843d3dc"
+  resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=11dbd962ea108187c79a7c46fe4d6f790e23da97"
   dependencies:
+    curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: a3867e0df5cfba1bea33e44630881fae4af6b5d2c815786d5e763c70312da9a8d145001c589e1b9193b0c8e0ce5fa2a41d6d6162f9f736d570bdc425cde876e0
+  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
   languageName: node
   linkType: hard
 
