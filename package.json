@@ -12,9 +12,6 @@
     "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache",
     "test": "jest"
   },
-  "nativeDeps": {
-    "libsignal": "https://github.com/adiwajshing/libsignal-node#proto-patch"
-  },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
