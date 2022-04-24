@@ -7,12 +7,12 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.1.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=d5e46b784bcd0496d7e17d12a998f55f3ffdd436"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=a7e9dcf5124925867a2b1d376c80b3b188434a72"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
-    curve25519-js: ^0.0.4
-    libsignal: "git+https://github.com/adiwajshing/libsignal-node"
+    futoin-hkdf: ^1.5.0
+    libsignal: "git+https://github.com/adiwajshing/libsignal-node#proto-patch"
     music-metadata: ^7.4.1
     node-cache: ^5.1.2
     pino: ^7.0.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: b8840a901424a6cff5664e67b4a88e3bbeb1befecbf18bb3b7cfcbd18becebcc64971c344c0f9a4dbbfa98b103a6adc44e11d4f5fd78d45020376facc6494929
+  checksum: e70db3c1d0f8e109075086b2fe76aee146d9e6fb410b9e9ce8afc313249f81a8504572393085c2c8d41bad45be8cb365686d9c0553c7361af06200e7a99c0743
   languageName: node
   linkType: hard
 
@@ -4123,13 +4123,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"curve25519-js@npm:^0.0.4":
-  version: 0.0.4
-  resolution: "curve25519-js@npm:0.0.4"
-  checksum: e2f31c7d3cf83bdfe34ecb52d572797400cf29dc5f7f5894b9a94caea349b2cc86f320de67a1679f20cf3c6381b3053dba3b70019e2ee75e7bf9a7b85b3999f7
-  languageName: node
-  linkType: hard
-
 "damerau-levenshtein@npm:^1.0.7":
   version: 1.0.8
   resolution: "damerau-levenshtein@npm:1.0.8"
@@ -5377,6 +5370,13 @@ __metadata:
   version: 1.2.2
   resolution: "functions-have-names@npm:1.2.2"
   checksum: 25f44b6d1c41ac86ffdf41f25d1de81c0a5b4a3fcf4307a33cdfb23b9d4bd5d0d8bf312eaef5ad368c6500c8a9e19f692b8ce9f96aaab99db9dd936554165558
+  languageName: node
+  linkType: hard
+
+"futoin-hkdf@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "futoin-hkdf@npm:1.5.0"
+  checksum: c0819311f68ec1ba00d35b78ea6b825910def70a5fd330f2cc66e914e7ddb0b9ff267911286062324b120ad5f06fca5a1b09591473c553ac0bf0585a87fc9c72
   languageName: node
   linkType: hard
 
@@ -7050,13 +7050,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libsignal@git+https://github.com/adiwajshing/libsignal-node":
+"libsignal@git+https://github.com/adiwajshing/libsignal-node#proto-patch":
   version: 2.0.1
-  resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=4ffc1f3d6147ffdec88f62e70f41e7de2e08cd42"
+  resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=a623b3dc389cfbcf7b8559598b6c88986843d3dc"
   dependencies:
-    curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: fc6a5b707dbeb628122b159ff1f43392e197f074647c6708d7eea5c0695c8af1fcf9806b4127139efd27ee902373464258e451277c53da881a6a3be1d7022325
+  checksum: a3867e0df5cfba1bea33e44630881fae4af6b5d2c815786d5e763c70312da9a8d145001c589e1b9193b0c8e0ce5fa2a41d6d6162f9f736d570bdc425cde876e0
   languageName: node
   linkType: hard
 
