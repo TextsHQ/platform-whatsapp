@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.1.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=9c7d563d7c358cd606e5a8062c27b148b2501b8a"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=47ab32f314a6e0a030275a5164b0f2c1b97b8fe9"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: cf80994674b65c4a9e17636e03871d4b7f70dac1889184b2e70cffae98d608b91dc3be4bd9a87937829c1a54788a7b476010b51bbd4b5d557bbfc4ad624015d5
+  checksum: 227728e8e84016a9e85a8f942a2b4e80c071139c2d208ea265137766e7bb94a306be21bff7a53fd648bda9ceb92b04322b006080200f32302be3217bd9997469
   languageName: node
   linkType: hard
 
