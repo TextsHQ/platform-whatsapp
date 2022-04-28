@@ -491,7 +491,7 @@ const makeTextsBaileysStore = (
     })
 
     ev.on('messages.update', updates => {
-      updateMessages(updates, (msg, { update, key }) => msg.update({ ...update, key }, mappingCtx))
+      updateMessages(updates, (msg, { update }) => msg.update(update, mappingCtx))
     })
 
     ev.on('messages.reaction', reaction => {

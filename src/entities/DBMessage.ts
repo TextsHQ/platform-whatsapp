@@ -194,7 +194,11 @@ export default class DBMessage implements Message {
     }
 
     const currentUserID = ctx.meID || ''
-    const id = mapMessageID(message.key)
+    let id = mapMessageID(message.key)
+    // ensure we don't overwrite the ID ever
+    if (id !== this.id && !!this.id) {
+      id = this.id
+    }
     const messageContent = extractMessageContent(message.message)
     const messageType = getContentType(messageContent)
     const messageInner = messageType && messageContent ? messageContent[messageType] : undefined

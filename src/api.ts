@@ -814,7 +814,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const getLastMessages = async () => {
       const msgs = await getLastMessagesOfThread(this.db, threadID)
-      if (this.connectionType === 'legacy') {
+      if (this.connectionType === 'legacy' && Array.isArray(msgs)) {
         return msgs.slice(0, 1)
       }
       return msgs
