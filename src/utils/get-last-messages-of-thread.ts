@@ -1,57 +1,81 @@
-import { isJidGroup, unixTimestampSeconds, WAMessage } from '@adiwajshing/baileys'
+import type { LastMessageList } from '@adiwajshing/baileys'
+import { toNumber } from 'lodash'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
-import { unmapMessageID } from './generics'
 
 /**
  * fetches the last messages of a thread. Required for chat updates + reading chats
  * The function also ensures that the earliest message returned in the list must be from the other party in the chat (I don't know why, ask WA)
 */
-const getLastMessagesOfThread = async (db: Connection | EntityManager, threadID: string) => {
-  const lastMsgs: Pick<WAMessage, 'key' | 'messageTimestamp'>[] = []
+const getLastMessagesOfThread = async (db: Connection | EntityManager, threadID: string): Promise<LastMessageList> => (
+  db.transaction(
+    async em => {
+      const repo = em.getRepository(DBMessage)
+      let allMsgs: DBMessage[]
+      // find the latest message from the other party in the chat
+      const lastMsgFromOther = await repo.findOne({
+        where: {
+          threadID,
+          isAction: false,
+          isSender: false,
+        },
+        order: { orderKey: 'DESC' },
+        transaction: false,
+      })
+      // if we have a message from the other party in the database
+      if (lastMsgFromOther) {
+        const lastMsgsAfter = await repo
+          .createQueryBuilder('msg')
+          .where('thread_id = :chatId', { chatId: threadID })
+          .andWhere('NOT msg.is_action')
+          .andWhere('msg.order_key > :orderKey', { orderKey: lastMsgFromOther.orderKey })
+          .orderBy('order_key', 'ASC')
+          .useTransaction(false)
+          .getMany()
 
-  const lastMsgFromOther = await db.getRepository(DBMessage).findOne({
-    where: {
-      threadID,
-      isAction: false,
-      isSender: false,
+        allMsgs = [
+          ...lastMsgsAfter.reverse(),
+          lastMsgFromOther,
+        ]
+      } else { // if no message from the other party is there, find last message by us
+        allMsgs = await repo
+          .createQueryBuilder('msg')
+          .where('thread_id = :chatId', { chatId: threadID })
+          .andWhere('NOT msg.is_action')
+          .orderBy('order_key', 'DESC')
+          .useTransaction(false)
+          .limit(1)
+          .getMany()
+        if (!allMsgs.length) {
+          allMsgs = await repo
+            .createQueryBuilder('msg')
+            .where('thread_id = :chatId', { chatId: threadID })
+            .orderBy('order_key', 'DESC')
+            .useTransaction(false)
+            .limit(1)
+            .getMany()
+
+          if (allMsgs.length) {
+            const lastMessageTimestamp = toNumber(
+              allMsgs[0].original.message.messageTimestamp,
+            )
+            return { lastMessageTimestamp }
+          }
+        }
+      }
+
+      return allMsgs.map(msg => {
+        const { key, messageTimestamp, participant } = msg.original.message
+        if (!key.participant && participant) {
+          key.participant = participant
+        }
+        return {
+          key,
+          messageTimestamp: toNumber(messageTimestamp),
+        }
+      })
     },
-    order: { orderKey: 'DESC' },
-    transaction: false,
-  })
-
-  if (!lastMsgFromOther) {
-    throw new Error('Cannot execute action without message from other party')
-  }
-
-  const lastMsgsAfter = await db.getRepository(DBMessage)
-    .createQueryBuilder('msg')
-    .where('thread_id = :chatId', { chatId: threadID })
-    .andWhere('NOT msg.is_action')
-    .andWhere('msg.order_key > :orderKey', { orderKey: lastMsgFromOther.orderKey })
-    .orderBy('order_key', 'ASC')
-    .useTransaction(false)
-    .getMany()
-
-  const allMsgs = [
-    ...lastMsgsAfter.reverse(),
-    lastMsgFromOther,
-  ]
-
-  for (const msg of allMsgs) {
-    const key = unmapMessageID(msg.id)
-    lastMsgs.push({
-      key: {
-        remoteJid: threadID,
-        fromMe: key.fromMe,
-        id: key.id,
-        participant: isJidGroup(threadID) ? msg.senderID : undefined,
-      },
-      messageTimestamp: unixTimestampSeconds(msg.timestamp),
-    })
-  }
-
-  return lastMsgs
-}
+  )
+)
 
 export default getLastMessagesOfThread
