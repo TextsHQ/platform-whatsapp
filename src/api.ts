@@ -491,6 +491,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     })
 
+    ev.on('creds.update', () => {
+      this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
+    })
+
     ev.on('contacts.set', () => {
       this.onDataRecv('contacts')
     })
