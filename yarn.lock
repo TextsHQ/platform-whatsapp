@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.2.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=6ee60bff679e1f23d28c469939f9153ec0ac50c8"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=4a8c6ed66de43d3df8d8ad032dbd2d74e0878d63"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: aa6735406f6e0278cc152ee1c4df48a460727a5519c9c15915a7913e973d4d9512b4b1a97861e1c686a14395eaf6300b6e5d0bffae9ccc8c47260d23c2264b27
+  checksum: ba285fe78ab2f4c573f0289408fffd1c59bcdbb0b6feea059e5e9503e0bf075636c90c5166491bd0666e5db7a366e9a5908a199b34a626d8b611bec5cbde2f47
   languageName: node
   linkType: hard
 
@@ -2603,9 +2603,9 @@ __metadata:
   linkType: hard
 
 "@types/long@npm:^4.0.0, @types/long@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "@types/long@npm:4.0.1"
-  checksum: ff9653c33f5000d0f131fd98a950a0343e2e33107dd067a97ac4a3b9678e1a2e39ea44772ad920f54ef6e8f107f76bc92c2584ba905a0dc4253282a4101166d0
+  version: 4.0.2
+  resolution: "@types/long@npm:4.0.2"
+  checksum: d16cde7240d834cf44ba1eaec49e78ae3180e724cd667052b194a372f350d024cba8dd3f37b0864931683dab09ca935d52f0c4c1687178af5ada9fc85b0635f4
   languageName: node
   linkType: hard
 
@@ -2616,7 +2616,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=13.7.0":
+"@types/node@npm:*":
   version: 17.0.25
   resolution: "@types/node@npm:17.0.25"
   checksum: 6a820bd624e69ea772f52a6cdb326484eff5829443dc981939373929ade109f58c21698b9f0a831bd6ceea799e722a75dc49c5fa7a6bc32a81e1cbdfc6507b64
@@ -2627,6 +2627,13 @@ __metadata:
   version: 16.9.1
   resolution: "@types/node@npm:16.9.1"
   checksum: 41afcf183a22d59323a0199dd7e0f46591247f45fc08a4434edb26d56dc279ae4fdb80f37989ddd7a0f45e3857c4933e6e82057ede09c5a829f77e373e680375
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=13.7.0":
+  version: 17.0.30
+  resolution: "@types/node@npm:17.0.30"
+  checksum: b3cd2db6474aae3ddac5a312f340f6e4ca200429371e62cb74698fe7f23d7414d0200f643204ddfaa797846328539359e3797d7f2baaf3cdd643b159cf53baa6
   languageName: node
   linkType: hard
 
@@ -8242,7 +8249,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pino@npm:*, pino@npm:^7.0.0, pino@npm:^7.8.0":
+"pino@npm:*, pino@npm:^7.8.0":
   version: 7.10.0
   resolution: "pino@npm:7.10.0"
   dependencies:
@@ -8260,6 +8267,27 @@ __metadata:
   bin:
     pino: bin.js
   checksum: 154173fc0cceef04e0252f8cecabea5d85cfaf97271961723b7a78f493a36f08224bdb1eaf57c6acd6ca5c68cbb781ae164d7c7f9a7ec06c3fd44c2a3c087734
+  languageName: node
+  linkType: hard
+
+"pino@npm:^7.0.0":
+  version: 7.11.0
+  resolution: "pino@npm:7.11.0"
+  dependencies:
+    atomic-sleep: ^1.0.0
+    fast-redact: ^3.0.0
+    on-exit-leak-free: ^0.2.0
+    pino-abstract-transport: v0.5.0
+    pino-std-serializers: ^4.0.0
+    process-warning: ^1.0.0
+    quick-format-unescaped: ^4.0.3
+    real-require: ^0.1.0
+    safe-stable-stringify: ^2.1.0
+    sonic-boom: ^2.2.1
+    thread-stream: ^0.15.1
+  bin:
+    pino: bin.js
+  checksum: b919e7dbe41de978bb050dcef94fd687c012eb78d344a18f75f04ce180d5810fc162be1f136722d70cd005ed05832c4023a38b9acbc1076ae63c9f5ec5ca515c
   languageName: node
   linkType: hard
 
