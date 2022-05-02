@@ -116,9 +116,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.accountID = accountID
 
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
-    process.on('unhandledRejection', (err: any) => {
-      this.logger.error({ err, trace: err?.stack }, 'recv unhandled rejection')
-    })
+    process.on('unhandledRejection', this.logUnhandledException)
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
@@ -162,8 +160,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }, 0)
   }
 
+  private logUnhandledException = (err: any) => {
+    this.logger.error({ err, trace: err?.stack }, 'recv unhandled rejection')
+  }
+
   dispose = async () => {
     this.logger.info('disposing...')
+    process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
     if (this.client) {
       await this.db.close()
