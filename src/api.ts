@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeSocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -97,7 +97,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (this.client.type === 'md') {
         const id = this.client.authState.creds.me?.id
         return id ? jidNormalizedUser(id) : undefined
-      } return this.client.state?.legacy?.user?.id
+      }
+      return this.client.state?.legacy?.user?.id
     }
   }
 
@@ -159,6 +160,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   dispose = async () => {
+    this.logger.info('disposing...')
     clearInterval(this.logoutAllInterval)
     if (this.client) {
       await this.db.close()
@@ -181,9 +183,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.loginCallback = callback
   }
 
-  private getDefaultSession = () =>
-    // default MD credentials
-    initAuthCreds()
+  /** initialize default MD credentials */
+  private getDefaultSession = () => initAuthCreds()
 
   private connect = async () => {
     await this.connectInternal()
@@ -207,11 +208,16 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
     } catch (error) {
       this.logger.info({ msSinceConnect, trace: error.stack }, 'connect failed')
-      const statusCode: number = error.output?.statusCode
-      if (UNAUTHORIZED_CODES.includes(statusCode)) throw new ReAuthError(error.message)
+
       // ensure cleanup
       // @ts-expect-error
       this.client!.end(undefined)
+
+      const statusCode: number = error.output?.statusCode
+      if (UNAUTHORIZED_CODES.includes(statusCode)) {
+        throw new ReAuthError(error.message)
+      }
+
       throw error
     }
 
@@ -236,7 +242,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const logger = this.logger.child({ class: 'baileys' })
 
     if (this.connectionType === 'md') {
-      this.client = makeSocket({
+      this.client = makeWASocket({
         ...config,
         logger,
         version: this.latestWAVersion,
@@ -306,9 +312,18 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loadWAMessageFromDB = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
-    const dbmsg = await repo.findOneOrFail({ id: messageID, threadID })
+    const dbmsg = await repo.findOne({ id: messageID, threadID })
 
-    return dbmsg.original.message
+    return dbmsg?.original.message
+  }
+
+  private assertLoadWAMessageFromDB = async (threadID: string, messageID: string) => {
+    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+    if (!msg) {
+      throw new Error(`Failed to find ${messageID} in chat (${threadID})`)
+    }
+
+    return msg
   }
 
   private loadWAMessageFromDBWithKey = async (key: WAProto.IMessageKey) => {
@@ -658,7 +673,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private setReaction = async (threadID: string, messageID: string, reactionKey: string | null) => {
     await this.waitForConnectionOpen()
 
-    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+    const msg = await this.assertLoadWAMessageFromDB(threadID, messageID)
 
     const opts = await getEphemeralOptions(this.db, threadID)
     await this.client!.sendMessage(threadID, {
