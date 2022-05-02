@@ -423,14 +423,15 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  private registerCallbacks = async (ev: BaileysEventEmitter) => {
+  private registerCallbacks = (ev: BaileysEventEmitter) => {
     this.dataStore.bind(ev, this.client!)
 
     ev.on('connection.update', update => {
       Object.assign(this.connState, update)
 
       this.logger.info({ update }, 'connection updated')
-      const { connection, lastDisconnect, qr, receivedPendingNotifications } = update
+      const { lastDisconnect, qr, receivedPendingNotifications } = update
+      let { connection } = update
 
       if (qr) {
         this.loginCallback && this.loginCallback({ qr, isOpen: false })
@@ -491,7 +492,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.logger.info(`disconnected, reconnecting=${isReconnecting}, retries left=${this.reconnectTriesLeft}`)
           // auto reconnect logic
           if (isReconnecting) {
-            update.connection = 'connecting'
+            connection = 'connecting'
             this.client = undefined
             this.connectInternal(reconnectDelayMs)
           } else if (LOGGED_OUT_CODES.includes(statusCode)) {
