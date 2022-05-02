@@ -116,6 +116,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.accountID = accountID
 
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
+    process.on('unhandledRejection', (err: any) => {
+      this.logger.error({ err, trace: err?.stack }, 'recv unhandled rejection')
+    })
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
