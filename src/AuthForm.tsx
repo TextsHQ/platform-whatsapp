@@ -60,7 +60,6 @@ export default class WhatsAppAuth extends React.Component<AuthProps> {
         <div className="text-center" style={{ position: 'relative' }}>
           {qrValue ? renderQR(qrValue) : <p>Loading QR...</p>}
         </div>
-        <footer>This integration works with and without Multi-Device joined.</footer>
       </div>
     )
   }
