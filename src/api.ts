@@ -36,7 +36,7 @@ const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
   browser: Browsers.macOS('Chrome'),
-  connectTimeoutMs: 120_000,
+  connectTimeoutMs: 10_000,
   keepAliveIntervalMs: 15_000,
 }
 
