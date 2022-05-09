@@ -167,7 +167,7 @@ export default class DBThread implements Thread {
       participantsList: participants,
       isArchived: !!chat.archive,
       // only read only if the participants do not include myself
-      isReadOnly: !metadata?.participants.find(p => ctx.meID && areJidsSameUser(ctx.meID, p.id)),
+      isReadOnly: !!metadata && !metadata?.participants.find(p => ctx.meID && areJidsSameUser(ctx.meID, p.id)),
       timestamp: (stamp > 0 ? new Date(stamp * 1000) : createDate) || new Date(0),
       // @ts-expect-error
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration || null,
