@@ -1,4 +1,4 @@
-import { Chat, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, Chat, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
@@ -166,7 +166,8 @@ export default class DBThread implements Thread {
       createdAt: createDate,
       participantsList: participants,
       isArchived: !!chat.archive,
-      isReadOnly: !!chat.readOnly,
+      // only read only if the participants do not include myself
+      isReadOnly: !metadata?.participants.find(p => ctx.meID && areJidsSameUser(ctx.meID, p.id)),
       timestamp: (stamp > 0 ? new Date(stamp * 1000) : createDate) || new Date(0),
       // @ts-expect-error
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration || null,
