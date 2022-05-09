@@ -168,8 +168,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.logger.info('disposing...')
     process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
+
+    await this.db.close()
     if (this.client) {
-      await this.db.close()
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
     }
