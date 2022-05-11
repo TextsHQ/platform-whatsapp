@@ -3,7 +3,7 @@ import type { Message, MessageAction, MessageAttachment, MessageBehavior, Messag
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
-import { mapMessageID, safeJSONStringify } from '../utils/generics'
+import { isHiddenMessage, mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor } from './DBMessage-util'
@@ -97,6 +97,9 @@ export default class DBMessage implements Message {
 
   @Column({ type: 'boolean', default: false, nullable: false })
   isHistoryMessage: boolean
+
+  @Column({ type: 'boolean', default: false, nullable: false })
+  isHidden?: boolean | undefined
 
   cursor?: string
 
@@ -244,7 +247,7 @@ export default class DBMessage implements Message {
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
       links: link ? [link] : undefined,
-      parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!),
+      parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
       action,
       // todo: review logic, this is incorrect:
@@ -253,6 +256,7 @@ export default class DBMessage implements Message {
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
+      isHidden: isHiddenMessage(message),
     }
 
     Object.assign(this, mapped)

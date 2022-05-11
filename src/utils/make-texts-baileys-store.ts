@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageUpdate } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'

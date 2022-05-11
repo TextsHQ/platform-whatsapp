@@ -93,11 +93,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
     (message.messageStubParameters![0] ? 'You blocked this contact' : 'You unblocked this contact'),
 }
 
-const NOTIFYING_STUB_TYPES = new Set(
-  [
-    WAMessageStubType.GROUP_PARTICIPANT_ADD,
-  ],
-)
+const NOTIFYING_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
 
 const ATTACHMENT_MAP = {
   audioMessage: MessageAttachmentType.AUDIO,
@@ -172,12 +168,17 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
       // in case quoted is ephemeral
       quoted = extractMessageContent(quoted)
       chatId = contextInfo.remoteJid! || chatId
-      return {
+      const preview: MessagePreview = {
         id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }),
         threadID: jidNormalizedUser(chatId),
         senderID: jidNormalizedUser(contextInfo.participant || chatId),
-        text: messageText(quoted!, Object.values(quoted!)[0]) || '',
       }
+
+      const text = messageText(quoted!, Object.values(quoted!)[0])
+      if (text) {
+        preview.text = text
+      }
+      return preview
     }
   }
 }
@@ -297,6 +298,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
   }
   return response
 }
+
 export function* messageHeading(message: WAMessage) {
   if (message.broadcast) yield 'Broadcast'
   const m = message.message
@@ -408,6 +410,11 @@ export function messageText(message: WAMessageContent, messageInner: any) {
       .filter(Boolean)
       .join('\n')
   }
+
+  if (message?.reactionMessage) {
+    return `{{sender}} reacted ${message.reactionMessage!.text!} to your message`
+  }
+
   const text = messageInner?.text ?? messageInner?.caption
   if (text) {
     return replaceJids(messageInner?.contextInfo?.mentionedJid, text)

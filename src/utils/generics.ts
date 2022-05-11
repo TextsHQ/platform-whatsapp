@@ -156,7 +156,13 @@ export const shouldExcludeMessage = (msg: WAMessage) => {
     return true
   }
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
-  return content?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE || !!content?.reactionMessage
+  return content?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
+}
+
+/** Is the message supposed to be hidden */
+export const isHiddenMessage = (msg: WAMessage) => {
+  const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
+  return !!content?.reactionMessage
 }
 
 export const decodeSerializedSession = (sess: string) => {
