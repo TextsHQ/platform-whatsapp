@@ -2407,12 +2407,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
+"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#2dc321597a9ed232946e3d7bb2c3831cb527b7ba":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=6b4c9c9fca5d669fcf7c4f1f4431cd1090495b06"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=2dc321597a9ed232946e3d7bb2c3831cb527b7ba"
   dependencies:
     form-data: ^4.0.0
-  checksum: bd861e22bacbe87d860cf107b045749d891db904c0bb5bb9f1eed0baa2066b0536b5c75db2e0b4347f853b7e637f4239c60ae1bc9f26f8522b7bca4a06bd0ba0
+  checksum: d5868c2e98835a9dbce3141d3e63879ae5804d1739122b6ed9db7ce624381996e67d44e4741bfea3fecff4c71d3800d92313ee036310d766ded9cf4c476dad3f
   languageName: node
   linkType: hard
 
@@ -2422,7 +2422,7 @@ __metadata:
   dependencies:
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master"
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main"
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#2dc321597a9ed232946e3d7bb2c3831cb527b7ba"
     "@types/bluebird": ^3.5.33
     "@types/eslint": ^7.2.5
     "@types/jest": ^26.0.19
