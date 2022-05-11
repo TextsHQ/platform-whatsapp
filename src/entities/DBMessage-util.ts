@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -195,6 +195,13 @@ export function messageStatus(status: number | string) {
 }
 
 export function messageAction(message: WAMessage): MessageAction | undefined {
+  const content = message.message ? normalizeMessageContent(message.message) : undefined
+  if (content?.reactionMessage) {
+    return {
+      type: content.reactionMessage?.text ? MessageActionType.MESSAGE_REACTION_CREATED : MessageActionType.MESSAGE_REACTION_DELETED,
+    }
+  }
+
   const actionType = MESSAGE_ACTION_MAP[message.messageStubType!]
   const actorParticipantID = message.participant || message.key.participant || ''
   if (!actionType) return
