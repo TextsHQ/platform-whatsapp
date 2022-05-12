@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#2dc321597a9ed232946e3d7bb2c3831cb527b7ba",
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
     "better-sqlite3": "^7.4.5",
     "bluebird": "^3.7.2",
     "emoji-regex": "^9.2.0",

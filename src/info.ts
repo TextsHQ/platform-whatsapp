@@ -42,6 +42,7 @@ const info: PlatformInfo = {
     // Attribute.SORT_MESSAGES_ON_PUSH,
     Attribute.SUPPORTS_QUOTED_MESSAGES_FROM_ANY_THREAD,
     Attribute.SUBSCRIBE_TO_ONLINE_OFFLINE_ACTIVITY,
+    Attribute.SUPPORTS_MESSAGE_EXPIRY,
     // Attribute.SUPPORTS_SEARCH,
   ]),
   attachments: {
