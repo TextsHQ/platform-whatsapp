@@ -419,7 +419,9 @@ export function messageText(message: WAMessageContent, messageInner: any) {
   }
 
   if (message?.reactionMessage) {
-    return `{{sender}} reacted ${message.reactionMessage!.text!} to your message`
+    const reactedKey = message.reactionMessage.key
+    const sender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
+    return `{{sender}} reacted ${message.reactionMessage!.text!} to ${sender} message`
   }
 
   const text = messageInner?.text ?? messageInner?.caption
