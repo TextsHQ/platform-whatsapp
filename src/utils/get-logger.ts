@@ -5,14 +5,14 @@ import P, { multistream } from 'pino'
 const getLogger = (filename: string | undefined) => {
   const opts = {
     timestamp: () => `,"time":"${new Date().toJSON()}"`,
-    level: texts?.isLoggingEnabled ? 'debug' : 'silent',
-  }
+    level: texts?.isLoggingEnabled ? 'debug' : 'fatal',
+  } as const
   if (filename) {
     return P(
       opts,
       multistream([
-        { stream: process.stdout },
-        { stream: createWriteStream(filename, { flags: 'a' }) },
+        { stream: process.stdout, level: opts.level },
+        { stream: createWriteStream(filename, { flags: 'a' }), level: opts.level },
       ]),
     )
   }
