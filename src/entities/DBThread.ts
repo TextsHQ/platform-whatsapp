@@ -70,10 +70,8 @@ export default class DBThread implements Thread {
 
   update(update: Partial<Chat>, ctx: MappingContext) {
     if (update.unreadCount && update.unreadCount > 0) {
-      if (this.original.chat.unreadCount && this.original.chat.unreadCount > 0) {
-        update = { ...update }
-        update.unreadCount! += this.original.chat.unreadCount
-      }
+      update = { ...update }
+      update.unreadCount! += Math.max(this.original.chat.unreadCount || 0, 0)
     }
     if (update.conversationTimestamp && this.original.chat.conversationTimestamp) {
       const newStamp = +toNumber(update.conversationTimestamp)
