@@ -229,16 +229,23 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 }
 
 export function getNotificationType(message: WAMessage, currentUserId: string) {
+  const msgContent = message.message ? normalizeMessageContent(message.message) : undefined
   if (message.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
     return MessageBehavior.SILENT
   }
+
+  // do not notify if reacted to somebody else's message
+  if (msgContent?.reactionMessage && !msgContent?.reactionMessage?.key?.fromMe) {
+    return MessageBehavior.DONT_NOTIFY
+  }
+
   // only notify if
   if (
     (
       // not a broadcast
       !message.broadcast && (
         // and some content
-        !!message.message || (
+        !!msgContent || (
           // or has a stub type that is important
           NOTIFYING_STUB_TYPES.has(message.messageStubType!)
           && !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))
