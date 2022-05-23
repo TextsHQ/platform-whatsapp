@@ -27,6 +27,7 @@ import setParticipantUsers from './utils/set-participant-users'
 import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
 import type { AnyAuthenticationCreds, LoginCallback, Receivable, Transaction } from './types'
+import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -662,7 +663,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
       const messages: DBMessage[] = []
       for (const { compose, options } of msgCompositions) {
-        const message = await this.client!.sendMessage(threadID, compose, { ...options, waitForAck: true })
+        const message = await this.client!.sendMessage(threadID, compose, {
+          ...options,
+          cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
+          waitForAck: true,
+        })
         const mappedMsg = new DBMessage()
         mappedMsg.original = { message, downloadedReceipts: true }
         mappedMsg.mapFromOriginal(this)
