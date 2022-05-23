@@ -538,25 +538,51 @@ const makeTextsBaileysStore = (
     ev.on('group-participants.update', async ({ id: threadID, participants, action }) => {
       await db.transaction(
         async db => {
-          const repo = db.getRepository(DBParticipant)
-          let dbParticipants: DBParticipant[]
-          switch (action) {
-            case 'add':
-              dbParticipants = participants.map(
-                id => (
-                  DBParticipant.fromOriginal({ threadID, item: { id } })
-                ),
-              )
-              break
-            default:
-              dbParticipants = await repo.find({ id: In(participants) })
-              for (const participant of dbParticipants) {
-                if (action === 'remove') participant.hasExited = true
-                else participant.isAdmin = action === 'promote'
+          const threadRepo = db.getRepository(DBThread)
+          const participantRepo = db.getRepository(DBParticipant)
+          const thread = await threadRepo.findOne({ id: threadID })
+
+          logger.debug({ threadID, participants, action }, 'updating participants')
+          if (thread) {
+            const { metadata } = thread.original
+            const updatedParticipantSet = new Set(participants)
+            if (metadata) {
+              switch (action) {
+                case 'add':
+                  for (const participant of participants) {
+                    if (!metadata.participants.find(p => p.id === participant)) {
+                      metadata.participants.push({ id: participant })
+                    }
+                  }
+                  break
+                case 'remove':
+                  metadata.participants = metadata.participants.filter(
+                    p => !updatedParticipantSet.has(p.id),
+                  )
+                  break
+                default:
+                  for (const participant of metadata.participants) {
+                    if (updatedParticipantSet.has(participant.id)) {
+                      participant.isAdmin = action === 'promote'
+                      if (action !== 'promote' && participant.isSuperAdmin) {
+                        participant.isSuperAdmin = false
+                      }
+                    }
+                  }
+                  break
               }
-              break
+              thread.mapFromOriginal(mappingCtx)
+
+              await threadRepo.save(thread)
+              // remove existing data and overwrite new participants
+              await participantRepo.delete({ threadID: thread.id })
+              await chunkedWrite(participantRepo, thread.participantsList!, DEFAULT_CHUNK_SIZE)
+            } else {
+              logger.info({ threadID }, 'received participants update, but metadata absent')
+            }
+          } else {
+            logger.info({ threadID }, 'received participants update for unknown thread')
           }
-          await repo.save(dbParticipants)
         },
       )
     })
