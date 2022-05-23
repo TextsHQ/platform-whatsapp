@@ -1,7 +1,8 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
-import type { AnyAuthenticationCreds, MappingContext } from '../types'
+import type { AnyAuthenticationCreds, FullBaileysChat, MappingContext } from '../types'
+import type DBThread from '../entities/DBThread'
 
 export const LOGGED_OUT_CODES = [
   DisconnectReason.loggedOut,
@@ -13,6 +14,8 @@ const NOT_RECONNECT_CODES = [
   ...LOGGED_OUT_CODES,
   500,
 ]
+
+const GROUP_META_EXPIRY_INTERVAL_S = 24 * 60 * 60
 
 export const CONNECTION_STATE_MAP: { [K in WAConnectionState]: ConnectionStatus } = {
   open: ConnectionStatus.CONNECTED,
@@ -175,4 +178,14 @@ export const decodeSerializedSession = (sess: string) => {
     }
   }
   return parsed
+}
+
+export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { chat, metadata, lastMetadataFetchDate } }: DBThread) => {
+  if (isJidGroup(chat.id || '')) {
+    const date = new Date(lastMetadataFetchDate || 0)
+    const secondsSinceFetch = (Date.now() - date.getTime()) / 1000
+    if (secondsSinceFetch > GROUP_META_EXPIRY_INTERVAL_S || requiresMapWithMetadata || !metadata) {
+      return true
+    }
+  }
 }

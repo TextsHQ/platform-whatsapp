@@ -7,7 +7,7 @@ import DBUser from '../entities/DBUser'
 import type { MappingContext } from '../types'
 import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
-import { numberFromJid } from './generics'
+import { numberFromJid, shouldFetchGroupMetadata } from './generics'
 
 const THREAD_PAGE_SIZE = 15
 
@@ -49,19 +49,17 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
           const participantsToSave: DBParticipant[] = []
           await Promise.all(
             items.map(async item => {
-              if (item.type === 'group' && item.requiresMapWithMetadata && sock) {
-                const metadata = await (
-                  sock.groupMetadata(item.id, item.isReadOnly)
-                    .catch(error => {
-                      mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
-                      return null
-                    })
-                )
-                item.original = { ...item.original, metadata }
-                item.shouldFireEvent = false
-                item.mapFromOriginal(mappingCtx)
-                itemsToSave.push(item)
-                participantsToSave.push(...item.participantsList!)
+              if (shouldFetchGroupMetadata(item) && sock) {
+                try {
+                  const metadata = await sock.groupMetadata(item.id, item.isReadOnly)
+                  item.original = { ...item.original, metadata, lastMetadataFetchDate: new Date() }
+                  item.shouldFireEvent = false
+                  item.mapFromOriginal(mappingCtx)
+                  itemsToSave.push(item)
+                  participantsToSave.push(...item.participantsList!)
+                } catch (error) {
+                  mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
+                }
               }
             }),
           )

@@ -5,6 +5,7 @@ import type { Logger } from 'pino'
 export type FullBaileysChat = {
   chat: Partial<Chat>
   metadata: GroupMetadata | undefined | null
+  lastMetadataFetchDate?: Date | string
 }
 
 export type FullBaileysMessage = {
