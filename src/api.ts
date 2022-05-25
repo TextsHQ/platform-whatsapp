@@ -596,7 +596,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const result = await this.db.transaction(
-      db => fetchThreads(db, this.client!, this, pagination),
+      db => fetchThreads(db, this.connState.connection === 'open' ? this.client! : undefined, this, pagination),
     )
 
     for (const item of result.items) {
