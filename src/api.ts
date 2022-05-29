@@ -591,6 +591,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
+    if (!this.meID) {
+      throw new ReAuthError('No valid login for getThreads')
+    }
+
     while (!this.canServeThreads) {
       await delay(50)
     }
