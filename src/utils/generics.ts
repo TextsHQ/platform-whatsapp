@@ -189,3 +189,11 @@ export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { 
     }
   }
 }
+
+export const isLoggedIn = (creds: AnyAuthenticationCreds) => {
+  if ('clientID' in creds) {
+    return !!creds.encKey && !!creds.macKey
+  }
+
+  return !!creds.me?.id
+}

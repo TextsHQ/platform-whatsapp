@@ -7,7 +7,7 @@ import type { Connection } from 'typeorm'
 
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -295,16 +295,20 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   serializeSession = () => {
+    const auth = this.getAuthSessionFromClient()
+    if (auth) {
+      return JSON.stringify(auth, BufferJSON.replacer)
+    }
+  }
+
+  private getAuthSessionFromClient = () => {
     let auth: AnyAuthenticationCreds | undefined
     if (this.client?.type === 'md') {
       auth = this.client.authState.creds
     } else {
       auth = this.client?.authInfo
     }
-
-    if (auth) {
-      return JSON.stringify(auth, BufferJSON.replacer)
-    }
+    return auth
   }
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
@@ -516,6 +520,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('creds.update', () => {
+      this.session = this.getAuthSessionFromClient()!
       this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
     })
 
@@ -591,7 +596,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   getThreads = async (inboxName: InboxName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
     if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
 
-    if (!this.meID) {
+    if (!isLoggedIn(this.session)) {
       throw new ReAuthError('No valid login for getThreads')
     }
 
