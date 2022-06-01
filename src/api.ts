@@ -87,6 +87,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   // data recv for legacy connections
   private recvDataSet = new Set<Receivable>()
 
+  private lastActivityType = ActivityType.ONLINE
+
   logger: Logger
 
   accountID: string
@@ -253,6 +255,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.client = makeWASocket({
         ...config,
         logger,
+        markOnlineOnConnect: false,
         version: this.latestWAVersion,
         auth: {
           creds: this.session as any,
@@ -468,6 +471,9 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: true })
 
             this.reconnectTriesLeft = MAX_RECONNECT_TRIES
+            if (this.lastActivityType !== ActivityType.OFFLINE) {
+              this.sendActivityIndicator(ActivityType.ONLINE, undefined)
+            }
             break
           case 'connecting':
             this.logger.debug('connect transaction started')
@@ -750,7 +756,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     )
   }
 
-  sendActivityIndicator = async (type: ActivityType, threadID: string) => {
+  sendActivityIndicator = async (type: ActivityType, threadID: string | undefined) => {
+    this.lastActivityType = type
     await this.waitForConnectionOpen()
     await this.client!.sendPresenceUpdate(PRESENCE_MAP[type], threadID)
   }
