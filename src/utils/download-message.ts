@@ -1,33 +1,36 @@
-import { AnyWASocket, downloadContentFromMessage, extractMessageContent, getContentType, MediaType } from '@adiwajshing/baileys'
+import { AnyWASocket, downloadContentFromMessage, downloadMediaMessage, extractMessageContent, getContentType, MediaType } from '@adiwajshing/baileys'
 import type { Asset } from '@textshq/platform-sdk'
+import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
-const downloadMessage = async (db: Connection, sock: AnyWASocket, threadID: string, messageID: string, { startByte, endByte }: { startByte?: number, endByte?: number }): Promise<Asset> => {
+const downloadMessage = async (
+  db: Connection,
+  sock: AnyWASocket,
+  threadID: string,
+  messageID: string,
+  { startByte, endByte }: { startByte?: number, endByte?: number },
+  logger: Logger,
+): Promise<Asset> => {
   const m = await db.getRepository(DBMessage).findOneOrFail({
     id: messageID,
     threadID,
   })
 
-  if (sock.type === 'legacy') {
-    const result = await sock.downloadMediaMessage(m.original.message, 'stream')
-    return {
-      contentLength: m.attachments[0].fileSize,
-      data: result,
-    }
-  }
+  const result = await downloadMediaMessage(
+    m.original.message,
+    'stream',
+    { },
+    {
+      logger,
+      reuploadRequest: sock.updateMediaMessage,
+    },
+  )
 
-  const content = extractMessageContent(m.original.message.message)
-  if (content) {
-    const key = getContentType(content)
-    const stream = await downloadContentFromMessage(content[key] as any, key.replace('Message', '') as MediaType, { startByte, endByte })
-    return {
-      contentLength: m.attachments[0].fileSize,
-      data: stream,
-    }
+  return {
+    contentLength: m.attachments[0].fileSize,
+    data: result,
   }
-
-  throw new Error('invalid message')
 }
 export const getAttachmentInfo = async (db: Connection, threadID: string, messageID: string): Promise<Partial<Asset>> => {
   const m = await db.getRepository(DBMessage).findOneOrFail({

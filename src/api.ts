@@ -819,7 +819,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       case 'attachment': {
         const endByte = opts.range?.end ? opts.range?.end + 1 : opts.range?.end
-        const result = await downloadMessage(this.db, this.client!, jid, msgID, { startByte: opts.range?.start, endByte })
+        const result = await downloadMessage(this.db, this.client!, jid, msgID, { startByte: opts.range?.start, endByte }, this.logger)
         return result
       }
       default:
