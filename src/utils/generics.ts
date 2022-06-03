@@ -68,9 +68,11 @@ export function safeJSONStringify(obj: any) {
 export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
   // @ts-expect-error
   const statusCode: number = error?.output?.statusCode || 0
-  const isReconnecting = !NOT_RECONNECT_CODES.includes(statusCode) // can be reconnected
+  let isReconnecting = !NOT_RECONNECT_CODES.includes(statusCode) // can be reconnected
     && retriesLeft > 0 // some retries left
     && !!error // was not an intentional close
+  // reconnect on all WebSocket errors
+  isReconnecting = isReconnecting || !!error?.message.includes('WebSocket Error')
 
   return {
     isReconnecting,
