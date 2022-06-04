@@ -14,36 +14,40 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
 
   if (item) {
     if (item.unreadCount > 0) {
-      let msgs = await db.getRepository(DBMessage)
-        .find({
-          where: {
-            threadID,
-            isSender: false,
-          },
-          order: { timestamp: 'DESC' },
-          take: item.unreadCount,
-          select: ['id', 'original'],
-        })
+      await db.transaction(
+        async db => {
+          let msgs = await db.getRepository(DBMessage)
+            .find({
+              where: {
+                threadID,
+                isSender: false,
+              },
+              order: { timestamp: 'DESC' },
+              take: item.unreadCount,
+              select: ['id', 'original'],
+            })
 
-      const msgIndex = messageID ? msgs.findIndex(m => m.id === messageID) : -1
-      if (msgIndex >= 0) {
-        msgs = msgs.slice(msgIndex)
-      }
-      const keys = msgs.map(m => m.original.message.key)
+          const msgIndex = messageID ? msgs.findIndex(m => m.id === messageID) : -1
+          if (msgIndex >= 0) {
+            msgs = msgs.slice(msgIndex)
+          }
+          const keys = msgs.map(m => m.original.message.key)
 
-      ctx.logger.debug({ keys }, 'reading msgs')
+          ctx.logger.debug({ keys }, 'reading msgs')
 
-      if (msgs.length) {
-        if (sock.type === 'md') {
-          await sock.readMessages(keys)
-        } else {
-          const [key] = keys
-          await sock.chatRead(key, msgs.length)
+          if (msgs.length) {
+            if (sock.type === 'md') {
+              await sock.readMessages(keys)
+            } else {
+              const [key] = keys
+              await sock.chatRead(key, msgs.length)
+            }
+          }
+
+          item.update({ unreadCount: 0 }, ctx)
+          await repo.save(item)
         }
-      }
-
-      item.update({ unreadCount: 0 }, ctx)
-      await repo.save(item)
+      )
     } else if (item.unreadCount < 0) {
       // if the chat was unread
       // there are no messages to "read" as the chat has already been read by the user

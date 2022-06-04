@@ -751,9 +751,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   sendReadReceipt = async (threadID: string, messageID?: string) => {
     await this.waitForConnectionOpen()
-    await this.db.transaction(
-      db => readChat(db, this.client!, this, threadID, messageID),
-    )
+    await readChat(this.db, this.client!, this, threadID, messageID)
   }
 
   sendActivityIndicator = async (type: ActivityType, threadID: string | undefined) => {
