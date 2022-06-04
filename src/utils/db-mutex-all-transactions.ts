@@ -16,7 +16,7 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
   const { transaction } = db
   // eslint-disable-next-line no-param-reassign
   db.transaction = (...args) => {
-    logger.trace({ trace: new Error('').stack }, 'called transaction')
+    if (logger.level === 'trace') logger.trace({ trace: new Error('').stack }, 'called transaction')
     return mutex(async () => {
       try {
         const result = await transaction.apply(db, args)
