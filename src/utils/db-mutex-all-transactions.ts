@@ -15,18 +15,20 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
   const { mutex } = makeMutex()
   const { transaction } = db
   // eslint-disable-next-line no-param-reassign
-  db.transaction = async (...args) => mutex(async () => {
-    logger.trace({ }, 'starting transaction')
-    try {
-      const result = await transaction.apply(db, args)
-      return result
-    } catch (error) {
-      logger.error({ error }, 'error in transaction')
-      throw error
-    } finally {
-      logger.trace({ }, 'ended transaction')
-    }
-  })
+  db.transaction = (...args) => {
+    logger.trace({ trace: new Error('').stack }, 'called transaction')
+    return mutex(async () => {
+      try {
+        const result = await transaction.apply(db, args)
+        return result
+      } catch (error) {
+        logger.error({ error }, 'error in transaction')
+        throw error
+      } finally {
+        logger.trace({ }, 'ended transaction')
+      }
+    })
+  }
 }
 
 export default dbMutexAllTransactions
