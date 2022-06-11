@@ -446,6 +446,10 @@ export function messageText(message: WAMessageContent, messageInner: any) {
   if (message?.buttonsResponseMessage) {
     return message?.buttonsResponseMessage?.selectedDisplayText
   }
+  if (message?.templateButtonReplyMessage) {
+    return message?.templateButtonReplyMessage?.selectedDisplayText
+  }
+
   return message?.conversation
 }
 
