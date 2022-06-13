@@ -346,7 +346,7 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid).user}`, `@{{${jid}}}`), text)
 }
 
-const generateDeepLink = (type: 'template' | 'plain', accountId: string, key: WAMessageKey, button: ButtonReplyInfo) => {
+const generateDeepLink = (type: 'template' | 'plain', key: WAMessageKey, button: ButtonReplyInfo) => {
   const searchParams = new URLSearchParams({
     type,
     buttonId: button.id,
@@ -354,15 +354,15 @@ const generateDeepLink = (type: 'template' | 'plain', accountId: string, key: WA
     buttonIndex: button.index,
     ...key,
   } as any)
-  return `texts://platform-callback/${accountId}/callback/button?${searchParams.toString()}`
+  return `texts://platform-callback/$accountID/callback/button?${searchParams.toString()}`
 }
 
-const generateDeepLinkForGroupJoin = (accountId: string, senderJid: string, invite: WAProto.IGroupInviteMessage) => {
+const generateDeepLinkForGroupJoin = (senderJid: string, invite: WAProto.IGroupInviteMessage) => {
   const searchParams = new URLSearchParams({ senderJid, jid: invite.groupJid!, inviteCode: invite.inviteCode!, expiration: invite.inviteExpiration!.toString() })
-  return `texts://platform-callback/${accountId}/callback/group?${searchParams.toString()}`
+  return `texts://platform-callback/$accountID/callback/group?${searchParams.toString()}`
 }
 
-export function messageButtons(message: WAMessageContent, accountId: string, key: WAMessageKey) {
+export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
   const buttons: MessageButton[] = []
   if (message?.templateMessage) {
     const template = message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate
@@ -381,7 +381,7 @@ export function messageButtons(message: WAMessageContent, accountId: string, key
         }
         buttons.push({
           label: button.quickReplyButton.displayText!,
-          linkURL: generateDeepLink('template', accountId, key, btn),
+          linkURL: generateDeepLink('template', key, btn),
         })
       }
       if (button.urlButton) {
@@ -400,13 +400,13 @@ export function messageButtons(message: WAMessageContent, accountId: string, key
       }
       buttons.push({
         label: button.buttonText!.displayText!,
-        linkURL: generateDeepLink('plain', accountId, key, btn),
+        linkURL: generateDeepLink('plain', key, btn),
       })
     }
   } else if (message?.groupInviteMessage?.groupJid) {
     buttons.push({
       label: 'Join Group',
-      linkURL: generateDeepLinkForGroupJoin(accountId, key.remoteJid!, message.groupInviteMessage),
+      linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
     })
   }
 
@@ -415,9 +415,10 @@ export function messageButtons(message: WAMessageContent, accountId: string, key
 
 export function messageText(message: WAMessageContent, messageInner: any) {
   switch (message?.protocolMessage?.type) {
-    case WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING:
+    case WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING: {
       const exp = message.protocolMessage.ephemeralExpiration
       return getEphemeralMessageSettingChangedText(exp!, 'sender')
+    }
     case WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION:
       return 'Chat History Synced'
     case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_SHARE:
