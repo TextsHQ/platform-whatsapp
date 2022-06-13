@@ -349,7 +349,6 @@ const replaceJids = (jids: string[], text: string) => {
 const generateDeepLink = (type: 'template' | 'plain', accountId: string, key: WAMessageKey, button: ButtonReplyInfo) => {
   const searchParams = new URLSearchParams({
     type,
-    accountId,
     buttonId: button.id,
     buttonDisplayText: button.displayText,
     buttonIndex: button.index,
