@@ -334,7 +334,7 @@ export function* messageHeading(message: WAMessage) {
         yield `💵 Payment requested from {{${m.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
       }
     }
-    if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite | View in app`
+    if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite`
     if (m.locationMessage) yield '📍 Location'
     if (m.liveLocationMessage) yield '📍 Live Location'
     if (m.productMessage?.product) yield '📦 Product'
@@ -356,6 +356,11 @@ const generateDeepLink = (type: 'template' | 'plain', accountId: string, key: WA
     ...key,
   } as any)
   return `texts://platform-callback/${accountId}/callback/button?${searchParams.toString()}`
+}
+
+const generateDeepLinkForGroupJoin = (accountId: string, senderJid: string, invite: WAProto.IGroupInviteMessage) => {
+  const searchParams = new URLSearchParams({ senderJid, jid: invite.groupJid!, inviteCode: invite.inviteCode!, expiration: invite.inviteExpiration!.toString() })
+  return `texts://platform-callback/${accountId}/callback/group?${searchParams.toString()}`
 }
 
 export function messageButtons(message: WAMessageContent, accountId: string, key: WAMessageKey) {
@@ -399,6 +404,11 @@ export function messageButtons(message: WAMessageContent, accountId: string, key
         linkURL: generateDeepLink('plain', accountId, key, btn),
       })
     }
+  } else if (message?.groupInviteMessage?.groupJid) {
+    buttons.push({
+      label: 'Join Group',
+      linkURL: generateDeepLinkForGroupJoin(accountId, key.remoteJid!, message.groupInviteMessage),
+    })
   }
 
   return buttons

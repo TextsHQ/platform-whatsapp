@@ -695,37 +695,53 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   handleDeepLink = async (urlStr: string) => {
-    // sample:
+    // sample for btn:
     // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&accountId=whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
+    // sample for group:
+    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/group?jid=120363043526257596%40g.us&inviteCode=8qhMQpK7vEpnTbvl&expiration=1234&senderJid=123456@s.whatsapp.net
     const url = new URL(urlStr)
     const params = url.searchParams
-    const type = params.get('type') as ButtonCallbackType
-    const key: WAMessageKey = {
-      remoteJid: params.get('remoteJid'),
-      fromMe: params.get('fromMe') === 'true',
-      id: params.get('id'),
-    }
-    const buttonReply: ButtonReplyInfo = {
-      id: params.get('buttonId')!,
-      displayText: params.get('buttonDisplayText')!,
-      index: +params.get('buttonIndex')!,
-    }
-    const threadID = key.remoteJid!
-    const quoted = await this.loadWAMessageFromDBWithKey(key)
-    if (!quoted) {
-      throw new Error('Cannot reply to message not in database')
-    }
+    if (url.pathname.endsWith('button')) {
+      const type = params.get('type') as ButtonCallbackType
+      const key: WAMessageKey = {
+        remoteJid: params.get('remoteJid'),
+        fromMe: params.get('fromMe') === 'true',
+        id: params.get('id'),
+      }
+      const buttonReply: ButtonReplyInfo = {
+        id: params.get('buttonId')!,
+        displayText: params.get('buttonDisplayText')!,
+        index: +params.get('buttonIndex')!,
+      }
+      const threadID = key.remoteJid!
+      const quoted = await this.loadWAMessageFromDBWithKey(key)
+      if (!quoted) {
+        throw new Error('Cannot reply to message not in database')
+      }
 
-    const compose = {
-      buttonReply,
-      type,
-    }
+      const compose = {
+        buttonReply,
+        type,
+      }
 
-    await this.client!.sendMessage(key.remoteJid!, compose, {
-      ...(await getEphemeralOptions(this.db, threadID) || {}),
-      cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
-      quoted,
-    })
+      await this.client!.sendMessage(key.remoteJid!, compose, {
+        ...(await getEphemeralOptions(this.db, threadID) || {}),
+        cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
+        quoted,
+      })
+    } else if (url.pathname.endsWith('group')) {
+      const senderJid = params.get('senderJid')!
+      const groupJid = params.get('jid')!
+      const inviteCode = params.get('inviteCode')!
+      const inviteExpiration = +params.get('expiration')!
+
+      this.logger.info({ inviteCode }, 'joining group')
+
+      const sock = this.client!
+      if (sock.type === 'md') {
+        await sock.groupAcceptInviteV4(senderJid, { groupJid, inviteCode, inviteExpiration })
+      }
+    }
   }
 
   addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
