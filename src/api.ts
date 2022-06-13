@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG } from '@adiwajshing/baileys'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, AnyMessageContent, MiscMessageGenerationOptions, ButtonReplyInfo } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -26,7 +26,7 @@ import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
 import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
-import type { AnyAuthenticationCreds, LoginCallback, Receivable, Transaction } from './types'
+import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
@@ -693,6 +693,40 @@ export default class WhatsAppAPI implements PlatformAPI {
       return messages
     })
   )
+
+  handleDeepLink = async (urlStr: string) => {
+    // sample:
+    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&accountId=whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
+    const url = new URL(urlStr)
+    const params = url.searchParams
+    const type = params.get('type') as ButtonCallbackType
+    const key: WAMessageKey = {
+      remoteJid: params.get('remoteJid'),
+      fromMe: params.get('fromMe') === 'true',
+      id: params.get('id'),
+    }
+    const buttonReply: ButtonReplyInfo = {
+      id: params.get('buttonId')!,
+      displayText: params.get('buttonDisplayText')!,
+      index: +params.get('buttonIndex')!,
+    }
+    const threadID = key.remoteJid!
+    const quoted = await this.loadWAMessageFromDBWithKey(key)
+    if (!quoted) {
+      throw new Error('Cannot reply to message not in database')
+    }
+
+    const compose = {
+      buttonReply,
+      type,
+    }
+
+    await this.client!.sendMessage(key.remoteJid!, compose, {
+      ...(await getEphemeralOptions(this.db, threadID) || {}),
+      cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
+      quoted,
+    })
+  }
 
   addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
 

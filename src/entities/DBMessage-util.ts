@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -346,11 +346,23 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid).user}`, `@{{${jid}}}`), text)
 }
 
-export function messageButtons(message: WAMessageContent) {
+const generateDeepLink = (type: 'template' | 'plain', accountId: string, key: WAMessageKey, button: ButtonReplyInfo) => {
+  const searchParams = new URLSearchParams({
+    type,
+    accountId,
+    buttonId: button.id,
+    buttonDisplayText: button.displayText,
+    buttonIndex: button.index,
+    ...key,
+  } as any)
+  return `texts://platform-callback/${accountId}/callback/button?${searchParams.toString()}`
+}
+
+export function messageButtons(message: WAMessageContent, accountId: string, key: WAMessageKey) {
   const buttons: MessageButton[] = []
   if (message?.templateMessage) {
     const template = message.templateMessage.hydratedTemplate || message.templateMessage.hydratedFourRowTemplate
-    template?.hydratedButtons?.forEach(button => {
+    template?.hydratedButtons?.forEach((button, index) => {
       if (button.callButton) {
         buttons.push({
           label: button.callButton.displayText!,
@@ -358,9 +370,14 @@ export function messageButtons(message: WAMessageContent) {
         })
       }
       if (button.quickReplyButton) {
+        const btn: ButtonReplyInfo = {
+          id: button.quickReplyButton!.id!,
+          displayText: button.quickReplyButton!.displayText!,
+          index,
+        }
         buttons.push({
           label: button.quickReplyButton.displayText!,
-          linkURL: 'texts://fill-textarea?text=' + encodeURIComponent(button.quickReplyButton.displayText!),
+          linkURL: generateDeepLink('template', accountId, key, btn),
         })
       }
       if (button.urlButton) {
@@ -372,9 +389,14 @@ export function messageButtons(message: WAMessageContent) {
     })
   } else if (message?.buttonsMessage?.buttons?.length) {
     for (const button of message.buttonsMessage.buttons) {
+      const btn: ButtonReplyInfo = {
+        id: button.buttonId!,
+        displayText: button.buttonText!.displayText!,
+        index: 0,
+      }
       buttons.push({
         label: button.buttonText!.displayText!,
-        linkURL: '',
+        linkURL: generateDeepLink('plain', accountId, key, btn),
       })
     }
   }
