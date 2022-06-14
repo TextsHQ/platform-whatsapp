@@ -797,7 +797,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.client!.chatModify({
         clear: {
           messages: [
-            { id: msg.key.id!, fromMe: msg.key.fromMe!, timestamp: toNumber(msg.messageTimestamp) },
+            { id: msg.key.id!, fromMe: msg.key.fromMe!, timestamp: toNumber(msg.messageTimestamp!) },
           ],
         },
       }, threadID, { })
