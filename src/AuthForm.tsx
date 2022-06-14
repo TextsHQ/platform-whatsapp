@@ -30,14 +30,13 @@ const renderQR = (qrValue: string) => (
   </>
 )
 
-export default class WhatsAppAuth extends React.Component<AuthProps> {
-  state: { qrValue?: string, error?: string } = {}
-
+export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?: string, error?: string }> {
   constructor(props: AuthProps) {
     super(props)
+    this.state = {}
     const { api, login } = this.props
     api!.onLoginEvent!(({ qr: qrValue, isOpen, error }) => {
-      this.setState({ qrValue, error: error || this.state.error })
+      this.setState(prevState => ({ qrValue, error: error || prevState?.error }))
       if (isOpen) {
         login!()
         api!.onLoginEvent!(() => { })

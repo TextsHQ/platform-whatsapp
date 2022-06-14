@@ -7,7 +7,7 @@ import type { Connection } from 'typeorm'
 
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, unmapMessageID } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -26,8 +26,8 @@ import hasSomeCachedData from './utils/has-some-cached-data'
 import setParticipantUsers from './utils/set-participant-users'
 import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
-import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
+import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
 
 const MAX_PHONE_RESPONSE_TIME_MS = 35_000
 
@@ -96,13 +96,12 @@ export default class WhatsAppAPI implements PlatformAPI {
   db: Connection
 
   get meID(): string | undefined {
-    if (this.client) {
-      if (this.client.type === 'md') {
-        const id = this.client.authState.creds.me?.id
-        return id ? jidNormalizedUser(id) : undefined
-      }
-      return this.client.state?.legacy?.user?.id
+    if (!this.client) return
+    if (this.client.type === 'md') {
+      const id = this.client.authState.creds.me?.id
+      return id ? jidNormalizedUser(id) : undefined
     }
+    return this.client.state?.legacy?.user?.id
   }
 
   get connectionType() {
@@ -696,7 +695,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   handleDeepLink = async (urlStr: string) => {
     // sample for btn:
-    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&accountId=whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
+    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
     // sample for group:
     // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/group?jid=120363043526257596%40g.us&inviteCode=8qhMQpK7vEpnTbvl&expiration=1234&senderJid=123456@s.whatsapp.net
     const url = new URL(urlStr)

@@ -46,7 +46,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
 
           item.update({ unreadCount: 0 }, ctx)
           await repo.save(item)
-        }
+        },
       )
     } else if (item.unreadCount < 0) {
       // if the chat was unread
