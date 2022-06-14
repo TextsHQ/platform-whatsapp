@@ -315,7 +315,7 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
 
 export function* messageHeading(message: WAMessage) {
   if (message.broadcast) yield 'Broadcast'
-  const m = message.message
+  const m = message.message ? normalizeMessageContent(message.message) : undefined
   if (m) {
     if (isPaymentMessage(m)) {
       const paymentInfo = message.paymentInfo!
