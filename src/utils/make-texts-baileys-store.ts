@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -456,7 +456,6 @@ const makeTextsBaileysStore = (
         for (const msg of msgs) {
           existingMessageMap[`${msg.threadID},${msg.id}`] = msg
         }
-
         const mapped: DBMessage[] = []
         for (const msg of messages) {
           if (!shouldExcludeMessage(msg)) {
@@ -464,6 +463,11 @@ const makeTextsBaileysStore = (
 
             const mappedMsg = existingMessageMap[uqId] || new DBMessage()
             if (mappedMsg.original) {
+              // if a CIPHERTEXT message is replacing an existing message
+              // then ignore it and move on
+              if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
+                continue
+              }
               // replace message timestamp with the timestamp from the original
               msg.messageTimestamp = mappedMsg.original.message.messageTimestamp
               mappedMsg.original.message = msg
