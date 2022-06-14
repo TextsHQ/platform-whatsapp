@@ -1,7 +1,7 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
 import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
-import type { AnyAuthenticationCreds, FullBaileysChat, MappingContext } from '../types'
+import type { AnyAuthenticationCreds, MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
 
 export const LOGGED_OUT_CODES = [

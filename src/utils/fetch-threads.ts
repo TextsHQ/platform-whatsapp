@@ -1,13 +1,14 @@
 import type { AnyWASocket } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
+
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
-import type { MappingContext } from '../types'
 import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
-import { numberFromJid, shouldFetchGroupMetadata } from './generics'
+import { shouldFetchGroupMetadata } from './generics'
+import type { MappingContext } from '../types'
 
 const THREAD_PAGE_SIZE = 15
 
