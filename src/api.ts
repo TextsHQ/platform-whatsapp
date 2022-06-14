@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, AnyMessageContent, MiscMessageGenerationOptions, ButtonReplyInfo } from '@adiwajshing/baileys'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -787,11 +787,20 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
-    const key = { ...unmapMessageID(messageID), remoteJid: threadID }
+    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+    if (!msg) {
+      throw new Error('Message not found')
+    }
     if (forEveryone) {
-      await this.client!.sendMessage(threadID, { delete: key })
+      await this.client!.sendMessage(threadID, { delete: msg.key })
     } else {
-      await this.client!.chatModify({ clear: { messages: [key] } }, threadID, { })
+      await this.client!.chatModify({
+        clear: {
+          messages: [
+            { id: msg.key.id!, fromMe: msg.key.fromMe!, timestamp: toNumber(msg.messageTimestamp) },
+          ],
+        },
+      }, threadID, { })
     }
   }
 
