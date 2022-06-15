@@ -305,10 +305,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getAuthSessionFromClient = () => {
     let auth: AnyAuthenticationCreds | undefined
-    if (this.client?.type === 'md') {
-      auth = this.client.authState.creds
-    } else {
-      auth = this.client?.authInfo
+    if (this.client) {
+      auth = this.client.type === 'md'
+        ? this.client.authState.creds
+        : this.client.authInfo
+    }
+    if (!auth) {
+      this.logger.warn('no client found, using session in memory')
+      auth = this.session
     }
     return auth
   }
@@ -525,8 +529,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     })
 
     ev.on('creds.update', () => {
-      this.session = this.getAuthSessionFromClient()!
-      this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
+      if (this.client) {
+        this.session = this.getAuthSessionFromClient()!
+        this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
+      }
     })
 
     ev.on('contacts.set', () => {
