@@ -394,7 +394,9 @@ const makeTextsBaileysStore = (
                 ? async update => {
                   logger.info(`upserting "${update.id!}"`)
 
-                  const metadata = isJidGroup(update.id!) ? await groupMetadata(update.id!, true) : undefined
+                  const metadata = isJidGroup(update.id!)
+                    ? await groupMetadata(update.id!, true).catch(() => undefined)
+                    : undefined
 
                   const thread = new DBThread()
                   thread.original = { chat: update, metadata }
