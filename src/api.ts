@@ -679,21 +679,30 @@ export default class WhatsAppAPI implements PlatformAPI {
         return false
       }
 
+      this.logger.info('sending message')
+
       await this.waitForConnectionOpen()
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
       const messages: DBMessage[] = []
-      for (const { compose, options } of msgCompositions) {
-        const message = await this.client!.sendMessage(threadID, compose, {
-          ...options,
-          cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
-          waitForAck: true,
-        })
-        const mappedMsg = new DBMessage()
-        mappedMsg.original = { message, downloadedReceipts: true }
-        mappedMsg.mapFromOriginal(this)
+      try {
+        for (const { compose, options } of msgCompositions) {
+          const message = await this.client!.sendMessage(threadID, compose, {
+            ...options,
+            cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
+            waitForAck: true,
+          })
+          const mappedMsg = new DBMessage()
+          mappedMsg.original = { message, downloadedReceipts: true }
+          mappedMsg.mapFromOriginal(this)
 
-        messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))
+          messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))
+        }
+      } catch (error) {
+        this.logger.error({ error, threadID }, 'error sending message')
+        throw error
       }
+
+      this.logger.info({ threadID }, 'sent message')
 
       return messages
     })
