@@ -416,7 +416,11 @@ const makeTextsBaileysStore = (
 
     ev.on('chats.upsert', async upserts => {
       const metadataList = await Promise.all(
-        upserts.map(update => (isJidGroup(update.id) ? groupMetadata(update.id, true) : undefined)),
+        upserts.map(update => (
+          isJidGroup(update.id)
+            ? groupMetadata(update.id, true).catch(() => undefined)
+            : undefined
+        )),
       )
       const metadataMap = metadataList.reduce((dict, item) => {
         if (item) {
