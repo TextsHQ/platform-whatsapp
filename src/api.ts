@@ -758,9 +758,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getMessage = async (messageID: string) => {
+  getMessage = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
-    const msg = await repo.findOneOrFail({ id: messageID })
+    const msg = await repo.findOneOrFail({ threadID, id: messageID })
     return DBMessage.prepareForSending(msg, this.accountID)
   }
 
