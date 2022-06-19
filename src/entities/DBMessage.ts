@@ -6,7 +6,7 @@ import type { FullBaileysMessage, MappingContext } from '../types'
 import { isHiddenMessage, mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor, messageFooter } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -236,7 +236,7 @@ export default class DBMessage implements Message {
       threadID,
       textHeading: [...messageHeading(message)].join('\n'),
       text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
-      textFooter: message.status === WAMessageStatus.PLAYED ? 'Played' : undefined,
+      textFooter: messageFooter(message),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,
       senderID,

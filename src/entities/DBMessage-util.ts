@@ -1,4 +1,4 @@
-import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -8,6 +8,11 @@ const participantAdded = (message: WAMessage) =>
     : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
 
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
+
+const isExpiredInvite = (invite: WAProto.IGroupInviteMessage) => {
+  const expirationS = toNumber(invite.inviteExpiration!) || 0
+  return expirationS < unixTimestampSeconds()
+}
 
 const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
   if (exp) {
@@ -313,6 +318,20 @@ export function messageAttachments(message: WAMessageContent, messageInner: any,
   return response
 }
 
+export function messageFooter(message: WAMessage) {
+  let footer: string | undefined
+  const content = message.message ? normalizeMessageContent(message.message) : undefined
+  if (content?.groupInviteMessage) {
+    if (isExpiredInvite(content.groupInviteMessage)) {
+      footer = 'Invite expired'
+    }
+  } else if (message.status === WAMessageStatus.PLAYED) {
+    footer = 'Played'
+  }
+
+  return footer
+}
+
 export function* messageHeading(message: WAMessage) {
   if (message.broadcast) yield 'Broadcast'
   const m = message.message ? normalizeMessageContent(message.message) : undefined
@@ -404,10 +423,12 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
       })
     }
   } else if (message?.groupInviteMessage?.groupJid) {
-    buttons.push({
-      label: 'Join Group',
-      linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
-    })
+    if (!isExpiredInvite(message.groupInviteMessage)) {
+      buttons.push({
+        label: 'Join Group',
+        linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
+      })
+    }
   }
 
   return buttons
