@@ -630,6 +630,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     return result
   }
 
+  getThread = async (threadID: string) => {
+    const repo = this.db.getRepository(DBThread)
+    const thread = await repo.findOne({ id: threadID })
+    return thread
+      ? DBThread.prepareForSending(thread, this.accountID)
+      : undefined
+  }
+
   private async waitForConnectionOpen() {
     while (this.connState.connection !== 'open') {
       await delay(50)
@@ -760,8 +768,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessage = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
-    const msg = await repo.findOneOrFail({ threadID, id: messageID })
-    return DBMessage.prepareForSending(msg, this.accountID)
+    const msg = await repo.findOne({ threadID, id: messageID })
+    return msg
+      ? DBMessage.prepareForSending(msg, this.accountID)
+      : undefined
   }
 
   addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
