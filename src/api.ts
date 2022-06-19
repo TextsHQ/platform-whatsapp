@@ -803,7 +803,6 @@ export default class WhatsAppAPI implements PlatformAPI {
         ),
       ),
     )
-    return true
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
@@ -854,7 +853,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     if ('mutedUntil' in updates) {
       await this.modThread(threadID, updates.mutedUntil === 'forever', 'mutedUntil')
     }
-    return true
   }
 
   changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
@@ -867,18 +865,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   addParticipant = async (threadID: string, participantID: string) => {
     if (!isJidGroup(threadID)) throw new Error('cannot add more participants to a single chat')
     await this.client!.groupParticipantsUpdate(threadID, [participantID], 'add')
-    return true
   }
 
   removeParticipant = async (threadID: string, participantID: string) => {
     if (!isJidGroup(threadID)) throw new Error('cannot remove participants from a single chat')
     await this.client!.groupParticipantsUpdate(threadID, [participantID], 'remove')
-    return true
   }
 
   changeParticipantRole = async (threadID: string, participantID: string, role: 'admin' | 'regular') => {
     await this.client!.groupParticipantsUpdate(threadID, [participantID], PARTICIPANT_ACTION_MAP[role])
-    return true
   }
 
   getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {

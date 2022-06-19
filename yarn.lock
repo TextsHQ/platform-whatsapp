@@ -2409,10 +2409,10 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=8ee172b7189c8e3dbc213515f8a132e3b750fa0a"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=c01e6c8e033788a2123fbd03d84163dd1e43681e"
   dependencies:
     form-data: ^4.0.0
-  checksum: b582be64fad1272b17921b45f2b46e728b18d72c83735f2d0814549a4b29eda5d6857cc5403f41b6efb4fa08337bd1ff80c47903eddc571b8443bf74d075eccc
+  checksum: 7787d45f1e39ca81dbf5533a68af658e50b213e2f62d7b862506e95593691d8a63eab571edfe40cc7b6b1ea75c9b4f279bb891d67f1ae124b75198622ed636b4
   languageName: node
   linkType: hard
 

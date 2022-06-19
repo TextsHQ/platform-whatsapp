@@ -28,7 +28,8 @@ const getMessageCompose = async (db: Connection | EntityManager, threadID: strin
     if (mimeType?.endsWith('/x-vcard') || mimeType?.endsWith('/vcf')) {
       const vcardStr = (buffer as Buffer).toString('utf-8')
       const parsed = parseVCard(vcardStr)
-      const displayName = parsed.fn?.[0]?.value
+      let displayName = parsed.fn?.[0]?.value
+      displayName = typeof displayName === 'string' ? displayName : displayName?.[0]
       content = {
         contacts: {
           displayName,
