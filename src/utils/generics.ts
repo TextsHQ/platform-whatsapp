@@ -167,7 +167,10 @@ export const shouldExcludeMessage = (msg: WAMessage) => {
 /** Is the message supposed to be hidden */
 export const isHiddenMessage = (msg: WAMessage) => {
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
+  // reaction messages should be hidden
   return !!content?.reactionMessage
+    // if there is no content or stub type -- should not show the message
+    || (!content && !msg.messageStubType)
 }
 
 export const decodeSerializedSession = (sess: string) => {
