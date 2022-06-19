@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, Awaitable, Message } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 
@@ -756,6 +756,12 @@ export default class WhatsAppAPI implements PlatformAPI {
         await sock.groupAcceptInviteV4(senderJid, { groupJid, inviteCode, inviteExpiration })
       }
     }
+  }
+
+  getMessage = async (messageID: string) => {
+    const repo = this.db.getRepository(DBMessage)
+    const msg = await repo.findOneOrFail({ id: messageID })
+    return DBMessage.prepareForSending(msg, this.accountID)
   }
 
   addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
