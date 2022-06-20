@@ -246,6 +246,8 @@ export default class DBMessage implements Message {
       buttons: message.message ? messageButtons(normalizeMessageContent(message.message), message.key) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
+      linkedMessageID: linked?.id,
+      linkedMessageThreadID: linked?.threadID,
       links: link ? [link] : undefined,
       parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
