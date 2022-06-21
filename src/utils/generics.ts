@@ -1,5 +1,5 @@
 import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 import type { AnyAuthenticationCreds, MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
@@ -167,10 +167,11 @@ export const shouldExcludeMessage = (msg: WAMessage) => {
 /** Is the message supposed to be hidden */
 export const isHiddenMessage = (msg: WAMessage) => {
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
+  const contentType = content ? getContentType(content) : undefined
   // reaction messages should be hidden
-  return !!content?.reactionMessage
+  return contentType === 'reactionMessage'
     // if there is no content or stub type -- should not show the message
-    || (!content && !msg.messageStubType)
+    || (!contentType && !msg.messageStubType)
 }
 
 export const decodeSerializedSession = (sess: string) => {
