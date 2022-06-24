@@ -101,10 +101,10 @@ export default class DBMessage implements Message {
   @Column({ type: 'boolean', default: false, nullable: false })
   isHidden?: boolean | undefined
 
-  @PrimaryColumn({ type: 'varchar', length: 64 })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   linkedMessageThreadID?: string
 
-  @PrimaryColumn({ type: 'varchar', length: 64 })
+  @Column({ type: 'varchar', length: 64, nullable: true })
   linkedMessageID?: string
 
   cursor?: string
