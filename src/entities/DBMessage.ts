@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import type { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
@@ -248,8 +248,6 @@ export default class DBMessage implements Message {
       buttons: message.message ? messageButtons(normalizeMessageContent(message.message), message.key) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
-      linkedMessageID: linked?.id,
-      linkedMessageThreadID: linked?.threadID,
       links: link ? [link] : undefined,
       parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
@@ -261,6 +259,11 @@ export default class DBMessage implements Message {
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
       isHidden: isHiddenMessage(message),
+    }
+
+    if (STORIES_JID !== linked?.threadID) {
+      mapped.linkedMessageID = linked?.id
+      mapped.linkedMessageThreadID = linked?.threadID
     }
 
     Object.assign(this, mapped)
