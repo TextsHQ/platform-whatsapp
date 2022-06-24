@@ -241,7 +241,7 @@ export function getNotificationType(message: WAMessage, currentUserId: string) {
 
   // do not notify if reacted to somebody else's message
   if (msgContent?.reactionMessage && !msgContent?.reactionMessage?.key?.fromMe) {
-    return MessageBehavior.DONT_NOTIFY
+    return MessageBehavior.SILENT
   }
 
   // only notify if
