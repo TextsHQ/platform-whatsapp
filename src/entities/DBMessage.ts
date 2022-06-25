@@ -214,7 +214,7 @@ export default class DBMessage implements Message {
     senderID = jidNormalizedUser(senderID)
 
     const stubBasedMessage = messageStubText(message)
-    const { attachments } = messageAttachments(messageContent!, messageInner, message.key.remoteJid!, id)
+    const { attachments } = messageAttachments(messageContent!, message.key.remoteJid!, id)
     const timestamp = toNumber(message.messageTimestamp!) * 1000
 
     const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
@@ -237,7 +237,7 @@ export default class DBMessage implements Message {
       id,
       threadID,
       textHeading: [...messageHeading(message)].join('\n'),
-      text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!, messageInner) ?? stubBasedMessage),
+      text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!) ?? stubBasedMessage),
       textFooter: messageFooter(message),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,

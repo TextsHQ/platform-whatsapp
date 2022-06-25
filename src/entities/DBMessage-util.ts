@@ -1,4 +1,4 @@
-import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -171,7 +171,7 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
     let quoted = contextInfo?.quotedMessage
     if (quoted) {
       // in case quoted is ephemeral
-      quoted = extractMessageContent(quoted)
+      quoted = normalizeMessageContent(quoted)
       chatId = contextInfo.remoteJid! || chatId
       const preview: MessagePreview = {
         id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }),
@@ -179,10 +179,16 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
         senderID: jidNormalizedUser(contextInfo.participant || chatId),
       }
 
-      const text = messageText(quoted!, Object.values(quoted!)[0])
+      const text = messageText(quoted!)
       if (text) {
         preview.text = text
       }
+
+      const { attachments } = messageAttachments(quoted!, preview.threadID!, preview.id!)
+      if (attachments.length) {
+        preview.attachments = attachments
+      }
+
       return preview
     }
   }
@@ -265,9 +271,12 @@ export function getNotificationType(message: WAMessage, currentUserId: string) {
   return MessageBehavior.DONT_NOTIFY
 }
 
-export function messageAttachments(message: WAMessageContent, messageInner: any, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
+export function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) return response
+
+  const type = getContentType(message)
+  const messageInner = message?.[type] as any
 
   if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
@@ -434,7 +443,7 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
   return buttons
 }
 
-export function messageText(message: WAMessageContent, messageInner: any) {
+export function messageText(message: WAMessageContent) {
   switch (message?.protocolMessage?.type) {
     case WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING: {
       const exp = message.protocolMessage.ephemeralExpiration
@@ -483,6 +492,9 @@ export function messageText(message: WAMessageContent, messageInner: any) {
     const sender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
     return `{{sender}} reacted ${message.reactionMessage!.text!} to ${sender} message`
   }
+
+  const type = getContentType(message)
+  const messageInner = message?.[type] as any
 
   const text = messageInner?.text ?? messageInner?.caption
   if (text) {
