@@ -28,7 +28,7 @@ export default class DBUser implements User {
   static fromOriginal = (item: Contact | Chat, ctx: MappingContext): DBUser => {
     const user = new DBUser()
     user.id = jidNormalizedUser(item.id)
-    user.fullName = item.name || ('notify' in item ? item.notify || item.verifiedName : undefined) || (null as any)
+    user.fullName = item.name || ('notify' in item ? item.verifiedName || item.notify : undefined) || (null as any)
     user.phoneNumber = numberFromJid(user.id)!
     user.isVerified = 'verifiedName' in item ? !!item.verifiedName : false
     user.isSelf = areJidsSameUser(item.id, ctx.meID || '')
