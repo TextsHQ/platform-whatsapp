@@ -448,7 +448,19 @@ const makeTextsBaileysStore = (
     })
 
     ev.on('contacts.update', async updates => {
-      const updated = await db.transaction(db => updateItems(updates, db.getRepository(DBUser), mappingCtx))
+      const updated = await db.transaction(
+        db => updateItems(
+          updates,
+          db.getRepository(DBUser),
+          mappingCtx,
+          update => {
+            if (update.notify || update.name || update.verifiedName) {
+              const user = DBUser.fromOriginal(update as Contact, mappingCtx)
+              return user
+            }
+          },
+        ),
+      )
       logger.info({ updates }, `updating ${updated.length}/${updates.length} contacts`)
     })
 
@@ -460,22 +472,12 @@ const makeTextsBaileysStore = (
 
         const existingMessageMap: { [id: string]: DBMessage } = { }
 
-        const existingUserMap: { [id: string]: DBUser } = { }
-        const usersToFetch = messages.filter(m => !m.key.fromMe).map(m => getKeyAuthor(m.key, ''))
-        if (usersToFetch.length) {
-          const users = await db.getRepository(DBUser).find({ id: In(usersToFetch) })
-          for (const user of users) {
-            existingUserMap[user.id] = user
-          }
-        }
-
         const msgs = await fetchMessagesInDB(db, messages)
         for (const msg of msgs) {
           existingMessageMap[`${msg.threadID},${msg.id}`] = msg
         }
 
         const mapped: DBMessage[] = []
-        const usersToSave: DBUser[] = []
         for (const msg of messages) {
           if (!shouldExcludeMessage(msg)) {
             const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
@@ -504,27 +506,10 @@ const makeTextsBaileysStore = (
             if (type !== 'notify') {
               mappedMsg.behavior = MessageBehavior.KEEP_READ
             }
-            // if we've received a message
-            // update the name
-            if (!mappedMsg.isSender) {
-              let user = existingUserMap[mappedMsg.senderID]
-              if (!user?.fullName) {
-                user = DBUser.fromOriginal({
-                  id: mappedMsg.senderID,
-                  notify: msg.pushName || undefined,
-                  verifiedName: msg.verifiedBizName || undefined,
-                }, mappingCtx)
-                usersToSave.push(user)
-              }
-            }
 
             mapped.push(mappedMsg)
           }
         }
-
-        logger.debug(`saving ${usersToSave} users`)
-
-        await db.getRepository(DBUser).save(usersToSave, { chunk: 500 })
         await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
       })
     })

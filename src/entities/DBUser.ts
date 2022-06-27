@@ -42,5 +42,10 @@ export default class DBUser implements User {
   update(partial: Partial<Contact>) {
     if (partial.name) this.fullName = partial.name
     if (partial.imgUrl) this.imgURL = partial.imgUrl
+
+    const name = partial.name || partial.verifiedName || partial.notify
+    if (!this.fullName) {
+      this.fullName = name
+    }
   }
 }

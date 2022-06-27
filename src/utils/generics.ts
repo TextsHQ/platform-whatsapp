@@ -1,4 +1,4 @@
-import { ActivityType, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
+import { ActivityType, Awaitable, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
 import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 import type { AnyAuthenticationCreds, MappingContext } from '../types'
@@ -131,7 +131,7 @@ export const unmapMessageID = (id: string) => {
 export async function updateItems<
   T extends { id: string },
   D extends { id: string, update: (t: Partial<T>, ctx: MappingContext) => void },
-  >(updates: Partial<T>[], repo: Repository<D>, ctx: MappingContext, upsert?: (update: Partial<T>) => D | Promise<D>) {
+  >(updates: Partial<T>[], repo: Repository<D>, ctx: MappingContext, upsert?: (update: Partial<T>) => Awaitable<D | undefined>) {
   const map: { [jid: string]: D } = { }
   const jids = updates.map(c => jidNormalizedUser(c.id!))
   const dbItems = await repo.find({
@@ -147,7 +147,10 @@ export async function updateItems<
     if (dbItem) {
       dbItem.update(update, ctx)
     } else if (upsert) {
-      dbItems.push(await upsert(update))
+      const upserted = await upsert(update)
+      if (upserted) {
+        dbItems.push(upserted)
+      }
     }
   }
 
