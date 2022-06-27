@@ -1,8 +1,7 @@
-import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEventEmitter, Chat, Contact, GroupMetadata, isJidBroadcast, isJidGroup, jidDecode, toNumber, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { MessageBehavior, ServerEvent, ServerEventType } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
-import { getKeyAuthor } from '../entities/DBMessage-util'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
@@ -470,7 +469,10 @@ const makeTextsBaileysStore = (
       db.transaction(async db => {
         let key = (await dbGetLatestMsgOrderKey(db)) || 0
 
+        const threadRepo = db.getRepository(DBThread)
+
         const existingMessageMap: { [id: string]: DBMessage } = { }
+        const missingThreadMap: { [id: string]: { timestamp: number } } = { }
 
         const msgs = await fetchMessagesInDB(db, messages)
         for (const msg of msgs) {
@@ -496,6 +498,20 @@ const makeTextsBaileysStore = (
               mappedMsg.original = { message: msg }
             }
 
+            // if this message's decryption failed
+            // we check if it's the first message in the thread
+            // which means the thread doesn't exist
+            // in that case, we create the thread
+            if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
+              const threadExists = await threadRepo.count({
+                where: { id: mappedMsg.threadID },
+                take: 1,
+              })
+              if (!threadExists) {
+                missingThreadMap[mappedMsg.threadID] = { timestamp: toNumber(msg.messageTimestamp!) }
+              }
+            }
+
             if (!mappedMsg.orderKey) {
               key += 1
               mappedMsg.orderKey = key
@@ -510,6 +526,28 @@ const makeTextsBaileysStore = (
             mapped.push(mappedMsg)
           }
         }
+
+        const missingThreadIds = Object.keys(missingThreadMap)
+        const missingThreads = missingThreadIds.map(
+          id => {
+            const chat: Chat = {
+              id,
+              conversationTimestamp: missingThreadMap[id].timestamp,
+              unreadCount: 0,
+            }
+            const thread = new DBThread()
+            thread.original = { chat, metadata: undefined }
+            thread.mapFromOriginal(mappingCtx)
+
+            return thread
+          },
+        )
+        await threadRepo
+          .createQueryBuilder()
+          .insert()
+          .values(missingThreads)
+          .orIgnore()
+          .execute()
         await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
       })
     })
