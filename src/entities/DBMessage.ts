@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import type { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
@@ -176,16 +176,8 @@ export default class DBMessage implements Message {
     this.mapFromOriginal(ctx)
   }
 
-  updateWithReaction(reaction: WAProto.IReaction, operation: 'add' | 'remove', ctx: MappingContext) {
-    const authorID = getKeyAuthor(reaction.key, ctx.meID || '')
-
-    let reactions = this.original.message.reactions || []
-    reactions = reactions.filter(r => getKeyAuthor(r.key, ctx.meID!) !== authorID)
-    if (operation === 'add') {
-      reactions.push(reaction)
-    }
-
-    this.original.message.reactions = reactions
+  updateWithReaction(reaction: WAProto.IReaction, ctx: MappingContext) {
+    updateMessageWithReaction(this.original.message, reaction)
 
     this.mapFromOriginal(ctx)
   }
