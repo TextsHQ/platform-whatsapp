@@ -22,7 +22,7 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
         const result = await transaction.apply(db, args)
         return result
       } catch (error) {
-        logger.error({ error }, 'error in transaction')
+        logger.error({ trace: error?.stack }, `error in transaction: ${error}`)
         throw error
       } finally {
         logger.trace('ended transaction')
