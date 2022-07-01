@@ -498,6 +498,13 @@ const makeTextsBaileysStore = (
               mappedMsg.original = { message: msg }
             }
 
+            if (!mappedMsg.orderKey) {
+              key += 1
+              mappedMsg.orderKey = key
+            }
+
+            mappedMsg.mapFromOriginal(mappingCtx)
+
             // if this message's decryption failed
             // we check if it's the first message in the thread
             // which means the thread doesn't exist
@@ -512,13 +519,6 @@ const makeTextsBaileysStore = (
               }
             }
 
-            if (!mappedMsg.orderKey) {
-              key += 1
-              mappedMsg.orderKey = key
-            }
-
-            mappedMsg.mapFromOriginal(mappingCtx)
-
             if (type !== 'notify') {
               mappedMsg.behavior = MessageBehavior.KEEP_READ
             }
@@ -526,6 +526,8 @@ const makeTextsBaileysStore = (
             mapped.push(mappedMsg)
           }
         }
+
+        await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
 
         const missingThreadIds = Object.keys(missingThreadMap)
         const missingThreads = missingThreadIds.map(
@@ -548,7 +550,6 @@ const makeTextsBaileysStore = (
           .values(missingThreads)
           .orIgnore()
           .execute()
-        await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
       })
     })
 
