@@ -26,6 +26,12 @@ const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
     : 'Disappearing messages were turned off.'
 }
 
+const getDisappearingModeMessageText = (exp: number, actor: string) => {
+  const expDays = Math.floor(exp / (60 * 60 * 24))
+  // TODO: change to "You use" when self and make "X days" more granular / human friendly
+  return `{{${actor}}} uses a default timer for disappearing messages in new chats. All new messages will disappear from this chat ${expDays} days after they're sent.`
+}
+
 const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
   [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
@@ -78,6 +84,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
   [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
   [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters![0], message.messageStubParameters![1]),
+  [WAMessageStubType.DISAPPEARING_MODE]: message => getDisappearingModeMessageText(+message.messageStubParameters![0], message.messageStubParameters![1]),
 
   [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
   [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: '{{sender}} removed {{{{0}}}} from this group',
