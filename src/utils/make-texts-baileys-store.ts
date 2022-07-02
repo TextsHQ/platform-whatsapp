@@ -530,26 +530,32 @@ const makeTextsBaileysStore = (
         await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
 
         const missingThreadIds = Object.keys(missingThreadMap)
-        const missingThreads = missingThreadIds.map(
-          id => {
-            const chat: Chat = {
-              id,
-              conversationTimestamp: missingThreadMap[id].timestamp,
-              unreadCount: 0,
-            }
-            const thread = new DBThread()
-            thread.original = { chat, metadata: undefined }
-            thread.mapFromOriginal(mappingCtx)
 
-            return thread
-          },
-        )
-        await threadRepo
-          .createQueryBuilder()
-          .insert()
-          .values(missingThreads)
-          .orIgnore()
-          .execute()
+        if (missingThreadIds.length) {
+          logger.info({ missingThreadIds }, 'creating missing threads')
+
+          const missingThreads = missingThreadIds.map(
+            id => {
+              const chat: Chat = {
+                id,
+                conversationTimestamp: missingThreadMap[id].timestamp,
+                unreadCount: 0,
+              }
+              const thread = new DBThread()
+              thread.original = { chat, metadata: undefined }
+              thread.mapFromOriginal(mappingCtx)
+
+              return thread
+            },
+          )
+          await threadRepo
+            .createQueryBuilder()
+            .insert()
+            .values(missingThreads)
+            .orIgnore()
+            .execute()
+        }
+
       })
     })
 
