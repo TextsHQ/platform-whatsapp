@@ -7,8 +7,9 @@ import getConnection from '../utils/get-connection'
 import getLogger from '../utils/get-logger'
 
 const TEST_DATA_PATH = './test-data'
-const DB_PATH = `${TEST_DATA_PATH}/test-db.sqlite`
+const DB_PATH = `${TEST_DATA_PATH}/test-db-m.sqlite`
 const logger = getLogger(undefined)
+logger.level = 'trace'
 
 describe('Message Mapping Tests', () => {
   let db: Connection
