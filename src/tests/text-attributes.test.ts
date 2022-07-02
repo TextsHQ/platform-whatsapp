@@ -187,7 +187,6 @@ const flatCases = [
             to: 12,
             mentionedUser: {
               id: '1234@s.whatsapp.net',
-              username: 'Texts User',
             },
           },
         ],
