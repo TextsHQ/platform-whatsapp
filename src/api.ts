@@ -531,6 +531,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('creds.update', () => {
       if (this.client) {
         this.session = this.getAuthSessionFromClient()!
+        if (texts.trackPlatformEvent && this.connectionType === 'legacy') {
+          texts.trackPlatformEvent({ platform: 'whatsapp', isOnLegacy: true })
+        }
         this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
       }
     })
