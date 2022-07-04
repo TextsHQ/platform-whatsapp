@@ -1,4 +1,4 @@
-import { ActivityType, Awaitable, ConnectionStatus, ThreadType } from '@textshq/platform-sdk'
+import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
 import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 import type { AnyAuthenticationCreds, MappingContext } from '../types'
@@ -206,3 +206,11 @@ export const isLoggedIn = (creds: AnyAuthenticationCreds) => {
 
   return !!creds.me?.id
 }
+
+export const shouldMapMessage = (m: Message) =>
+  !m.attachments?.length
+  && !m.text
+  && !m.textHeading
+  && !m.isDeleted
+  && !m.links?.length
+  && !m.tweets?.length
