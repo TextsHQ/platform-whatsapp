@@ -1,4 +1,4 @@
-import { areJidsSameUser, Chat, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, Chat, GroupMetadata, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
 import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
@@ -125,7 +125,7 @@ export default class DBThread implements Thread {
 
   mapFromOriginal(ctx: MappingContext) {
     const { chat, metadata } = this.original
-    const threadID = jidNormalizedUser(chat.id!)
+    const threadID = chat.id!
     if (!chat.conversationTimestamp) {
       chat.conversationTimestamp = 0
     }
@@ -164,8 +164,9 @@ export default class DBThread implements Thread {
       createdAt: createDate,
       participantsList: participants,
       isArchived: !!chat.archive,
-      // only read only if the participants do not include myself
-      isReadOnly: !!metadata && !metadata?.participants.find(p => ctx.meID && areJidsSameUser(ctx.meID, p.id)),
+      isReadOnly: metadata && ctx.meID
+        ? !canWriteToGroup(metadata, ctx.meID)
+        : false,
       timestamp: (stamp > 0 ? new Date(stamp * 1000) : createDate) || new Date(0),
       // @ts-expect-error
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration || null,
@@ -176,4 +177,19 @@ export default class DBThread implements Thread {
     }
     Object.assign(this, partial)
   }
+}
+
+/** can the group be written messages to */
+function canWriteToGroup(metadata: GroupMetadata, meID: string) {
+  // to write to the group, user must be a participant
+  let participant = metadata?.participants.find(p => areJidsSameUser(meID, p.id))
+  // if the group is restricted to only admins
+  // check user is an admin
+  if (metadata.announce) {
+    if (!participant?.admin) {
+      participant = undefined
+    }
+  }
+
+  return !!participant
 }

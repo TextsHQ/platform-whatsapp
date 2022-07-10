@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEventMap, Chat, Contact, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -87,14 +87,14 @@ const makeTextsBaileysStore = (
       }
 
       if (events['chats.delete']) {
-        await handleChatsDelete(events['chats.delete'], ctx)
+        await handleChatsDelete(events['chats.delete'], excludeEvent, ctx)
       }
 
       if (events['group-participants.update']) {
-        await handleGroupParticipantsUpdate(events['group-participants.update'], ctx)
+        await handleGroupParticipantsUpdate(events['group-participants.update'], excludeEvent, ctx)
       }
 
-      if (events['presence.update']) {
+      if (events['presence.update'] && !excludeEvent) {
         const { id, presences } = events['presence.update']
         const presenceEvents = mapPresenceUpdate(id, presences)
         for (const event of presenceEvents) {
@@ -103,12 +103,13 @@ const makeTextsBaileysStore = (
       }
 
       if (events['messages.upsert']) {
-        await handleMessagesUpsert(events['messages.upsert'], ctx)
+        await handleMessagesUpsert(events['messages.upsert'], excludeEvent, ctx)
       }
 
       if (events['messages.update']) {
         await updateMessages(
           events['messages.update'],
+          excludeEvent,
           (msg, { update }) => msg.update(update, ctx),
           ctx,
         )
@@ -117,6 +118,7 @@ const makeTextsBaileysStore = (
       if (events['message-receipt.update']) {
         await updateMessages(
           events['message-receipt.update'],
+          excludeEvent,
           (msg, { receipt }) => msg.updateFromReceipt(receipt, ctx),
           ctx,
         )
@@ -125,13 +127,18 @@ const makeTextsBaileysStore = (
       if (events['messages.reaction']) {
         await updateMessages(
           events['messages.reaction'],
+          excludeEvent,
           (msg, update) => msg.updateWithReaction(update.reaction, ctx),
           ctx,
         )
       }
 
       if (events['messages.delete']) {
-        await handleMessagesDelete(events['messages.delete'], ctx)
+        await handleMessagesDelete(events['messages.delete'], excludeEvent, ctx)
+      }
+
+      if (events['groups.update']) {
+        await handleGroupsUpdate(events['groups.update'], excludeEvent, groupMetadata, ctx)
       }
     }
 
@@ -139,7 +146,15 @@ const makeTextsBaileysStore = (
       ev.process(events => (
         mappingCtx.db.transaction(
           async db => {
-            await processEvents(events, { ...mappingCtx, db })
+            await processEvents(
+              events,
+              {
+                db,
+                meID: mappingCtx.meID,
+                logger: mappingCtx.logger,
+                accountID: mappingCtx.accountID,
+              },
+            )
           },
         )
           .catch(
@@ -160,8 +175,35 @@ const makeTextsBaileysStore = (
   }
 }
 
+async function handleGroupsUpdate(
+  updates: BaileysEventMap<any>['groups.update'],
+  excludeEvent: boolean,
+  groupMetadata: AnyWASocket['groupMetadata'],
+  ctx: MappingContextWithDB,
+) {
+  return handleItemsUpsert(DBThread, updates, excludeEvent, mapGroup, ctx)
+
+  async function mapGroup(metadata: Partial<GroupMetadata>, dbChat: DBThread | undefined) {
+    if (dbChat && isJidGroup(dbChat.id)) {
+      if (!dbChat.original.metadata) {
+        dbChat.original.metadata = await groupMetadata(dbChat.id, true)
+          .catch(() => undefined)
+      }
+
+      if (dbChat.original.metadata) {
+        Object.assign(dbChat.original.metadata, metadata)
+        dbChat.mapFromOriginal(ctx)
+        return dbChat
+      }
+
+      ctx.logger.warn({ id: dbChat.id, update: metadata }, 'failed to get group metadata')
+    }
+  }
+}
+
 async function handleMessagesUpsert(
   { messages, type }: BaileysEventMap<any>['messages.upsert'],
+  excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -224,6 +266,10 @@ async function handleMessagesUpsert(
         mappedMsg.behavior = MessageBehavior.KEEP_READ
       }
 
+      if (excludeEvent) {
+        mappedMsg.shouldFireEvent = false
+      }
+
       mapped.push(mappedMsg)
     }
   }
@@ -260,6 +306,7 @@ async function handleMessagesUpsert(
 
 async function handleMessagesDelete(
   item: BaileysEventMap<any>['messages.delete'],
+  excludeEvent: boolean,
   { db, logger }: MappingContextWithDB,
 ) {
   const repo = db.getRepository(DBMessage)
@@ -267,6 +314,12 @@ async function handleMessagesDelete(
     // isn't supported yet
   } else {
     const msgs = await repo.find({ id: In(item.keys.map(mapMessageID)) })
+    if (excludeEvent) {
+      for (const msg of msgs) {
+        msg.shouldFireEvent = false
+      }
+    }
+
     logger.info(
       { msgs: msgs.map(m => m.original.message.key) },
       'deleting messages',
@@ -330,6 +383,7 @@ async function handleChatsSync(
 
 async function updateMessages<T extends { key: WAMessageKey }>(
   updates: T[],
+  excludeEvent: boolean,
   applyUpdate: (msg: DBMessage, update: T) => void,
   ctx: MappingContextWithDB,
 ) {
@@ -359,6 +413,10 @@ async function updateMessages<T extends { key: WAMessageKey }>(
     if (!wasSeenEarlier && item.original.seenByMe) {
       readMsgsUpdateMap[item.threadID] = readMsgsUpdateMap[item.threadID] || 0
       readMsgsUpdateMap[item.threadID] += 1
+    }
+
+    if (excludeEvent) {
+      item.shouldFireEvent = false
     }
   }
   await repo.save(dbItems as any[], { chunk: 50 })
@@ -461,6 +519,7 @@ const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WA
 
 async function handleGroupParticipantsUpdate(
   { participants, action, id: threadID }: BaileysEventMap<any>['group-participants.update'],
+  excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -500,6 +559,10 @@ async function handleGroupParticipantsUpdate(
       }
       thread.mapFromOriginal(ctx)
 
+      if (excludeEvent) {
+        thread.shouldFireEvent = false
+      }
+
       await threadRepo.save(thread)
       // remove existing data and overwrite new participants
       await participantRepo.delete({ threadID: thread.id })
@@ -514,10 +577,17 @@ async function handleGroupParticipantsUpdate(
 
 async function handleChatsDelete(
   ids: BaileysEventMap<any>['chats.delete'],
+  excludeEvent: boolean,
   { db, logger }: MappingContextWithDB,
 ) {
   const repo = db.getRepository(DBThread)
   const chats = await repo.find({ id: In(ids) })
+  if (excludeEvent) {
+    for (const chat of chats) {
+      chat.shouldFireEvent = false
+    }
+  }
+
   await repo.remove(chats, { chunk: 500 })
 
   logger.info({ ids }, 'deleted chats')
@@ -552,7 +622,7 @@ function handleChatsUpsert(
       || dbChat
     ) {
       if (!dbChat) {
-        dbChat = dbChat || new DBThread()
+        dbChat = new DBThread()
 
         const metadata = isJidGroup(chat.id!)
           ? await groupMetadata(chat.id!, true).catch(() => undefined)
