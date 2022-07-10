@@ -1,4 +1,4 @@
-import { areJidsSameUser, ButtonReplyInfo, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
@@ -283,8 +283,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
   const response = { attachments: [] as MessageAttachment[], media: false }
   if (!message) return response
 
-  const type = getContentType(message)
-  const messageInner = message?.[type] as any
+  const messageInner = Object.values(extractMessageContent(message)!)[0]
 
   if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
@@ -322,12 +321,14 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
     response.media = true
   } else if (message.productMessage?.product?.productImage) {
     const img = message.productMessage?.product?.productImage
+    const jpegThumbnail = img?.jpegThumbnail
     response.attachments = [
       {
         id,
         type: MessageAttachmentType.IMG,
+        srcURL: attachmentUrl(undefined, jid, id, ''),
         mimeType: img.mimetype!,
-        posterImg: img.jpegThumbnail ? Buffer.from(img.jpegThumbnail) : undefined,
+        posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
       },
     ]
     response.media = true

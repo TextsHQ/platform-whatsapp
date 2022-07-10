@@ -1,6 +1,7 @@
 import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, WAMessage } from '@adiwajshing/baileys'
 import type { texts } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
+import type { Connection, EntityManager } from 'typeorm'
 
 export type FullBaileysChat = {
   chat: Partial<Chat>
@@ -25,6 +26,8 @@ export type MappingContext = {
   meID: string | undefined
   logger: Logger
 }
+
+export type MappingContextWithDB = MappingContext & { db: Connection | EntityManager }
 
 export type AnyAuthenticationCreds = AuthenticationCreds | LegacyAuthenticationCreds
 

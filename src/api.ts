@@ -135,11 +135,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.db = await getConnection(accountID, dbPath, this.logger)
 
-    this.dataStore = makeTextsBaileysStore(
-      this.db,
-      this,
-      this.publishEvent,
-    )
+    this.dataStore = makeTextsBaileysStore(this.publishEvent, this)
 
     const existingData = await hasSomeCachedData(this.db)
     this.canServeThreads = existingData.hasChats
@@ -442,7 +438,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private registerCallbacks = (ev: BaileysEventEmitter) => {
-    this.dataStore.bind(ev, this.client!)
+    this.dataStore.bind(this.client!)
 
     ev.on('connection.update', update => {
       Object.assign(this.connState, update)

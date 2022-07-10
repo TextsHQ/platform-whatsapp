@@ -1,10 +1,9 @@
-import { BaileysEventEmitter, delay, generateMessageID, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
-import { EventEmitter } from 'typeorm/platform/PlatformTools'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
-import type { MappingContext } from '../types'
+import type { MappingContextWithDB } from '../types'
 import { mapMessageID } from '../utils/generics'
 import getConnection from '../utils/get-connection'
 import getLogger from '../utils/get-logger'
@@ -21,7 +20,12 @@ describe('Database Sync Tests', () => {
   let db: Connection
   let store: ReturnType<typeof makeTextsBaileysStore>
 
-  const mappingCtx: MappingContext = { logger: logger.child({ level: 'debug' }), accountID: '1234', meID: '911724345330@s.whatsapp.net' }
+  const mappingCtx: MappingContextWithDB = {
+    logger: logger.child({ level: 'debug' }),
+    accountID: '1234',
+    meID: '911724345330@s.whatsapp.net',
+    db: undefined as any
+  }
 
   beforeAll(async () => {
     const exists = await stat(DB_PATH).then(() => true).catch(() => false)
@@ -30,16 +34,13 @@ describe('Database Sync Tests', () => {
       await unlink(DB_PATH)
     }
     db = await getConnection('default', DB_PATH, logger)
-    store = makeTextsBaileysStore(
-      db,
-      mappingCtx,
-      () => { },
-    )
+    mappingCtx.db = db
+    store = makeTextsBaileysStore(() => { }, mappingCtx)
   })
 
   it('should insert new CIPHERTEXT message & make new thread', async () => {
-    const ev = new EventEmitter() as BaileysEventEmitter
-    store.bind(ev, { type: 'md', groupMetadata: async () => { throw new Error('not supported') } })
+    const ev = makeEventBuffer(logger)
+    store.bind({ ev, groupMetadata: async () => { throw new Error('not supported') } })
 
     const msg = WAProto.WebMessageInfo.fromObject({
       key: {
