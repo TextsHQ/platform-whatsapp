@@ -139,27 +139,25 @@ const makeTextsBaileysStore = (
 
     if ('process' in ev) {
       ev.process(events => (
-        ev.processInBuffer(
-          mappingCtx.db.transaction(
-            async db => {
-              await processEvents(
-                events,
-                {
-                  db,
-                  meID: mappingCtx.meID,
-                  logger: mappingCtx.logger,
-                  accountID: mappingCtx.accountID,
-                },
-              )
-            },
-          )
-            .catch(
-              err => mappingCtx.logger.error(
-                { trace: err.stack, events },
-                'error in processing events',
-              ),
-            ),
+        mappingCtx.db.transaction(
+          async db => {
+            await processEvents(
+              events,
+              {
+                db,
+                meID: mappingCtx.meID,
+                logger: mappingCtx.logger,
+                accountID: mappingCtx.accountID,
+              },
+            )
+          },
         )
+          .catch(
+            err => mappingCtx.logger.error(
+              { trace: err.stack, events },
+              'error in processing events',
+            ),
+          )
       ))
     } else {
       // TODO

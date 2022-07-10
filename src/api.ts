@@ -13,7 +13,6 @@ import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
 import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
-import makeDebouncedStream from './utils/make-debounced-stream'
 import makeTextsBaileysStore from './utils/make-texts-baileys-store'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
@@ -135,7 +134,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.db = await getConnection(accountID, dbPath, this.logger)
 
-    this.dataStore = makeTextsBaileysStore(this.eventStream.push, this)
+    this.dataStore = makeTextsBaileysStore(this.publishEvent, this)
 
     const existingData = await hasSomeCachedData(this.db)
     this.canServeThreads = existingData.hasChats
@@ -347,13 +346,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.loadWAMessageFromDB(jid, id)
   }
 
-  private eventStream = makeDebouncedStream(
-    250,
-    (events: ServerEvent[]) => {
-      this.logger.trace(`pushing ${events.length} events`)
-      this.evCallback(events)
-    },
-  )
+  private publishEvent = (...events: ServerEvent[]) => {
+    this.logger.trace(`pushing ${events.length} events`)
+    this.evCallback(events)
+  }
 
   private async allowDataFetch() {
     if (!this.canServeThreads) {
@@ -453,7 +449,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (receivedPendingNotifications && !this.isNewLogin) {
         this.allowDataFetch()
-        this.eventStream.flush()
       }
 
       if (connection) {
@@ -474,10 +469,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             if (this.lastActivityType !== ActivityType.OFFLINE) {
               this.sendActivityIndicator(ActivityType.ONLINE, undefined)
             }
-
-            if (this.connectionType === 'md') {
-              this.eventStream.buffer()
-            }
             break
           case 'connecting':
             this.logger.debug('connect transaction started')
@@ -494,10 +485,6 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.connectionLifetimeTransaction!.finish()
             }
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
-
-            if (this.connectionType === 'md') {
-              this.eventStream.flush()
-            }
             break
         }
 
@@ -539,7 +526,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (texts.trackPlatformEvent && this.connectionType === 'legacy') {
           texts.trackPlatformEvent({ platform: 'whatsapp', isOnLegacy: true })
         }
-        this.eventStream.push({ type: ServerEventType.SESSION_UPDATED })
+        this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
       }
     })
 
