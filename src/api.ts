@@ -135,7 +135,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.db = await getConnection(accountID, dbPath, this.logger)
 
-    this.dataStore = makeTextsBaileysStore(this.publishEvent, this)
+    this.dataStore = makeTextsBaileysStore(this.eventStream.push, this)
 
     const existingData = await hasSomeCachedData(this.db)
     this.canServeThreads = existingData.hasChats
@@ -347,10 +347,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.loadWAMessageFromDB(jid, id)
   }
 
-  private publishEvent = makeDebouncedStream(
+  private eventStream = makeDebouncedStream(
     250,
     (events: ServerEvent[]) => {
-      this.logger.debug(`pushing ${events.length} events`)
+      this.logger.trace(`pushing ${events.length} events`)
       this.evCallback(events)
     },
   )
@@ -453,6 +453,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       if (receivedPendingNotifications && !this.isNewLogin) {
         this.allowDataFetch()
+        this.eventStream.flush()
       }
 
       if (connection) {
@@ -473,6 +474,10 @@ export default class WhatsAppAPI implements PlatformAPI {
             if (this.lastActivityType !== ActivityType.OFFLINE) {
               this.sendActivityIndicator(ActivityType.ONLINE, undefined)
             }
+
+            if (this.connectionType === 'md') {
+              this.eventStream.buffer()
+            }
             break
           case 'connecting':
             this.logger.debug('connect transaction started')
@@ -489,6 +494,10 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.connectionLifetimeTransaction!.finish()
             }
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
+
+            if (this.connectionType === 'md') {
+              this.eventStream.flush()
+            }
             break
         }
 
@@ -530,7 +539,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         if (texts.trackPlatformEvent && this.connectionType === 'legacy') {
           texts.trackPlatformEvent({ platform: 'whatsapp', isOnLegacy: true })
         }
-        this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
+        this.eventStream.push({ type: ServerEventType.SESSION_UPDATED })
       }
     })
 

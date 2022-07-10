@@ -24,12 +24,11 @@ const makeTextsBaileysStore = (
   registerDBSubscribers(publishEvent, mappingCtx)
 
   let lastSyncMsgRecv: Date | undefined
-  let excludeEvent = true
+  const excludeEvent = false
 
   function bind({ ev, groupMetadata }: StoreBindContext) {
     // reset values
     lastSyncMsgRecv = undefined
-    excludeEvent = false
 
     async function processEvents(
       events: Partial<BaileysEventMap<any>>,
@@ -43,13 +42,9 @@ const makeTextsBaileysStore = (
       }
 
       if (events['connection.update']) {
-        const { legacy, receivedPendingNotifications } = events['connection.update']
+        const { legacy } = events['connection.update']
         if (legacy?.user) {
           await saveMeUser(legacy.user, ctx)
-        }
-
-        if (typeof receivedPendingNotifications === 'boolean') {
-          excludeEvent = !receivedPendingNotifications
         }
       }
 
@@ -144,25 +139,27 @@ const makeTextsBaileysStore = (
 
     if ('process' in ev) {
       ev.process(events => (
-        mappingCtx.db.transaction(
-          async db => {
-            await processEvents(
-              events,
-              {
-                db,
-                meID: mappingCtx.meID,
-                logger: mappingCtx.logger,
-                accountID: mappingCtx.accountID,
-              },
-            )
-          },
-        )
-          .catch(
-            err => mappingCtx.logger.error(
-              { trace: err.stack, events },
-              'error in processing events',
-            ),
+        ev.processInBuffer(
+          mappingCtx.db.transaction(
+            async db => {
+              await processEvents(
+                events,
+                {
+                  db,
+                  meID: mappingCtx.meID,
+                  logger: mappingCtx.logger,
+                  accountID: mappingCtx.accountID,
+                },
+              )
+            },
           )
+            .catch(
+              err => mappingCtx.logger.error(
+                { trace: err.stack, events },
+                'error in processing events',
+              ),
+            ),
+        )
       ))
     } else {
       // TODO
