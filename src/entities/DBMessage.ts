@@ -237,7 +237,7 @@ export default class DBMessage implements Message {
       isSender: !!message.key.fromMe,
       isDeleted,
       attachments,
-      buttons: message.message ? messageButtons(normalizeMessageContent(message.message), message.key) : [],
+      buttons: message.message ? messageButtons(normalizeMessageContent(message.message)!, message.key) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       linkedMessage: linked,
       links: link ? [link] : undefined,

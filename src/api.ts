@@ -214,7 +214,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.logger.info({ msSinceConnect, trace: error.stack }, 'connect failed')
 
       // ensure cleanup
-      // @ts-expect-error
       this.client!.end(undefined)
 
       const statusCode: number = error.output?.statusCode
@@ -689,11 +688,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       const messages: DBMessage[] = []
       try {
         for (const { compose, options } of msgCompositions) {
-          const message = await this.client!.sendMessage(threadID, compose, {
+          const message = (await this.client!.sendMessage(threadID, compose, {
             ...options,
             cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
             waitForAck: true,
-          })
+          }))!
           const mappedMsg = new DBMessage()
           mappedMsg.original = { message, downloadedReceipts: true }
           mappedMsg.mapFromOriginal(this)
@@ -889,7 +888,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         await this.waitForConnectionOpen()
 
         if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
-          this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid).catch(() => '')
+          this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid)
+            .catch(() => '')
+            .then(url => url || '')
         }
         const url = await this.profilePictureUrlCache[jid]
         return url

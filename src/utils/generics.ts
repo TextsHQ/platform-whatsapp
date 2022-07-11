@@ -109,7 +109,7 @@ export const attachmentUrl = (accountID: string | undefined, jid: string, messag
   `asset://${accountID || '$accountID'}/attachment/${encodeURIComponent(jid)}/${encodeURIComponent(messageId)}/${encodeURIComponent(fileId)}`
 
 export function threadType(jid: string): ThreadType | undefined {
-  const { server } = jidDecode(jid)
+  const { server } = jidDecode(jid)!
   if (server === 'g.us') return 'group'
   if (server === 'broadcast') return 'broadcast'
   if (server === 's.whatsapp.net' || server === 'c.us') return 'single'

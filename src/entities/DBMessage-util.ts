@@ -294,7 +294,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
       fileName: `${c!.displayName}.vcf`,
     }))
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
-    const messageType = getContentType(message)
+    const messageType = getContentType(message)!
     const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
     const content = message[messageType] as WAGenericMediaMessage
@@ -380,7 +380,7 @@ export function* messageHeading(message: WAMessage) {
 
 const replaceJids = (jids: string[], text: string) => {
   if (!jids) return text
-  return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid).user}`, `@{{${jid}}}`), text)
+  return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `@{{${jid}}}`), text)
 }
 
 const generateDeepLink = (type: 'template' | 'plain', key: WAMessageKey, button: ButtonReplyInfo) => {
@@ -502,7 +502,7 @@ export function messageText(message: WAMessageContent) {
     return `{{sender}} reacted ${message.reactionMessage!.text!} to ${sender} message`
   }
 
-  const type = getContentType(message)
+  const type = getContentType(message)!
   const messageInner = message?.[type] as any
 
   const text = messageInner?.text ?? messageInner?.caption

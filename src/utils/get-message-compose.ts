@@ -16,7 +16,7 @@ const getMessageCompose = async (db: Connection | EntityManager, threadID: strin
 
   if (msgContent.mentionedUserIDs) {
     for (const mention of msgContent.mentionedUserIDs) {
-      const { user } = jidDecode(mention)
+      const { user } = jidDecode(mention)!
       // @+14151231234 => @14151231234
       text = text!.replace('@+' + user, '@' + user)
     }
