@@ -69,7 +69,7 @@ const registerDBSubscribers = (
       publish(event, item) {
         switch (event) {
           case 'insert':
-            const participant = (item as DBParticipant).toParticipant()
+            const participant = item as DBUser
             DBUser.prepareForSending(participant, ctx.accountID)
 
             publishEvent({
