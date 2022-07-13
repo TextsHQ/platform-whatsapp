@@ -57,6 +57,8 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
                   item.original = { ...item.original, metadata, lastMetadataFetchDate: new Date() }
                   item.shouldFireEvent = false
                   item.mapFromOriginal(mappingCtx)
+                  delete item.user
+
                   itemsToSave.push(item)
                   participantsToSave.push(...item.participantsList!)
                 } catch (error) {
