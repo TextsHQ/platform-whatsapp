@@ -642,18 +642,22 @@ function handleContactsUpsert(
   return handleItemsUpsert(DBUser, contacts, excludeEvent, mapContact, ctx)
 
   function mapContact(contact: Partial<Contact>, dbItem: DBUser | undefined) {
+    const anyName = contact.name || contact.verifiedName || contact.notify
     if (dbItem) {
       if (
         (
           contact.name !== dbItem.fullName
           && contact.name
         )
-        || !dbItem.fullName
+        || (
+          !dbItem.fullName
+          && anyName
+        )
       ) {
-        dbItem.fullName = contact.name || contact.verifiedName || contact.notify
+        dbItem.fullName = anyName
         return dbItem
       }
-    } else if (contact.name || contact.verifiedName || contact.notify) {
+    } else if (anyName) {
       return DBUser.fromOriginal(contact as any, ctx)
     }
   }
