@@ -644,10 +644,13 @@ function handleContactsUpsert(
   function mapContact(contact: Partial<Contact>, dbItem: DBUser | undefined) {
     if (dbItem) {
       if (
-        contact.name !== dbItem.fullName
+        (
+          contact.name !== dbItem.fullName
+          && contact.name
+        )
         || !dbItem.fullName
       ) {
-        dbItem.fullName = contact.name
+        dbItem.fullName = contact.name || contact.verifiedName || contact.notify
         return dbItem
       }
     } else if (contact.name || contact.verifiedName || contact.notify) {
