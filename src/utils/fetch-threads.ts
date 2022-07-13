@@ -35,6 +35,7 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
   const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
   const items = await repo
     .createQueryBuilder('thread')
+    .leftJoinAndSelect('thread.user', 'thread_user')
     .leftJoinAndSelect('thread.participantsList', 'participant')
     .leftJoinAndSelect('participant.user', 'user')
     .innerJoin(selectClause, 't2', 't2.id = thread.id')
@@ -90,8 +91,12 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
   const processedItems = items.map(
     item => {
       const result = DBThread.prepareForSending(item, mappingCtx.accountID)
-      for (const participant of result.participants.items) {
-        DBUser.prepareForSending(participant, mappingCtx.accountID)
+      if (result.participants) {
+        for (const participant of result.participants.items) {
+          DBUser.prepareForSending(participant, mappingCtx.accountID)
+        }
+      } else {
+        result.participants = { items: [], hasMore: false }
       }
       return result
     },

@@ -1,11 +1,12 @@
-import { areJidsSameUser, Chat, GroupMetadata, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm'
+import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
 import type { FullBaileysChat, MappingContext } from '../types'
-import { profilePictureUrl, safeJSONStringify, threadType } from '../utils/generics'
+import { numberFromJid, profilePictureUrl, safeJSONStringify, threadType } from '../utils/generics'
 import BinaryEncodedColumn from './BinaryEncodedColumn'
 import DBParticipant from './DBParticipant'
+import DBUser from './DBUser'
 
 @Entity()
 export default class DBThread implements Thread {
@@ -66,6 +67,10 @@ export default class DBThread implements Thread {
   @OneToMany(() => DBParticipant, ({ thread }) => thread, { cascade: false, persistence: false })
   participantsList?: DBParticipant[]
 
+  @OneToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false, persistence: false })
+  @JoinColumn({ name: 'id', referencedColumnName: 'id' })
+  user?: DBUser
+
   shouldFireEvent?: boolean
 
   update(update: Partial<Chat>, ctx: MappingContext) {
@@ -97,7 +102,9 @@ export default class DBThread implements Thread {
     if (item.original) {
       item._original = safeJSONStringify(item.original)
     }
-    if (typeof item.participantsList !== 'undefined') {
+
+    // use participant list for groups
+    if (typeof item.participantsList !== 'undefined' && isJidGroup(item.id || '')) {
       if (!item.messages) {
         item.messages = { items: [], hasMore: true }
       }
@@ -105,7 +112,23 @@ export default class DBThread implements Thread {
         items: item.participantsList.map(p => p.toParticipant()) || [],
         hasMore: false,
       }
+    // use "user" for single threads
+    } else if (isJidUser(item.id || '')) {
+      // if user is truthy
+      if (item.user) {
+        item.participants = {
+          items: [item.user],
+          hasMore: false,
+        }
+      // if user is null
+      } else if (item.user !== 'undefined') {
+        item.participants = {
+          items: [{ id: item.id!, phoneNumber: numberFromJid(item.id!) }],
+          hasMore: false,
+        }
+      }
     }
+
     if (item.id && item.type !== 'single') {
       item.imgURL = profilePictureUrl(accountID, item.id!)
     }
@@ -133,18 +156,16 @@ export default class DBThread implements Thread {
       texts.Sentry.captureException(new Error('stories thread being mapped'))
     }
     const type = threadType(threadID)!
-    const baileysParticipants = type === 'single' ? [chat, { id: ctx.meID }] : (metadata?.participants || [])
 
-    const participants: DBParticipant[] = []
-    const participantSet = new Set<string>()
-
-    for (const item of baileysParticipants) {
-      const id = jidNormalizedUser(item.id!)
-      if (!participantSet.has(id)) {
+    let participants: DBParticipant[]
+    // we only store participants for groups
+    // for single users, we store the 'user' property as the participant
+    if (metadata?.participants) {
+      participants = []
+      for (const item of metadata.participants) {
         const participant = DBParticipant.fromOriginal({ threadID, item })
         participant.shouldFireEvent = this.shouldFireEvent
         participants.push(participant)
-        participantSet.add(id)
       }
     }
 
@@ -162,7 +183,7 @@ export default class DBThread implements Thread {
       unreadCount: chat.unreadCount || 0,
       type,
       createdAt: createDate,
-      participantsList: participants,
+      participantsList: participants!,
       isArchived: !!chat.archive,
       isReadOnly: metadata && ctx.meID
         ? !canWriteToGroup(metadata, ctx.meID)

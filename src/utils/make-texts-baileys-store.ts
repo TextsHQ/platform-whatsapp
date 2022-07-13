@@ -349,16 +349,18 @@ async function handleChatsSync(
     mapped.shouldFireEvent = false
     mapped.mapFromOriginal(ctx)
 
-    for (const item of mapped.participantsList!) {
-      const id = `${item.threadID},${item.id}`
-      if (!addedParticipants.has(id)) {
-        // when a participant is inserted alongside a thread,
-        // no need to fire the event for it
-        item.shouldFireEvent = false
-        totalParticipantList.push(item)
-        addedParticipants.add(id)
-      } else {
-        logger.info({ threadID: chat.id, id }, 'duplicate participant')
+    if (mapped.participantsList) {
+      for (const item of mapped.participantsList!) {
+        const id = `${item.threadID},${item.id}`
+        if (!addedParticipants.has(id)) {
+          // when a participant is inserted alongside a thread,
+          // no need to fire the event for it
+          item.shouldFireEvent = false
+          totalParticipantList.push(item)
+          addedParticipants.add(id)
+        } else {
+          logger.info({ threadID: chat.id, id }, 'duplicate participant')
+        }
       }
     }
 
@@ -588,13 +590,17 @@ async function handleChatsDelete(
   logger.info({ ids }, 'deleted chats')
 }
 
-function handleChatsUpsert(
+async function handleChatsUpsert(
   chats: Partial<Chat>[],
   excludeEvent: boolean,
   groupMetadata: AnyWASocket['groupMetadata'],
   ctx: MappingContextWithDB,
 ) {
-  return handleItemsUpsert(DBThread, chats, excludeEvent, mapChat, ctx)
+  const participants: DBParticipant[] = []
+  await handleItemsUpsert(DBThread, chats, excludeEvent, mapChat, ctx)
+
+  const participantRepo = ctx.db.getRepository(DBParticipant)
+  await chunkedWrite(participantRepo, participants, DEFAULT_CHUNK_SIZE)
 
   async function mapChat(chat: Partial<Chat>, dbChat: DBThread | undefined) {
     if (chat.unreadCount && chat.unreadCount > 0) {
@@ -616,6 +622,7 @@ function handleChatsUpsert(
       chat.conversationTimestamp
       || dbChat
     ) {
+      let shouldSaveParticipants = false
       if (!dbChat) {
         dbChat = new DBThread()
 
@@ -624,10 +631,15 @@ function handleChatsUpsert(
           : undefined
 
         dbChat.original = { chat, metadata }
+        shouldSaveParticipants = true
       }
 
       Object.assign(dbChat.original.chat, chat)
       dbChat.mapFromOriginal(ctx)
+
+      if (dbChat.participantsList && shouldSaveParticipants) {
+        participants.push(...dbChat.participantsList!)
+      }
 
       return dbChat
     }
