@@ -22,8 +22,8 @@ const getEphemeralMessageSettingChangedText = (exp: number, actor: string) => {
       : `Disappearing messages were turned on. New messages will disappear from this chat after ${expDays} days.`
   }
   return actor
-    ? `{{${actor}}} turned off disappearing messages.`
-    : 'Disappearing messages were turned off.'
+    ? `{{${actor}}} turned off disappearing messages`
+    : 'Disappearing messages were turned off'
 }
 
 const getDisappearingModeMessageText = (exp: number, actor: string) => {
@@ -35,21 +35,22 @@ const getDisappearingModeMessageText = (exp: number, actor: string) => {
 const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
   [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
 
-  [WAMessageStubType.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.',
+  [WAMessageStubType.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption',
+  [WAMessageStubType.E2E_ENCRYPTED_NOW]: '🔒 Messages you send to this chat and calls are now secured with end-to-end encryption',
   // This chat is with the official business account of "X". Click for more info.
   // [AFTER CLICK] WhatsApp has verified that this is the official business account of "X".
-  [WAMessageStubType.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account.',
-  [WAMessageStubType.BIZ_INTRO_TOP]: 'This chat is with an official business account.',
+  [WAMessageStubType.BIZ_INTRO_BOTTOM]: 'This chat is with an official business account',
+  [WAMessageStubType.BIZ_INTRO_TOP]: 'This chat is with an official business account',
   // This chat is with the official business account of "X". Click for more info.
-  [WAMessageStubType.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account.',
+  [WAMessageStubType.BIZ_TWO_TIER_MIGRATION_TOP]: 'This chat is with an official business account',
   // X registered as a business account, but WhatsApp hasn’t verified their name yet.
-  [WAMessageStubType.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account.',
-  [WAMessageStubType.BLUE_MSG_SELF_PREMISE_UNVERIFIED]: 'This chat is with a business account.',
+  [WAMessageStubType.BIZ_TWO_TIER_MIGRATION_BOTTOM]: 'This chat is with a business account',
+  [WAMessageStubType.BLUE_MSG_SELF_PREMISE_UNVERIFIED]: 'This chat is with a business account',
   // This account was previously a business account but has now registered as a standard account and may no longer belong to the business.
-  [WAMessageStubType.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account.',
+  [WAMessageStubType.BIZ_MOVE_TO_CONSUMER_APP]: 'This business account has now registered as a standard account',
   // This chat is with the verified business account for "X". Click for more info.
   // [AFTER CLICK] WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account".
-  [WAMessageStubType.VERIFIED_HIGH]: 'This chat is with a verified business account.',
+  [WAMessageStubType.VERIFIED_HIGH]: 'This chat is with a verified business account',
 
   [WAMessageStubType.CALL_MISSED_VIDEO]: 'Missed video call',
   [WAMessageStubType.CALL_MISSED_VOICE]: 'Missed voice call',
@@ -78,7 +79,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_ADD]: participantAdded,
   [WAMessageStubType.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
 
-  [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: '{{sender}} notified {{{{0}}}} that you are trying to send a payment.',
+  [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: '{{sender}} notified {{{{0}}}} that you are trying to send a payment',
   // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
   [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
@@ -468,7 +469,7 @@ export function messageText(message: WAMessageContent) {
     case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_REQUEST:
       return 'App State Key Requested'
     case WAProto.ProtocolMessage.ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
-      return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption.'
+      return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption'
     default:
       break
   }
