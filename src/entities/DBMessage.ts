@@ -244,8 +244,7 @@ export default class DBMessage implements Message {
       parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
       action,
-      // todo: review logic, this is incorrect:
-      // isErrored: !isAction && message.key.fromMe && message.status === 0,
+      // @ts-expect-error
       behavior: getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},

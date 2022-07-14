@@ -249,7 +249,10 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 
 export function getNotificationType(message: WAMessage, currentUserId: string) {
   const msgContent = message.message ? normalizeMessageContent(message.message) : undefined
-  if (message.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
+  if (
+    message.messageStubType === WAMessageStubType.E2E_ENCRYPTED
+    || message.messageStubType === WAMessageStubType.CIPHERTEXT
+  ) {
     return MessageBehavior.SILENT
   }
 
@@ -273,7 +276,7 @@ export function getNotificationType(message: WAMessage, currentUserId: string) {
     ) || !message.key.fromMe // no flag for fromMe messages
   ) {
     // default notify behaviour
-    return
+    return null
   }
 
   return MessageBehavior.DONT_NOTIFY
