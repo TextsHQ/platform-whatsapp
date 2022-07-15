@@ -69,7 +69,7 @@ export default class DBThread implements Thread {
 
   @OneToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
-  user?: DBUser
+  user?: DBUser | null
 
   shouldFireEvent?: boolean
 

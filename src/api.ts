@@ -579,12 +579,16 @@ export default class WhatsAppAPI implements PlatformAPI {
       await this.db.transaction(
         async db => {
           await db.getRepository(DBThread).save(thread)
-          await db.getRepository(DBParticipant).save(thread.participantsList!)
+          if (thread.participantsList) {
+            await db.getRepository(DBParticipant).save(thread.participantsList!)
+            await setParticipantUsers(db, thread.participantsList!)
+          }
         },
       )
+    } else {
+      // so the user gets set
+      thread.user = null
     }
-
-    await setParticipantUsers(this.db, thread.participantsList!)
 
     return DBThread.prepareForSending(thread, this.accountID)
   }
