@@ -104,16 +104,20 @@ export default class DBThread implements Thread {
     }
 
     // use participant list for groups
-    if (typeof item.participantsList !== 'undefined' && isJidGroup(item.id || '')) {
+    if (isJidGroup(item.id || '')) {
       if (!item.messages) {
         item.messages = { items: [], hasMore: true }
       }
+
       item.participants = {
-        items: item.participantsList.map(p => p.toParticipant()) || [],
+        items: item.participantsList?.map(p => p.toParticipant()) || [],
         hasMore: false,
       }
     // use "user" for single threads
-    } else if (isJidUser(item.id || '')) {
+    } else if (isJidUser(item.id || '') && typeof item.user !== 'undefined') {
+      if (!item.messages) {
+        item.messages = { items: [], hasMore: true }
+      }
       // if user is truthy
       if (item.user) {
         item.participants = {
@@ -121,7 +125,7 @@ export default class DBThread implements Thread {
           hasMore: false,
         }
       // if user is null
-      } else if (item.user !== 'undefined') {
+      } else {
         item.participants = {
           items: [{ id: item.id!, phoneNumber: numberFromJid(item.id!) }],
           hasMore: false,
