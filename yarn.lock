@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.3.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=3df968807dcccadf7b0714f5cafb6f5b5f438142"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=4e85a100432fdd76a8f473f0c61cedf66cdedc74"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 115a562bc056d92c19dcc7931efcfc60ac7b940bbc124d8c027ec99da0f6769ed2fd54fdb092014af98ddb1403e6606d8407c67553d8eaf4fb78472b6aa1b07e
+  checksum: f64c8a1f3d1250a7ecae4de57cb4dfc662562a0c6f4a242d2edd4eeb3a0c0f2b92294b67d55aad077f94aa5e9cc98e7acef93529f40d0ee2afbe1477196471c1
   languageName: node
   linkType: hard
 
@@ -2651,7 +2651,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=13.7.0":
+"@types/node@npm:*":
   version: 18.0.3
   resolution: "@types/node@npm:18.0.3"
   checksum: 5dec59fbbc1186c808b53df1ca717dad034dbd6a901c75f5b052c845618b531b05f27217122c6254db99529a68618e4cfc534ae3dbf4e88754e9e572df80defa
@@ -2662,6 +2662,13 @@ __metadata:
   version: 16.9.1
   resolution: "@types/node@npm:16.9.1"
   checksum: 41afcf183a22d59323a0199dd7e0f46591247f45fc08a4434edb26d56dc279ae4fdb80f37989ddd7a0f45e3857c4933e6e82057ede09c5a829f77e373e680375
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:>=13.7.0":
+  version: 18.0.5
+  resolution: "@types/node@npm:18.0.5"
+  checksum: cc9c67d0074252f798d226dd95a22e0e8851cf7fc623ef4a603d9ad2c2b46650f930147062ea33719008b1de67f08f499ad693307d02f8396e6f1fead8144329
   languageName: node
   linkType: hard
 
@@ -10484,8 +10491,8 @@ __metadata:
   linkType: hard
 
 "ws@npm:^8.0.0":
-  version: 8.8.0
-  resolution: "ws@npm:8.8.0"
+  version: 8.8.1
+  resolution: "ws@npm:8.8.1"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ^5.0.2
@@ -10494,7 +10501,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 6ceed1ca1cb800ef60c7fc8346c7d5d73d73be754228eb958765abf5d714519338efa20ffe674167039486eb3a813aae5a497f8d319e16b4d96216a31df5bd95
+  checksum: 2152cf862cae0693f3775bc688a6afb2e989d19d626d215e70f5fcd8eb55b1c3b0d3a6a4052905ec320e2d7734e20aeedbf9744496d62f15a26ad79cf4cf7dae
   languageName: node
   linkType: hard
 
