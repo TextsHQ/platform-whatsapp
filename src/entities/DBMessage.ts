@@ -109,6 +109,9 @@ export default class DBMessage implements Message {
 
   cursor?: string
 
+  // derived from orderKey
+  sortKey?: string
+
   _original?: string
 
   textAttributes?: TextAttributes
@@ -144,6 +147,7 @@ export default class DBMessage implements Message {
 
     if (typeof item.orderKey !== 'undefined') {
       item.cursor = item.orderKey?.toString()
+      item.sortKey = item.orderKey?.toString()
     }
 
     delete item.original
@@ -162,6 +166,7 @@ export default class DBMessage implements Message {
       partial = { ...partial }
       delete partial.messageTimestamp
     }
+
     Object.assign(this.original.message, partial)
     this.mapFromOriginal(ctx)
   }
