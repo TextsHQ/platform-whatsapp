@@ -12,7 +12,14 @@ import type { MappingContext } from '../types'
 
 const THREAD_PAGE_SIZE = 15
 
-const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | undefined, mappingCtx: MappingContext, pagination?: PaginationArg, tillCursor?: string) => {
+const fetchThreads = async (
+  db: Connection | EntityManager,
+  sock: AnyWASocket | undefined,
+  mappingCtx: MappingContext,
+  pagination?: PaginationArg,
+  tillCursor?: string,
+  threadID?: string,
+) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     if (pagination?.cursor) {
@@ -24,6 +31,10 @@ const fetchThreads = async (db: Connection | EntityManager, sock: AnyWASocket | 
   const whereClauses: string[] = []
   if (cursor) {
     whereClauses.push(`(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'utc'), '${cursor[1]}')`)
+  }
+
+  if (threadID) {
+    whereClauses.push(`id = '${threadID}'`)
   }
 
   if (tillCursor) {

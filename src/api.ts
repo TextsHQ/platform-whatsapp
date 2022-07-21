@@ -587,6 +587,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
     } else {
       // so the user gets set
+      // will use name from chat
       thread.user = null
     }
 
@@ -629,11 +630,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getThread = async (threadID: string) => {
-    const repo = this.db.getRepository(DBThread)
-    const thread = await repo.findOne({ id: threadID })
-    return thread
-      ? DBThread.prepareForSending(thread, this.accountID)
-      : undefined
+    const result = await fetchThreads(this.db, this.client, this, undefined, undefined, threadID)
+    return result.items[0]
   }
 
   private async waitForConnectionOpen() {
