@@ -82,7 +82,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: '{{sender}} notified {{{{0}}}} that you are trying to send a payment',
   // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
 
-  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
+  [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${message.key.remoteJid}}} changed their phone number to a new number {{{{0}}}}`,
   [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
   [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters![0], message.messageStubParameters![1]),
   [WAMessageStubType.DISAPPEARING_MODE]: message => getDisappearingModeMessageText(+message.messageStubParameters![0], message.messageStubParameters![1]),
