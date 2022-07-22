@@ -426,8 +426,8 @@ async function updateMessages<T extends { key: WAMessageKey }>(
     for (const chat of chats) {
       // if the chat had unread messages
       if (chat.unreadCount > 0) {
-        chat.update({ unreadCount: 0 }, ctx)
-        logger.info({ id: chat.id }, 'marked chat unread')
+        chat.updateWithDecrementingUnreadCount(readMsgsUpdateMap[chat.id], ctx)
+        logger.info({ id: chat.id, unreadCount: chat.unreadCount }, 'marked chat unread')
       }
     }
     await chatRepo.save(chats, { chunk: 50 })

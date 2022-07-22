@@ -73,6 +73,13 @@ export default class DBThread implements Thread {
 
   shouldFireEvent?: boolean
 
+  updateWithDecrementingUnreadCount(read: number, ctx: MappingContext) {
+    const unreadCount = Math.max(this.original.chat.unreadCount! - read, 0)
+    this.original.chat.unreadCount = unreadCount
+
+    this.mapFromOriginal(ctx)
+  }
+
   update(update: Partial<Chat>, ctx: MappingContext) {
     if (update.unreadCount && update.unreadCount > 0) {
       update = { ...update }

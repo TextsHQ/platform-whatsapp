@@ -1,4 +1,4 @@
-import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -24,8 +24,10 @@ describe('Database Sync Tests', () => {
     logger: logger.child({ level: 'debug' }),
     accountID: '1234',
     meID: '911724345330@s.whatsapp.net',
-    db: undefined as any
+    db: undefined as any,
   }
+
+  const ev = makeEventBuffer(logger)
 
   beforeAll(async () => {
     const exists = await stat(DB_PATH).then(() => true).catch(() => false)
@@ -36,12 +38,10 @@ describe('Database Sync Tests', () => {
     db = await getConnection('default', DB_PATH, logger)
     mappingCtx.db = db
     store = makeTextsBaileysStore(() => { }, mappingCtx)
+    store.bind({ ev, groupMetadata: async () => { throw new Error('not supported') } })
   })
 
   it('should insert new CIPHERTEXT message & make new thread', async () => {
-    const ev = makeEventBuffer(logger)
-    store.bind({ ev, groupMetadata: async () => { throw new Error('not supported') } })
-
     const msg = WAProto.WebMessageInfo.fromObject({
       key: {
         remoteJid: '911724345330@s.whatsapp.net',
@@ -70,5 +70,48 @@ describe('Database Sync Tests', () => {
         id: mapMessageID(msg.key),
       }),
     ).toBeTruthy()
+  })
+
+  it('should keep a chat unread', async () => {
+    const jid = '912212122@s.whatsapp.net'
+
+    const msg1 = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: generateMessageID(),
+      },
+      message: { conversation: 'hello' },
+      messageTimestamp: unixTimestampSeconds(),
+    })
+
+    const msg2 = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: generateMessageID(),
+      },
+      message: { conversation: 'hello 2' },
+      messageTimestamp: unixTimestampSeconds(),
+    })
+
+    ev.emit('messages.upsert', { messages: [msg1], type: 'notify' })
+
+    await delay(200)
+
+    ev.buffer()
+    ev.emit('chats.update', [{ id: jid, unreadCount: 2, conversationTimestamp: unixTimestampSeconds() }])
+    ev.emit('messages.update', [{ key: msg1.key, update: { status: WAMessageStatus.READ } }])
+    ev.emit('messages.upsert', { messages: [msg2], type: 'notify' })
+
+    await ev.flush()
+
+    await delay(200)
+
+    expect(
+      await db.getRepository(DBThread).findOne({
+        id: jid,
+      }),
+    ).toHaveProperty('unreadCount', 1)
   })
 })

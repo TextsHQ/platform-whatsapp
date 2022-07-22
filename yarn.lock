@@ -6,8 +6,8 @@ __metadata:
   cacheKey: 8
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
-  version: 4.3.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=4e85a100432fdd76a8f473f0c61cedf66cdedc74"
+  version: 4.4.0
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=7f7565b7a2e34de5b3ae42e9294e4d85709d040c"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: f64c8a1f3d1250a7ecae4de57cb4dfc662562a0c6f4a242d2edd4eeb3a0c0f2b92294b67d55aad077f94aa5e9cc98e7acef93529f40d0ee2afbe1477196471c1
+  checksum: d0a32f629bf70008cfa4c6e8498bb21b828e25dd0a28c2d695662fa346aa82aa32e0438679e019afaa44e69f9619e17da43cb3726e16e4857449412d358b6830
   languageName: node
   linkType: hard
 
@@ -2666,9 +2666,9 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:>=13.7.0":
-  version: 18.0.5
-  resolution: "@types/node@npm:18.0.5"
-  checksum: cc9c67d0074252f798d226dd95a22e0e8851cf7fc623ef4a603d9ad2c2b46650f930147062ea33719008b1de67f08f499ad693307d02f8396e6f1fead8144329
+  version: 18.0.6
+  resolution: "@types/node@npm:18.0.6"
+  checksum: 780f8885a6b6eb12f4c0246617747fdc37a451931b3c01ce8148d356c0903b705dcb16cc6a914de63d48b0dc1b002c7a3dfae681f580e1761aa551d3cd996813
   languageName: node
   linkType: hard
 
