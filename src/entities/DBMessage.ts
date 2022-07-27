@@ -255,18 +255,19 @@ export default class DBMessage implements Message {
       attachments,
       buttons: message.message ? messageButtons(normalizeMessageContent(message.message)!, message.key) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
+      // @ts-expect-error
+      linkedMessage: linked || null,
       links: link ? [link] : [],
       parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
       action,
+      // @ts-expect-error
+      behavior: getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
       isHidden: isHiddenMessage(message),
     }
-    if (linked) mapped.linkedMessage = linked
-    const behavior = getNotificationType(message, currentUserID)
-    if (behavior) mapped.behavior = behavior
 
     if (STORIES_JID !== linked?.threadID) {
       mapped.linkedMessageID = linked?.id
