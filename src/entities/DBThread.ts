@@ -134,7 +134,7 @@ export default class DBThread implements Thread {
       // if user is null
       } else {
         item.participants = {
-          items: [{ id: item.id!, phoneNumber: numberFromJid(item.id!) }],
+          items: [{ id: item.id!, phoneNumber: numberFromJid(item.id!), fullName: item.title }],
           hasMore: false,
         }
       }

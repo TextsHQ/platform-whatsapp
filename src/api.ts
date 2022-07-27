@@ -587,9 +587,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       )
     } else {
-      // so the user gets set
-      // will use name from chat
-      thread.user = null
+      const user = await this.db.getRepository(DBUser).findOne({ id: thread.id })
+      thread.user = user
     }
 
     return DBThread.prepareForSending(thread, this.accountID)
