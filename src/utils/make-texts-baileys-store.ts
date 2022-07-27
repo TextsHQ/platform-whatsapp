@@ -208,6 +208,7 @@ async function handleMessagesUpsert(
   let key = (await dbGetLatestMsgOrderKey(db)) || 0
 
   const threadRepo = db.getRepository(DBThread)
+  const msgRepo = db.getRepository(DBMessage)
 
   const existingMessageMap: { [id: string]: DBMessage } = { }
   const missingThreadMap: { [id: string]: { timestamp: number } } = { }
@@ -219,57 +220,61 @@ async function handleMessagesUpsert(
 
   const mapped: DBMessage[] = []
   for (const msg of messages) {
-    if (!shouldExcludeMessage(msg)) {
-      const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
+    const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
+    const mappedMsg = existingMessageMap[uqId] || new DBMessage()
 
-      const mappedMsg = existingMessageMap[uqId] || new DBMessage()
-      if (mappedMsg.original) {
-        // if a CIPHERTEXT message is replacing an existing message
-        // then ignore it and move on
-        if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
-          continue
-        }
-        // replace message timestamp with the timestamp from the original
-        msg.messageTimestamp = mappedMsg.original.message.messageTimestamp
-        mappedMsg.original.message = msg
-      } else {
-        mappedMsg.original = { message: msg }
-      }
-
-      if (!mappedMsg.orderKey) {
-        key += 1
-        mappedMsg.orderKey = key
-      }
-
-      mappedMsg.mapFromOriginal(ctx)
-
-      // if this message's decryption failed
-      // we check if it's the first message in the thread
-      // which means the thread doesn't exist
-      // in that case, we create the thread
-      if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
-        const threadExists = await threadRepo.count({
-          where: { id: mappedMsg.threadID },
-          take: 1,
-        })
-        if (!threadExists) {
-          missingThreadMap[mappedMsg.threadID] = { timestamp: toNumber(msg.messageTimestamp!) }
-        }
-      }
-
-      if (type !== 'notify') {
-        mappedMsg.behavior = MessageBehavior.KEEP_READ
-      }
-
-      if (excludeEvent) {
-        mappedMsg.shouldFireEvent = false
-      }
-
-      mapped.push(mappedMsg)
+    if(shouldExcludeMessage(msg)) {
+      logger.info({ key: msg.key }, 'existing msg got excluded, removing from DB...')
+      await msgRepo.remove(mappedMsg)
+      continue
     }
+
+    if (mappedMsg.original) {
+      // if a CIPHERTEXT message is replacing an existing message
+      // then ignore it and move on
+      if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
+        continue
+      }
+      // replace message timestamp with the timestamp from the original
+      msg.messageTimestamp = mappedMsg.original.message.messageTimestamp
+      mappedMsg.original.message = msg
+    } else {
+      mappedMsg.original = { message: msg }
+    }
+
+    if (!mappedMsg.orderKey) {
+      key += 1
+      mappedMsg.orderKey = key
+    }
+
+    mappedMsg.mapFromOriginal(ctx)
+
+    // if this message's decryption failed
+    // we check if it's the first message in the thread
+    // which means the thread doesn't exist
+    // in that case, we create the thread
+    if (msg.messageStubType === WAMessageStubType.CIPHERTEXT) {
+      const threadExists = await threadRepo.count({
+        where: { id: mappedMsg.threadID },
+        take: 1,
+      })
+      if (!threadExists) {
+        missingThreadMap[mappedMsg.threadID] = { timestamp: toNumber(msg.messageTimestamp!) }
+      }
+    }
+
+    if (type !== 'notify') {
+      mappedMsg.behavior = MessageBehavior.KEEP_READ
+    }
+
+    if (excludeEvent) {
+      mappedMsg.shouldFireEvent = false
+    }
+
+    mapped.push(mappedMsg)
   }
 
-  await db.getRepository(DBMessage).save(mapped, { chunk: 500 })
+  await msgRepo.save(mapped, { chunk: 500 })
 
   const missingThreadIds = Object.keys(missingThreadMap)
 
