@@ -35,7 +35,8 @@ const RECONNECT_DELAY_MS = 2500
 const MAX_RECONNECT_TRIES = 500
 
 const config: Partial<SocketConfig> = {
-  browser: Browsers.macOS('Chrome'),
+  browser: Browsers.appropriate('Desktop'),
+  syncFullHistory: true,
   connectTimeoutMs: 10_000,
   keepAliveIntervalMs: 15_000,
 }
