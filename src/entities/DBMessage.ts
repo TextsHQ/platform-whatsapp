@@ -167,6 +167,17 @@ export default class DBMessage implements Message {
       delete partial.messageTimestamp
     }
 
+    // handle case where message is already read
+    // and we receive a delivery receipt from another device of the user
+    if (
+      partial.status
+      && this.original.message.status
+      && this.original.message.status > partial.status
+    ) {
+      partial = { ...partial }
+      delete partial.status
+    }
+
     Object.assign(this.original.message, partial)
     this.mapFromOriginal(ctx)
   }
@@ -246,8 +257,7 @@ export default class DBMessage implements Message {
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       // @ts-ignore
       linkedMessage: linked || null,
-      // @ts-ignore
-      links: link ? [link] : null,
+      links: link ? [link] : [],
       parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
       isAction,
       action,
