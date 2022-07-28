@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -138,27 +138,29 @@ const makeTextsBaileysStore = (
     }
 
     if ('process' in ev) {
-      ev.process(events => (
-        mappingCtx.db.transaction(
-          async db => {
-            await processEvents(
-              events,
-              {
-                db,
-                meID: mappingCtx.meID,
-                logger: mappingCtx.logger,
-                accountID: mappingCtx.accountID,
-              },
-            )
-          },
-        )
-          .catch(
-            err => mappingCtx.logger.error(
-              { trace: err.stack, events },
-              'error in processing events',
-            ),
+      ev.process(async events => {
+        if(hasDBEvent(events)) {
+          await mappingCtx.db.transaction(
+            async db => {
+              await processEvents(
+                events,
+                {
+                  db,
+                  meID: mappingCtx.meID,
+                  logger: mappingCtx.logger,
+                  accountID: mappingCtx.accountID,
+                },
+              )
+            },
           )
-      ))
+            .catch(
+              err => mappingCtx.logger.error(
+                { trace: err.stack, events },
+                'error in processing events',
+              ),
+            )
+        }
+      })
     } else {
       // TODO
     }
@@ -168,6 +170,18 @@ const makeTextsBaileysStore = (
     syncState: () => ({ lastSyncMsgRecv }),
     bind,
   }
+}
+
+const NON_DB_EVENTS = new Set<BaileysEvent>(['connection.update'])
+
+function hasDBEvent(map: Partial<BaileysEventMap<any>>) {
+  for(const key in map) {
+    if(!NON_DB_EVENTS.has(key as BaileysEvent)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 async function handleGroupsUpdate(
