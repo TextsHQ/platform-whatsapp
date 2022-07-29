@@ -238,8 +238,10 @@ async function handleMessagesUpsert(
     const mappedMsg = existingMessageMap[uqId] || new DBMessage()
 
     if(shouldExcludeMessage(msg)) {
-      logger.info({ key: msg.key }, 'existing msg got excluded, removing from DB...')
-      await msgRepo.remove(mappedMsg)
+      if(mappedMsg.id) {
+        logger.info({ key: msg.key }, 'existing msg got excluded, removing from DB...')
+        await msgRepo.remove(mappedMsg)
+      }
       continue
     }
 
