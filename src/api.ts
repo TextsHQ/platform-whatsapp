@@ -804,7 +804,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.client!.sendMessage(
             tid,
             { forward: message },
-            { ...(await getEphemeralOptions(this.db, threadID)) },
+            { ...(await getEphemeralOptions(this.db, tid)) },
           )
         ),
       ),
