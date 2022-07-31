@@ -2453,10 +2453,10 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=c01e6c8e033788a2123fbd03d84163dd1e43681e"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=efbe156b9b5408eef035d353455bc06399342b89"
   dependencies:
-    form-data: ^4.0.0
-  checksum: 7787d45f1e39ca81dbf5533a68af658e50b213e2f62d7b862506e95593691d8a63eab571edfe40cc7b6b1ea75c9b4f279bb891d67f1ae124b75198622ed636b4
+    qrcode.react: ^3.1.0
+  checksum: a413f201c63e8be07897453b5c3feba5ad4e68ffa1b9f7c344bfabad7131f56c6c5b33e5e4be129f8254f4fb16989dd8e806d5c4303d6ea462da8ff3a8e2b10c
   languageName: node
   linkType: hard
 
@@ -2472,7 +2472,6 @@ __metadata:
     "@types/jest": ^26.0.19
     "@types/match-sorter": ^4.0.0
     "@types/pino": ^7.0.5
-    "@types/qrcode.react": ^1.0.2
     "@types/react": 17.0.21
     better-sqlite3: ^7.4.5
     bluebird: ^3.7.2
@@ -2485,7 +2484,6 @@ __metadata:
     match-sorter: ^4.2.1
     mem: ^8.0.0
     pino: ^7.8.0
-    qrcode.react: ^1.0.1
     react: ^17.0.2
     typeorm: ^0.2.41
     typeorm-naming-strategies: ^2.0.0
@@ -2713,26 +2711,6 @@ __metadata:
   version: 15.7.5
   resolution: "@types/prop-types@npm:15.7.5"
   checksum: 5b43b8b15415e1f298243165f1d44390403bb2bd42e662bca3b5b5633fdd39c938e91b7fce3a9483699db0f7a715d08cef220c121f723a634972fdf596aec980
-  languageName: node
-  linkType: hard
-
-"@types/qrcode.react@npm:^1.0.2":
-  version: 1.0.2
-  resolution: "@types/qrcode.react@npm:1.0.2"
-  dependencies:
-    "@types/react": "*"
-  checksum: be256f0192366b4c0822da43c732bf3e29beb954c89d739aa770f09e5160842a3ca4d6814cb57bbcbbf8997cf7af0b998de318dab957f0820f267bb746c9a329
-  languageName: node
-  linkType: hard
-
-"@types/react@npm:*":
-  version: 18.0.15
-  resolution: "@types/react@npm:18.0.15"
-  dependencies:
-    "@types/prop-types": "*"
-    "@types/scheduler": "*"
-    csstype: ^3.0.2
-  checksum: e22cc388d1c145aa184787e44dc28db4789976c704cd5db475c170bb76a560eb81def5f346cfe750949bb3d43ad88822b8cbb9f19b1286e3795892a8263e7715
   languageName: node
   linkType: hard
 
@@ -5328,17 +5306,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"form-data@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "form-data@npm:4.0.0"
-  dependencies:
-    asynckit: ^0.4.0
-    combined-stream: ^1.0.8
-    mime-types: ^2.1.12
-  checksum: 01135bf8675f9d5c61ff18e2e2932f719ca4de964e3be90ef4c36aacfc7b9cb2fceb5eca0b7e0190e3383fe51c5b37f4cb80b62ca06a99aaabfcfd6ac7c9328c
-  languageName: node
-  linkType: hard
-
 "fragment-cache@npm:^0.2.1":
   version: 0.2.1
   resolution: "fragment-cache@npm:0.2.1"
@@ -7094,7 +7061,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 006c3d0b129639e9c9269362d20e1415663f2264c030bfd4b6d13732f10c43aae089069d6cc8021ee774be7dc1eaf30f6420a0fa74fd88d03ecd0d61db038012
   languageName: node
   linkType: hard
 
@@ -8491,7 +8458,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.6.0, prop-types@npm:^15.8.1":
+"prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -8581,23 +8548,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qr.js@npm:0.0.0":
-  version: 0.0.0
-  resolution: "qr.js@npm:0.0.0"
-  checksum: 5ac6c393967bdeaa660e7fd3a501a25eb538c1f6008a4d30ab2b97bbe520e5c236530090773f1578aa0a523cdaa6923c866615e21143f9e7cd22abd41c789b69
-  languageName: node
-  linkType: hard
-
-"qrcode.react@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "qrcode.react@npm:1.0.1"
-  dependencies:
-    loose-envify: ^1.4.0
-    prop-types: ^15.6.0
-    qr.js: 0.0.0
+"qrcode.react@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "qrcode.react@npm:3.1.0"
   peerDependencies:
-    react: ^15.5.3 || ^16.0.0 || ^17.0.0
-  checksum: 154a9557d103fa776cd99bc0d2600b862be74872ff965052533bc38ea0606c4d0965b4dd6df93e53f1db86699517a25db2718bbbc08c5d535a90c0d335552e9a
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: 94a2942ecf83f461d869adb20305ae663c6d1abe93ef2c72442b07d756ce70cf6deb6fd588dc5b382b48c6991cfde1dfd5ac9b814c1461e71d5edb2d945e67fc
   languageName: node
   linkType: hard
 

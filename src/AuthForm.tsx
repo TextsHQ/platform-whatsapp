@@ -1,8 +1,8 @@
 import React from 'react'
-import QRCode from 'qrcode.react'
+import QRCode from '@textshq/platform-sdk/dist/QRCode'
 import type { AuthProps } from '@textshq/platform-sdk'
 
-const WALogo = () => (
+const WALogo = (
   <svg width="64" height="64" viewBox="0 0 64 64">
     <path fill="#FFF" d="M6.525 43.936a29.596 29.596 0 0 1-3.039-13.075C3.494 14.568 16.755 1.313 33.05 1.313c7.904.004 15.328 3.082 20.91 8.666 5.581 5.586 8.653 13.01 8.65 20.907-.007 16.294-13.266 29.549-29.558 29.549a29.648 29.648 0 0 1-12.508-2.771L1.391 62.687l5.134-18.751z" />
     <path fill="#123033" d="M50.801 13.135c-4.739-4.742-11.039-7.354-17.752-7.357-13.837 0-25.094 11.253-25.099 25.085a25.039 25.039 0 0 0 3.349 12.541l-3.56 12.999 13.304-3.488a25.084 25.084 0 0 0 11.996 3.054h.011c13.83 0 25.088-11.256 25.095-25.087.002-6.703-2.607-13.005-7.344-17.747zM33.05 51.733h-.008a20.866 20.866 0 0 1-10.62-2.906l-.762-.452-7.894 2.07 2.108-7.694-.497-.789a20.802 20.802 0 0 1-3.189-11.097c.004-11.496 9.361-20.85 20.87-20.85a20.73 20.73 0 0 1 14.746 6.115 20.733 20.733 0 0 1 6.104 14.752c-.006 11.497-9.363 20.851-20.858 20.851z" />
@@ -10,24 +10,36 @@ const WALogo = () => (
   </svg>
 )
 
-const renderQR = (qrValue: string) => (
-  <>
-    <QRCode size={256} value={qrValue} includeMargin />
-    <div style={{
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      minWidth: 256,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}
-    >
-      <WALogo />
-    </div>
-  </>
+const instructions = (
+  <div className="list">
+    <div><span>1</span>Open WhatsApp on your phone</div>
+    <div><span>2</span>Go to Settings or Menu</div>
+    {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
+    <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
+    <div><span>4</span>Point your phone to this screen</div>
+  </div>
+)
+
+const renderQR = (qrValue: string | undefined) => (
+  <div style={{ position: 'relative' }}>
+    <QRCode value={qrValue} />
+    {qrValue && (
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        minWidth: 256,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+      >
+        {WALogo}
+      </div>
+    )}
+  </div>
 )
 
 export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?: string, error?: string }> {
@@ -49,16 +61,8 @@ export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?:
     if (error) return error
     return (
       <div className="auth whatsapp-auth">
-        <div className="list">
-          <div><span>1</span>Open WhatsApp on your phone</div>
-          <div><span>2</span>Go to Settings or Menu</div>
-          {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
-          <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
-          <div><span>4</span>Point your phone to this screen</div>
-        </div>
-        <div className="text-center" style={{ position: 'relative' }}>
-          {qrValue ? renderQR(qrValue) : <p>Loading QR...</p>}
-        </div>
+        {instructions}
+        {renderQR(qrValue)}
       </div>
     )
   }
