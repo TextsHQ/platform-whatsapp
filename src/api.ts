@@ -163,11 +163,11 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   dispose = async () => {
-    this.logger.info('disposing...')
+    this.logger?.info('disposing...')
     process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
 
-    this.db && await this.db.close()
+    await this.db?.close()
     if (this.client) {
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
