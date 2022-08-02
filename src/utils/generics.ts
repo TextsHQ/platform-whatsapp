@@ -164,7 +164,7 @@ export const shouldExcludeMessage = (msg: WAMessage) => {
     return true
   }
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
-  return content?.protocolMessage?.type === WAProto.ProtocolMessage.ProtocolMessageType.REVOKE
+  return content?.protocolMessage?.type === WAProto.Message.ProtocolMessage.Type.REVOKE
 }
 
 /** Is the message supposed to be hidden */

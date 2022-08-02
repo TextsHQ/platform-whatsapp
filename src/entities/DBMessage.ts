@@ -157,7 +157,7 @@ export default class DBMessage implements Message {
   }
 
   update(partial: Partial<WAMessage>, ctx: MappingContext) {
-    if (!this.isSender && partial.status === WAProto.WebMessageInfo.WebMessageInfoStatus.READ) {
+    if (!this.isSender && partial.status === WAMessageStatus.READ) {
       this.original.seenByMe = true
     }
     // we do not want to update timestamps
@@ -231,7 +231,7 @@ export default class DBMessage implements Message {
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
     const protocolMessageType = (message?.message?.ephemeralMessage?.message || message?.message)?.protocolMessage?.type
-    const isHistoryMessage = protocolMessageType === WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION
+    const isHistoryMessage = protocolMessageType === WAProto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION
     const isAction = !!(
       (
         stubBasedMessage

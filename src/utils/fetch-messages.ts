@@ -1,4 +1,4 @@
-import { AnyWASocket, isJidGroup, WAProto } from '@adiwajshing/baileys'
+import { AnyWASocket, isJidGroup, WAMessageStatus, WAProto } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -70,7 +70,7 @@ const fetchMessages = async (
             if (
               message.original.message.key.fromMe
               && !message.original.downloadedReceipts
-              && message.original.message.status! < WAProto.WebMessageInfo.WebMessageInfoStatus.READ
+              && message.original.message.status! < WAMessageStatus.READ
             ) {
               try {
                 await waitForConnectionOpen()

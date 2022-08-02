@@ -205,7 +205,7 @@ export default class DBThread implements Thread {
       // @ts-expect-error
       messageExpirySeconds: chat.ephemeralExpiration! || metadata?.ephemeralDuration || null,
       hasMoreMessageHistory: typeof chat.endOfHistoryTransferType !== 'undefined'
-        && chat.endOfHistoryTransferType !== WAProto.Conversation.ConversationEndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
+        && chat.endOfHistoryTransferType !== WAProto.Conversation.EndOfHistoryTransferType.COMPLETE_AND_NO_MORE_MESSAGE_REMAIN_ON_PRIMARY,
       // @ts-expect-error
       mutedUntil: mute,
     }

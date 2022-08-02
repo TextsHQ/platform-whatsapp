@@ -9,7 +9,7 @@ const participantAdded = (message: WAMessage) =>
 
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
-const isExpiredInvite = (invite: WAProto.IGroupInviteMessage) => {
+const isExpiredInvite = (invite: WAProto.Message.IGroupInviteMessage) => {
   const expirationS = toNumber(invite.inviteExpiration!) || 0
   return expirationS < unixTimestampSeconds()
 }
@@ -128,18 +128,18 @@ const MESSAGE_ACTION_MAP = {
 }
 
 const PAYMENT_STATUS_MAP = {
-  [WAProto.PaymentInfo.PaymentInfoStatus.UNKNOWN_STATUS]: 'Unknown status',
-  [WAProto.PaymentInfo.PaymentInfoStatus.PROCESSING]: 'Processing',
-  [WAProto.PaymentInfo.PaymentInfoStatus.SENT]: 'Sent',
-  [WAProto.PaymentInfo.PaymentInfoStatus.NEED_TO_ACCEPT]: 'Needs to accept',
-  [WAProto.PaymentInfo.PaymentInfoStatus.COMPLETE]: 'Completed',
-  [WAProto.PaymentInfo.PaymentInfoStatus.COULD_NOT_COMPLETE]: 'Could not complete',
-  [WAProto.PaymentInfo.PaymentInfoStatus.REFUNDED]: 'Refunded',
-  [WAProto.PaymentInfo.PaymentInfoStatus.EXPIRED]: 'Expired',
-  [WAProto.PaymentInfo.PaymentInfoStatus.REJECTED]: 'Rejected',
-  [WAProto.PaymentInfo.PaymentInfoStatus.CANCELLED]: 'Cancelled',
-  [WAProto.PaymentInfo.PaymentInfoStatus.WAITING_FOR_PAYER]: 'Waiting for payer',
-  [WAProto.PaymentInfo.PaymentInfoStatus.WAITING]: 'Waiting',
+  [WAProto.PaymentInfo.Status.UNKNOWN_STATUS]: 'Unknown status',
+  [WAProto.PaymentInfo.Status.PROCESSING]: 'Processing',
+  [WAProto.PaymentInfo.Status.SENT]: 'Sent',
+  [WAProto.PaymentInfo.Status.NEED_TO_ACCEPT]: 'Needs to accept',
+  [WAProto.PaymentInfo.Status.COMPLETE]: 'Completed',
+  [WAProto.PaymentInfo.Status.COULD_NOT_COMPLETE]: 'Could not complete',
+  [WAProto.PaymentInfo.Status.REFUNDED]: 'Refunded',
+  [WAProto.PaymentInfo.Status.EXPIRED]: 'Expired',
+  [WAProto.PaymentInfo.Status.REJECTED]: 'Rejected',
+  [WAProto.PaymentInfo.Status.CANCELLED]: 'Cancelled',
+  [WAProto.PaymentInfo.Status.WAITING_FOR_PAYER]: 'Waiting for payer',
+  [WAProto.PaymentInfo.Status.WAITING]: 'Waiting',
 }
 
 export const getKeyAuthor = (key: WAMessageKey | undefined | null, meID: string) => (
@@ -398,7 +398,7 @@ const generateDeepLink = (type: 'template' | 'plain', key: WAMessageKey, button:
   return `texts://platform-callback/$accountID/callback/button?${searchParams.toString()}`
 }
 
-const generateDeepLinkForGroupJoin = (senderJid: string, invite: WAProto.IGroupInviteMessage) => {
+const generateDeepLinkForGroupJoin = (senderJid: string, invite: WAProto.Message.IGroupInviteMessage) => {
   const searchParams = new URLSearchParams({ senderJid, jid: invite.groupJid!, inviteCode: invite.inviteCode!, expiration: invite.inviteExpiration!.toString() })
   return `texts://platform-callback/$accountID/callback/group?${searchParams.toString()}`
 }
@@ -456,19 +456,21 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
   return buttons
 }
 
+const ProtocolMessageType = WAProto.Message.ProtocolMessage.Type
+
 export function messageText(message: WAMessageContent) {
   switch (message?.protocolMessage?.type) {
-    case WAProto.ProtocolMessage.ProtocolMessageType.EPHEMERAL_SETTING: {
+    case ProtocolMessageType.EPHEMERAL_SETTING: {
       const exp = message.protocolMessage.ephemeralExpiration
       return getEphemeralMessageSettingChangedText(exp!, 'sender')
     }
-    case WAProto.ProtocolMessage.ProtocolMessageType.HISTORY_SYNC_NOTIFICATION:
+    case ProtocolMessageType.HISTORY_SYNC_NOTIFICATION:
       return 'Chat History Synced'
-    case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_SHARE:
+    case ProtocolMessageType.APP_STATE_SYNC_KEY_SHARE:
       return 'App State Key Shared'
-    case WAProto.ProtocolMessage.ProtocolMessageType.APP_STATE_SYNC_KEY_REQUEST:
+    case ProtocolMessageType.APP_STATE_SYNC_KEY_REQUEST:
       return 'App State Key Requested'
-    case WAProto.ProtocolMessage.ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
+    case ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
       return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption'
     default:
       break
