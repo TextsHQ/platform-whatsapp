@@ -445,7 +445,7 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
       })
     }
   } else if (message?.groupInviteMessage?.groupJid) {
-    if (!isExpiredInvite(message.groupInviteMessage)) {
+    if (!isExpiredInvite(message.groupInviteMessage) && !key.fromMe) {
       buttons.push({
         label: 'Join Group',
         linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
