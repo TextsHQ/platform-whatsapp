@@ -127,14 +127,21 @@ export default class DBThread implements Thread {
       }
       // if user is truthy
       if (item.user) {
+        DBUser.prepareForSending(item.user, accountID)
         item.participants = {
           items: [item.user],
           hasMore: false,
         }
       // if user is null
       } else {
+        const user = {
+          id: item.id!,
+          phoneNumber: numberFromJid(item.id!),
+          fullName: item.title
+        }
+        DBUser.prepareForSending(user, accountID)
         item.participants = {
-          items: [{ id: item.id!, phoneNumber: numberFromJid(item.id!), fullName: item.title }],
+          items: [user],
           hasMore: false,
         }
       }
