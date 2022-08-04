@@ -253,12 +253,16 @@ export function getNotificationType(message: WAMessage, currentUserId: string) {
   if (
     message.messageStubType === WAMessageStubType.E2E_ENCRYPTED
     || message.messageStubType === WAMessageStubType.CIPHERTEXT
+    || message.messageStubType === WAMessageStubType.CHANGE_EPHEMERAL_SETTING
   ) {
     return MessageBehavior.SILENT
   }
 
   // do not notify if reacted to somebody else's message
-  if (msgContent?.reactionMessage && !msgContent?.reactionMessage?.key?.fromMe) {
+  if (
+    (msgContent?.reactionMessage && !msgContent?.reactionMessage?.key?.fromMe)
+    || msgContent?.protocolMessage
+  ) {
     return MessageBehavior.SILENT
   }
 
