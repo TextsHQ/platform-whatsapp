@@ -1,5 +1,5 @@
-import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
-import { Message, Paginated, Participant, texts, Thread, ThreadType } from '@textshq/platform-sdk'
+import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, STORIES_JID, toNumber, WAProto } from '@adiwajshing/baileys'
+import { Message, Paginated, Participant, texts, Thread, ThreadType, User } from '@textshq/platform-sdk'
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
 import type { FullBaileysChat, MappingContext } from '../types'
@@ -134,7 +134,7 @@ export default class DBThread implements Thread {
         }
       // if user is null
       } else {
-        const user = {
+        const user: User = {
           id: item.id!,
           phoneNumber: numberFromJid(item.id!),
           fullName: item.title

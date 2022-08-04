@@ -651,7 +651,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return result
   }
 
-  getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }) => {
+  getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User | undefined> => {
     if (phoneNumber) {
       const jid = phoneNumber.replace(/[^0-9]/g, '') + '@c.us'
       const result = await this.client!.onWhatsApp(jid)
