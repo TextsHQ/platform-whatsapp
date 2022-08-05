@@ -21,6 +21,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
               where: {
                 threadID,
                 isSender: false,
+                isAction: false
               },
               order: { timestamp: 'DESC' },
               take: item.unreadCount,
