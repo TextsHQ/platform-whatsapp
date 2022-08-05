@@ -11,6 +11,9 @@ const getConnection = async (name: string, sqlitePath: string, logger: Logger) =
       name,
       database: sqlitePath,
       type: 'better-sqlite3',
+      async prepareDatabase(db) {
+        await db.pragma('journal_mode=wal')
+      },
       synchronize: true,
       logging: texts?.isLoggingEnabled ? ['error'] : false,
       entities,
