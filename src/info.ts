@@ -44,6 +44,7 @@ const info: PlatformInfo = {
     Attribute.SUBSCRIBE_TO_ONLINE_OFFLINE_ACTIVITY,
     Attribute.SUPPORTS_MESSAGE_EXPIRY,
     // Attribute.SUPPORTS_SEARCH,
+    // Attribute.SUPPORTS_PUSH_NOTIFICATIONS,
   ]),
   attachments: {
     recordedAudioMimeType: 'audio/ogg',
@@ -57,6 +58,11 @@ const info: PlatformInfo = {
       video: 16 * 1024 * 1024,
       audio: 16 * 1024 * 1024,
       files: 100 * 1024 * 1024,
+    },
+  },
+  notifications: {
+    android: {
+      senderID: '293955441834',
     },
   },
   extra: {
