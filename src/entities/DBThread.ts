@@ -161,6 +161,7 @@ export default class DBThread implements Thread {
     delete item.participantsList
     delete item.unreadCount
     delete item.original
+    delete item._original
     delete item.requiresMapWithMetadata
     delete item.hasMoreMessageHistory
     return item

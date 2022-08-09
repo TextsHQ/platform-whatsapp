@@ -151,6 +151,7 @@ export default class DBMessage implements Message {
     }
 
     delete item.original
+    delete item._original
     delete item.isHistoryMessage
 
     return item

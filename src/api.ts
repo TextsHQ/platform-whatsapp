@@ -676,6 +676,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
+  getOriginalObject = async(objName: 'thread' | 'message', objectID: string) => {
+    const repo = this.db.getRepository(objName === 'thread' ? DBThread : DBMessage)
+    const item = await repo.findOne({ id: objectID })
+
+    return item?._original || ''
+  }
+
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
     this.mutex.mutex(async () => {
       if (msgContent.text === '$$$LOGOUT_ALL_LINKED_DEVICES$$$') {
