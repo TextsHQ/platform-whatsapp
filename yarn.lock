@@ -2451,10 +2451,10 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=efbe156b9b5408eef035d353455bc06399342b89"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=9511e57f0166015e18ed482e96231183c3b95ecc"
   dependencies:
     qrcode.react: ^3.1.0
-  checksum: a413f201c63e8be07897453b5c3feba5ad4e68ffa1b9f7c344bfabad7131f56c6c5b33e5e4be129f8254f4fb16989dd8e806d5c4303d6ea462da8ff3a8e2b10c
+  checksum: dc3c20c90b5b3901747d189cc6406fbb83e8660456eaf4a8a098dfdaf70a8026b7a26e380a4556a5813d026b9a945513ed8859e69300e1f915817079f2b308af
   languageName: node
   linkType: hard
 

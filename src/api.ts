@@ -1,7 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, Awaitable, Message } from '@textshq/platform-sdk'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo } from '@textshq/platform-sdk'
+import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 
@@ -679,7 +680,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   getOriginalObject = async (objName: 'thread' | 'message', objectID: string) => {
     const repo = this.db.getRepository(objName === 'thread' ? DBThread : DBMessage)
     const item = await repo.findOne({ id: objectID })
-    return JSON.stringify(item?.original)
+    return smartJSONStringify(item?.original)
   }
 
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (
