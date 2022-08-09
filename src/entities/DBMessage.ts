@@ -147,7 +147,7 @@ export default class DBMessage implements Message {
 
     if (typeof item.orderKey !== 'undefined') {
       item.cursor = item.orderKey?.toString()
-      item.sortKey = item.orderKey?.toString()
+      item.sortKey = item.orderKey?.toString(10).padStart(10, '0')
     }
 
     delete item.original
