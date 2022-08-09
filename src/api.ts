@@ -676,11 +676,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getOriginalObject = async(objName: 'thread' | 'message', objectID: string) => {
+  getOriginalObject = async (objName: 'thread' | 'message', objectID: string) => {
     const repo = this.db.getRepository(objName === 'thread' ? DBThread : DBMessage)
     const item = await repo.findOne({ id: objectID })
-
-    return item?._original || ''
+    return JSON.stringify(item?.original)
   }
 
   sendMessage = (threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => (

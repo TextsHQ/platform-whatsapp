@@ -7,19 +7,19 @@ import { numberFromJid, profilePictureUrl } from '../utils/generics'
 @Entity()
 export default class DBUser implements User {
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  id: string
+    id: string
 
   @Column({ type: 'varchar', length: 48, nullable: false })
-  phoneNumber: string
+    phoneNumber: string
 
   @Column({ type: 'text', nullable: true })
-  fullName: string | undefined
+    fullName: string | undefined
 
   @Column({ type: 'boolean', nullable: false })
-  isSelf: boolean
+    isSelf: boolean
 
   @Column({ type: 'boolean', nullable: false })
-  isVerified: boolean
+    isVerified: boolean
 
   imgURL?: string
 

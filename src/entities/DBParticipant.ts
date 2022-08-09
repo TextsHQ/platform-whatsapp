@@ -9,33 +9,33 @@ import DBUser from './DBUser'
 @Entity()
 export default class DBParticipant {
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  threadID: string
+    threadID: string
 
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  id: string
+    id: string
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  isAdmin: boolean
+    isAdmin: boolean
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  isSuperAdmin: boolean
+    isSuperAdmin: boolean
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  hasExited?: boolean
+    hasExited?: boolean
 
   @ManyToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({
     name: 'id',
     referencedColumnName: 'id',
   })
-  user?: DBUser
+    user?: DBUser
 
   @ManyToOne(() => DBThread, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({
     name: 'thread_id',
     referencedColumnName: 'id',
   })
-  thread?: DBThread
+    thread?: DBThread
 
   shouldFireEvent?: boolean
 

@@ -139,7 +139,7 @@ const makeTextsBaileysStore = (
 
     if ('process' in ev) {
       ev.process(async events => {
-        if(hasDBEvent(events)) {
+        if (hasDBEvent(events)) {
           await mappingCtx.db.transaction(
             async db => {
               await processEvents(
@@ -175,8 +175,8 @@ const makeTextsBaileysStore = (
 const NON_DB_EVENTS = new Set<BaileysEvent>(['connection.update'])
 
 function hasDBEvent(map: Partial<BaileysEventMap<any>>) {
-  for(const key in map) {
-    if(!NON_DB_EVENTS.has(key as BaileysEvent)) {
+  for (const key in map) {
+    if (!NON_DB_EVENTS.has(key as BaileysEvent)) {
       return true
     }
   }
@@ -243,12 +243,12 @@ async function handleMessagesUpsert(
 
     // not a new message
     // so this chat may require timestamp correction
-    if(mappedMsg.id) {
+    if (mappedMsg.id) {
       chatsRequiringTimestampCorrection.push(mappedMsg.threadID)
     }
 
-    if(shouldExcludeMessage(msg)) {
-      if(mappedMsg.id) {
+    if (shouldExcludeMessage(msg)) {
+      if (mappedMsg.id) {
         logger.info({ key: msg.key }, 'existing msg got excluded, removing from DB...')
         await msgRepo.remove(mappedMsg)
       }
@@ -300,20 +300,20 @@ async function handleMessagesUpsert(
     mapped.push(mappedMsg)
   }
 
-  for(const chatId of chatsRequiringTimestampCorrection) {
+  for (const chatId of chatsRequiringTimestampCorrection) {
     const chat = chatUpdateMap[chatId]
-    if(chat?.conversationTimestamp) {
+    if (chat?.conversationTimestamp) {
       const lastMsg = await msgRepo.findOne({
         // find the latest message that should update the conversation timestamp
         where: { threadID: chatId, behavior: IsNull() },
         order: { orderKey: 'DESC' },
-        select: ['timestamp']
+        select: ['timestamp'],
       })
-      if(lastMsg) {
+      if (lastMsg) {
         const conversationTimestamp = unixTimestampSeconds(lastMsg.timestamp)
         logger.debug(
           { old: chat.conversationTimestamp, new: conversationTimestamp },
-          'fixing conversation timestamp of chat'
+          'fixing conversation timestamp of chat',
         )
         chat.conversationTimestamp = conversationTimestamp
       }

@@ -12,61 +12,61 @@ import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction,
 @Index('fetch_idx', ['threadID', 'orderKey'])
 export default class DBMessage implements Message {
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  threadID: string
+    threadID: string
 
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  id: string
+    id: string
 
   @Column({ type: 'datetime', nullable: false })
-  timestamp: Date
+    timestamp: Date
 
   @Column({ type: 'int', unsigned: true, nullable: true })
-  expiresInSeconds?: number
+    expiresInSeconds?: number
 
   @Column({ type: 'int', unsigned: true, nullable: true })
-  forwardedCount?: number
+    forwardedCount?: number
 
   @Column({ type: 'varchar', length: 64 })
-  senderID: 'none' | '$thread' | string
+    senderID: 'none' | '$thread' | string
 
   @Column({ type: 'boolean', nullable: false })
-  isSender: boolean
+    isSender: boolean
 
   @Column({ type: 'text', nullable: true })
-  text?: string
+    text?: string
 
   @Column({ type: 'text', nullable: true })
-  textHeading?: string
+    textHeading?: string
 
   @Column({ ...BufferJSONEncodedColumn, nullable: false, default: '[]' })
-  attachments: MessageAttachment[]
+    attachments: MessageAttachment[]
 
   @Column({ type: 'simple-json', nullable: false, default: '[]' })
-  links: MessageLink[]
+    links: MessageLink[]
 
   @Column({ type: 'simple-json', nullable: false, default: 'false' })
-  seen?: { [_: string]: Date } | boolean
+    seen?: { [_: string]: Date } | boolean
 
   @Column({ type: 'boolean', nullable: false })
-  isDeleted: boolean
+    isDeleted: boolean
 
   @Column({ type: 'simple-json', nullable: false, default: '[]' })
-  buttons: MessageButton[]
+    buttons: MessageButton[]
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  parseTemplate: boolean
+    parseTemplate: boolean
 
   @Column({ type: 'simple-json', nullable: true })
-  linkedMessage?: MessagePreview
+    linkedMessage?: MessagePreview
 
   @Column({ type: 'simple-json', nullable: true })
-  action?: MessageAction
+    action?: MessageAction
 
   @Column({ type: 'simple-json', nullable: true })
-  reactions?: MessageReaction[]
+    reactions?: MessageReaction[]
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  isAction: boolean
+    isAction: boolean
 
   @Column({
     type: 'blob',
@@ -87,25 +87,25 @@ export default class DBMessage implements Message {
       },
     },
   })
-  original: FullBaileysMessage
+    original: FullBaileysMessage
 
   @Column({ type: 'int', nullable: false, unique: true })
-  orderKey: number
+    orderKey: number
 
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
-  behavior?: MessageBehavior
+    behavior?: MessageBehavior
 
   @Column({ type: 'boolean', default: false, nullable: false })
-  isHistoryMessage: boolean
+    isHistoryMessage: boolean
 
   @Column({ type: 'boolean', default: false, nullable: false })
-  isHidden?: boolean | undefined
+    isHidden?: boolean | undefined
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  linkedMessageThreadID?: string
+    linkedMessageThreadID?: string
 
   @Column({ type: 'varchar', length: 64, nullable: true })
-  linkedMessageID?: string
+    linkedMessageID?: string
 
   cursor?: string
 

@@ -49,7 +49,7 @@ const registerDBSubscribers = (
             }
 
             // Texts will handle this update -- this update is called when a message has come in
-            if(processedUpdate.isUnread && processedUpdate.timestamp) {
+            if (processedUpdate.isUnread && processedUpdate.timestamp) {
               delete processedUpdate.isUnread
             }
 

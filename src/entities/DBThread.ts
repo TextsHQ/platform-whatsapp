@@ -11,48 +11,48 @@ import DBUser from './DBUser'
 @Entity()
 export default class DBThread implements Thread {
   @PrimaryColumn({ type: 'varchar', length: 64 })
-  id: string
+    id: string
 
   @Column({ type: 'text', nullable: false, default: '' })
-  title: string
+    title: string
 
   @Column({ type: 'int', unsigned: false, nullable: false, default: 0 })
-  unreadCount: number
+    unreadCount: number
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  isReadOnly: boolean
+    isReadOnly: boolean
 
   @Column({ type: 'boolean', nullable: false, default: false })
-  isArchived: boolean
+    isArchived: boolean
 
   @Column({ type: 'datetime', nullable: true, default: null })
-  mutedUntil?: Date
+    mutedUntil?: Date
 
   @Column({ type: 'varchar', length: 64, nullable: false })
-  type: ThreadType
+    type: ThreadType
 
   @Column({ type: 'datetime', nullable: false })
-  timestamp?: Date
+    timestamp?: Date
 
   @Column({ type: 'datetime', nullable: true, default: null })
-  createdAt?: Date
+    createdAt?: Date
 
   @Column({ type: 'text', nullable: true, default: null })
-  description?: string
+    description?: string
 
   @Column({ type: 'int', unsigned: true, nullable: true, default: null })
-  messageExpirySeconds?: number
+    messageExpirySeconds?: number
 
   @Column({ type: 'boolean', nullable: false, default: false })
   /// for groups, we need the metadata to fully map description & participants
-  requiresMapWithMetadata: boolean
+    requiresMapWithMetadata: boolean
 
   @Column({ type: 'boolean', nullable: false, default: true })
   /// primarily for MD, if we have message history on the primary device
-  hasMoreMessageHistory: boolean
+    hasMoreMessageHistory: boolean
 
   @Column({ ...BinaryEncodedColumn, nullable: false })
-  original: FullBaileysChat
+    original: FullBaileysChat
 
   _original?: string
 
@@ -65,11 +65,11 @@ export default class DBThread implements Thread {
   participants: Paginated<Participant>
 
   @OneToMany(() => DBParticipant, ({ thread }) => thread, { cascade: false, persistence: false })
-  participantsList?: DBParticipant[]
+    participantsList?: DBParticipant[]
 
   @OneToOne(() => DBUser, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
-  user?: DBUser | null
+    user?: DBUser | null
 
   shouldFireEvent?: boolean
 
@@ -137,7 +137,7 @@ export default class DBThread implements Thread {
         const user: User = {
           id: item.id!,
           phoneNumber: numberFromJid(item.id!),
-          fullName: item.title
+          fullName: item.title,
         }
         DBUser.prepareForSending(user, accountID)
         item.participants = {

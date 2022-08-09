@@ -4,11 +4,11 @@ import BinaryEncodedColumn from './BinaryEncodedColumn'
 @Entity()
 export default class AccountKeyValue {
   @PrimaryColumn({ type: 'varchar', length: 32, nullable: false })
-  category: string
+    category: string
 
   @PrimaryColumn({ type: 'varchar', length: 128 })
-  id: string
+    id: string
 
   @Column({ ...BinaryEncodedColumn })
-  data: any
+    data: any
 }
