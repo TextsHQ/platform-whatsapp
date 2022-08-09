@@ -1,6 +1,6 @@
 import { AnyWASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
-import { Brackets, Connection, EntityManager, EntityTarget, In } from 'typeorm'
+import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -63,6 +63,10 @@ const makeTextsBaileysStore = (
         lastSyncMsgRecv = new Date()
       }
 
+      if (events['messages.upsert']) {
+        await handleMessagesUpsert(events['messages.upsert'], events['chats.update'], excludeEvent, ctx)
+      }
+
       if (events['chats.upsert'] || events['chats.update']) {
         const updated = [
           ...(events['chats.upsert'] || []),
@@ -95,10 +99,6 @@ const makeTextsBaileysStore = (
         for (const event of presenceEvents) {
           publishEvent(event)
         }
-      }
-
-      if (events['messages.upsert']) {
-        await handleMessagesUpsert(events['messages.upsert'], excludeEvent, ctx)
       }
 
       if (events['messages.update']) {
@@ -212,6 +212,7 @@ async function handleGroupsUpdate(
 
 async function handleMessagesUpsert(
   { messages, type }: BaileysEventMap<any>['messages.upsert'],
+  chatUpdates: BaileysEventMap<any>['chats.update'] | undefined,
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
@@ -225,6 +226,9 @@ async function handleMessagesUpsert(
   const msgRepo = db.getRepository(DBMessage)
 
   const existingMessageMap: { [id: string]: DBMessage } = { }
+  // we use this map to avoid incorrectly updating conversation timestamps
+  const chatUpdateMap: { [id: string]: Partial<Chat> } = { }
+  const chatsRequiringTimestampCorrection: string[] = []
   const missingThreadMap: { [id: string]: { timestamp: number } } = { }
 
   const msgs = await fetchMessagesInDB(db, messages)
@@ -236,6 +240,12 @@ async function handleMessagesUpsert(
   for (const msg of messages) {
     const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
     const mappedMsg = existingMessageMap[uqId] || new DBMessage()
+
+    // not a new message
+    // so this chat may require timestamp correction
+    if(mappedMsg.id) {
+      chatsRequiringTimestampCorrection.push(mappedMsg.threadID)
+    }
 
     if(shouldExcludeMessage(msg)) {
       if(mappedMsg.id) {
@@ -288,6 +298,26 @@ async function handleMessagesUpsert(
     }
 
     mapped.push(mappedMsg)
+  }
+
+  for(const chatId of chatsRequiringTimestampCorrection) {
+    const chat = chatUpdateMap[chatId]
+    if(chat?.conversationTimestamp) {
+      const lastMsg = await msgRepo.findOne({
+        // find the latest message that should update the conversation timestamp
+        where: { threadID: chatId, behavior: IsNull() },
+        order: { orderKey: 'DESC' },
+        select: ['timestamp']
+      })
+      if(lastMsg) {
+        const conversationTimestamp = unixTimestampSeconds(lastMsg.timestamp)
+        logger.debug(
+          { old: chat.conversationTimestamp, new: conversationTimestamp },
+          'fixing conversation timestamp of chat'
+        )
+        chat.conversationTimestamp = conversationTimestamp
+      }
+    }
   }
 
   await msgRepo.save(mapped, { chunk: 500 })
