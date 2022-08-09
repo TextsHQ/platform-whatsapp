@@ -8,8 +8,8 @@ import type { MappingContextWithDB } from '../types'
 import { DBEventsPublisher } from './db-events-publisher'
 
 // redundant keys for threads
-const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', '_original', 'timestamp'])
-const MSG_REDUNDANT_KEYS: Set<string> = new Set(['id', 'threadID', '_original'])
+const THREAD_REDUNDANT_KEYS: Set<string> = new Set(['id', 'timestamp'])
+const MSG_REDUNDANT_KEYS: Set<string> = new Set(['id', 'threadID'])
 
 const registerDBSubscribers = (
   publishEvent: (event: ServerEvent) => void,
@@ -48,11 +48,17 @@ const registerDBSubscribers = (
               delete processedUpdate.messages
             }
 
-            const VALID_KEYS_UPDATED = Object.keys(processedUpdate).filter(
-              k => !THREAD_REDUNDANT_KEYS.has(k),
-            )
+            // Texts will handle this update -- this update is called when a message has come in
+            if(processedUpdate.isUnread && processedUpdate.timestamp) {
+              delete processedUpdate.isUnread
+            }
+
             // if the update has more data than just the "id" & "_original" keys
-            if (VALID_KEYS_UPDATED.length) {
+            const isValidUpdate = !!Object.keys(processedUpdate).filter(
+              k => !THREAD_REDUNDANT_KEYS.has(k),
+            ).length
+
+            if (isValidUpdate) {
               publishEvent({
                 type: ServerEventType.STATE_SYNC,
                 objectName: 'thread',
