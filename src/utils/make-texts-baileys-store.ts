@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { AnyWASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -442,7 +442,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   const map: { [id: string]: T } = {}
   for (const update of updates) {
     const msgId = mapMessageID(update.key)
-    const id = `${update.key.remoteJid!},${msgId}`
+    const id = `${jidNormalizedUser(update.key.remoteJid!)},${msgId}`
     map[id] = update
   }
 
