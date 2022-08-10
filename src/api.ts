@@ -589,7 +589,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       )
     } else {
       const user = await this.db.getRepository(DBUser).findOne({ id: thread.id })
-      thread.user = user
+      thread.user = user || null
     }
 
     return DBThread.prepareForSending(thread, this.accountID)
