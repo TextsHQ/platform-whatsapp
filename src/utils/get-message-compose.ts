@@ -46,7 +46,7 @@ const getMessageCompose = async (db: Connection | EntityManager, threadID: strin
       let media: AnyMediaMessageContent
       if (mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
       else if (mimeType?.includes('video/')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
-      else if (mimeType?.includes('image/')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
+      else if (mimeType?.includes('image/') && mimeType !== 'image/gif') media = { image: buffer, caption: text, ...(msgContent.size || {}) }
       else if (mimeType?.includes('audio/')) media = { audio: buffer, ptt: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
       else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
 
