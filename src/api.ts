@@ -502,6 +502,8 @@ export default class WhatsAppAPI implements PlatformAPI {
             }
             this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
             break
+          default:
+            break
         }
 
         if (connection === 'close') {
