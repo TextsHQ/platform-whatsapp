@@ -9,6 +9,7 @@ import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
 import { shouldFetchGroupMetadata } from './generics'
 import type { MappingContext } from '../types'
+import setParticipantUsers from './set-participant-users'
 
 const THREAD_PAGE_SIZE = 15
 
@@ -22,8 +23,9 @@ const fetchThreads = async (
 ) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
-    if (pagination?.cursor) {
-      const [date, id] = pagination?.cursor.split(',')
+    const cursorStr = pagination?.cursor
+    if (cursorStr) {
+      const [date, id] = cursorStr.split(',')
       return [new Date(date), id] as const
     }
   })()
@@ -46,10 +48,10 @@ const fetchThreads = async (
   const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
   const items = await repo
     .createQueryBuilder('thread')
+    .innerJoin(selectClause, 't2', 't2.id = thread.id')
     .leftJoinAndSelect('thread.user', 'thread_user')
     .leftJoinAndSelect('thread.participantsList', 'participant')
     .leftJoinAndSelect('participant.user', 'user')
-    .innerJoin(selectClause, 't2', 't2.id = thread.id')
     .orderBy('timestamp', 'DESC')
     .addOrderBy('user.is_self', 'ASC')
     .getMany()
@@ -75,6 +77,8 @@ const fetchThreads = async (
                 } catch (error) {
                   mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
                 }
+
+                await setParticipantUsers(db, item.participantsList!)
               }
             }),
           )
