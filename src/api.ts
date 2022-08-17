@@ -90,6 +90,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private lastActivityType = ActivityType.ONLINE
 
+  private initPromise: Promise<void>
+
   logger: Logger
 
   accountID: string
@@ -111,8 +113,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   init = async (session: string | undefined, { accountID, dataDirPath }: AccountInfo) => {
-    await fs.mkdir(dataDirPath, { recursive: true })
-
     this.dataDirPath = dataDirPath
     // if session was there, use that -- otherwise init default credentials
     this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
@@ -120,6 +120,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
     process.on('unhandledRejection', this.logUnhandledException)
+
+    this.initPromise = this._init()
+    await this.initPromise
+  }
+
+  private async _init() {
+    await fs.mkdir(this.dataDirPath, { recursive: true })
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
@@ -131,10 +138,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.latestWAVersion = version
     }
 
-    const dbPath = path.join(dataDirPath, 'db.sqlite')
+    const dbPath = path.join(this.dataDirPath, 'db.sqlite')
     this.logger.info({ dbPath, waVersion: this.latestWAVersion }, 'platform whatsapp init')
 
-    this.db = await getConnection(accountID, dbPath, this.logger)
+    this.db = await getConnection(this.accountID, dbPath, this.logger)
 
     this.dataStore = makeTextsBaileysStore(this.publishEvent, this)
 
@@ -165,6 +172,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   dispose = async () => {
     this.logger?.info('disposing...')
+    try {
+      await this._init()
+    } catch {
+      // nothing
+    }
+
     process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
 
@@ -173,6 +186,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
     }
+
+    this.logger?.info('disposed')
   }
 
   login = async (): Promise<LoginResult> => ({ type: 'success' })
