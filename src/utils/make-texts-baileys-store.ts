@@ -289,8 +289,8 @@ async function handleMessagesUpsert(
       }
     }
 
-    if (type !== 'notify') {
-      mappedMsg.behavior = MessageBehavior.KEEP_READ
+    if (type !== 'notify' && !mappedMsg.behavior) {
+      mappedMsg.behavior = MessageBehavior.DONT_NOTIFY
     }
 
     if (excludeEvent) {
