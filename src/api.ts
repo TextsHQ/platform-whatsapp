@@ -738,9 +738,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   handleDeepLink = async (urlStr: string) => {
     // sample for btn:
-    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
+    // texts://platform-callback/whatsapp_a25277f6e67c85fff022b00a4dfc3c52/callback/button?type=plain&buttonId=action%3Abot_dbf1cee521cedfeb.action_%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE_2&buttonText=%F0%9F%91%A9%E2%80%8D%F0%9F%8F%AB+%E6%8A%A5%E5%90%8D%E5%85%8D%E8%B4%B9%E8%AF%95%E8%AF%BE&buttonIndex=0&remoteJid=917657895429%40s.whatsapp.net&fromMe=false&id=3EB0BC722E53
     // sample for group:
-    // texts://platform-callback/whatsapp-baileys_a25277f6e67c85fff022b00a4dfc3c52/callback/group?jid=120363043526257596%40g.us&inviteCode=8qhMQpK7vEpnTbvl&expiration=1234&senderJid=123456@s.whatsapp.net
+    // texts://platform-callback/whatsapp_a25277f6e67c85fff022b00a4dfc3c52/callback/group?jid=120363043526257596%40g.us&inviteCode=8qhMQpK7vEpnTbvl&expiration=1234&senderJid=123456@s.whatsapp.net
     const url = new URL(urlStr)
     const params = url.searchParams
     if (url.pathname.endsWith('button')) {

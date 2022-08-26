@@ -2,7 +2,7 @@ import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from
 import generateMessageID from './utils/generate-message-id'
 
 const info: PlatformInfo = {
-  name: 'whatsapp-baileys',
+  name: 'whatsapp',
   version: '0.0.1',
   displayName: 'WhatsApp',
   tags: [],
