@@ -1,5 +1,4 @@
-import { texts, PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
-import generateMessageID from './utils/generate-message-id'
+import { PlatformInfo, MessageDeletionMode, Attribute, Participant } from '@textshq/platform-sdk'
 
 const info: PlatformInfo = {
   name: 'whatsapp',
@@ -76,7 +75,6 @@ const info: PlatformInfo = {
       }
     },
   },
-  generateUniqueMessageID: generateMessageID,
 }
 
 export default info
