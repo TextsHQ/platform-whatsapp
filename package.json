@@ -23,7 +23,7 @@
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
     "pino": "^7.8.0",
-    "react": "^17.0.2",
+    "react": "https://github.com/TextsHQ/react-global-shim#main",
     "typeorm": "^0.2.41",
     "typeorm-naming-strategies": "^2.0.0"
   },

@@ -2483,7 +2483,7 @@ __metadata:
     match-sorter: ^4.2.1
     mem: ^8.0.0
     pino: ^7.8.0
-    react: ^17.0.2
+    react: "https://github.com/TextsHQ/react-global-shim#main"
     typeorm: ^0.2.41
     typeorm-naming-strategies: ^2.0.0
     typescript: ^4.6.4
@@ -7131,7 +7131,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loose-envify@npm:^1.1.0, loose-envify@npm:^1.4.0":
+"loose-envify@npm:^1.4.0":
   version: 1.4.0
   resolution: "loose-envify@npm:1.4.0"
   dependencies:
@@ -8567,13 +8567,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:^17.0.2":
-  version: 17.0.2
-  resolution: "react@npm:17.0.2"
-  dependencies:
-    loose-envify: ^1.1.0
-    object-assign: ^4.1.1
-  checksum: b254cc17ce3011788330f7bbf383ab653c6848902d7936a87b09d835d091e3f295f7e9dd1597c6daac5dc80f90e778c8230218ba8ad599f74adcc11e33b9d61b
+"react@https://github.com/TextsHQ/react-global-shim#main":
+  version: 17.0.0
+  resolution: "react@https://github.com/TextsHQ/react-global-shim.git#commit=35fabb45d5e0c10a934e93a8e04a8cf5bcad8836"
+  checksum: 89a088bfbda1ffc4fc1b7a79c8afabd02f084f45ef6ae4ee50449f321f0c51662133e3da7c8e9827310df6eb3d8347b95fe62508c569af20c2dba0ef1c29a2e3
   languageName: node
   linkType: hard
 
