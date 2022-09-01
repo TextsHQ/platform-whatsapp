@@ -77,7 +77,6 @@ const info: PlatformInfo = {
     },
   },
   generateUniqueMessageID: generateMessageID,
-  auth: texts.React?.lazy(() => import('./AuthForm')),
 }
 
 export default info
