@@ -42,6 +42,7 @@ const info: PlatformInfo = {
     Attribute.SUPPORTS_QUOTED_MESSAGES_FROM_ANY_THREAD,
     Attribute.SUBSCRIBE_TO_ONLINE_OFFLINE_ACTIVITY,
     Attribute.SUPPORTS_MESSAGE_EXPIRY,
+    Attribute.CAN_FETCH_LINK_PREVIEW,
     // Attribute.SUPPORTS_SEARCH,
     // Attribute.SUPPORTS_PUSH_NOTIFICATIONS,
   ]),
