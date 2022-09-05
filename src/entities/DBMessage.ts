@@ -150,13 +150,6 @@ export default class DBMessage implements Message {
       item.sortKey = item.orderKey?.toString(10).padStart(10, '0')
     }
 
-    if (!item.isHidden && item.expiresInSeconds && item.timestamp) {
-      const secondsSinceMsg = (Date.now() - item.timestamp.getTime())/1000
-      if (secondsSinceMsg > item.expiresInSeconds) {
-        item.isHidden = true
-      }
-    }
-
     delete item.original
     delete item._original
     delete item.isHistoryMessage
