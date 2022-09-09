@@ -146,7 +146,7 @@ export default class DBMessage implements Message {
     }
 
     if (typeof item.orderKey !== 'undefined') {
-      item.cursor = numberToComparableString(item.orderKey)
+      item.cursor = item.orderKey?.toString()
       item.sortKey = numberToComparableString(item.orderKey)
     }
 
