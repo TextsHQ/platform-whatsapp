@@ -563,3 +563,8 @@ export function messageStubText(message: WAMessage) {
   }
   return txt
 }
+
+export function numberToComparableString(num: number) {
+  const str = Math.abs(num).toString(16).padStart(5, '0')
+  return (num < 0 ? '-' : '0') + str
+}

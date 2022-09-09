@@ -6,7 +6,7 @@ import type { FullBaileysMessage, MappingContext } from '../types'
 import { isHiddenMessage, mapMessageID, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor, messageFooter } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor, messageFooter, numberToComparableString } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -146,8 +146,8 @@ export default class DBMessage implements Message {
     }
 
     if (typeof item.orderKey !== 'undefined') {
-      item.cursor = item.orderKey?.toString()
-      item.sortKey = item.orderKey?.toString(10).padStart(10, '0')
+      item.cursor = numberToComparableString(item.orderKey)
+      item.sortKey = numberToComparableString(item.orderKey)
     }
 
     delete item.original
