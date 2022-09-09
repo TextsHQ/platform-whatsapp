@@ -21,7 +21,7 @@ const downloadMessage = async (
   const result = await downloadMediaMessage(
     m.original.message,
     'stream',
-    { },
+    { startByte, endByte },
     {
       logger,
       reuploadRequest: sock.updateMediaMessage,
