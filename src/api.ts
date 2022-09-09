@@ -917,9 +917,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client!.groupParticipantsUpdate(threadID, [participantID], PARTICIPANT_ACTION_MAP[role])
   }
 
-  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment', jid: string, msgID: string) => {
-    jid = decodeURIComponent(jid)
-    msgID = msgID ? decodeURIComponent(msgID) : msgID
+  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment', _jid: string, _msgID: string) => {
+    const jid = decodeURIComponent(_jid)
     switch (category) {
       case 'profile-picture': {
         await this.waitForConnectionOpen()
@@ -933,7 +932,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         return url
       }
       case 'attachment': {
-        const endByte = opts.range?.end ? opts.range?.end + 1 : opts.range?.end
+        const msgID = _msgID ? decodeURIComponent(_msgID) : _msgID
+        const endByte = opts.range?.end ? opts.range!.end + 1 : opts.range?.end
         const result = await downloadMessage(this.db, this.client!, jid, msgID, { startByte: opts.range?.start, endByte }, this.logger)
         return result
       }
@@ -942,13 +942,16 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getAssetInfo = async (_: GetAssetOptions, category: 'profile-picture' | 'attachment', jid: string, msgID: string): Promise<AssetInfo> => {
-    jid = decodeURIComponent(jid)
-    msgID = msgID ? decodeURIComponent(msgID) : msgID
+  getAssetInfo = async (_: GetAssetOptions, category: 'profile-picture' | 'attachment', _jid: string, _msgID: string): Promise<AssetInfo> => {
     switch (category) {
       case 'attachment': {
+        const jid = decodeURIComponent(_jid)
+        const msgID = _msgID ? decodeURIComponent(_msgID) : _msgID
         const result = await getAttachmentInfo(this.db, jid, msgID)
         return result
+      }
+      case 'profile-picture': {
+        return {}
       }
       default:
         throw new Error('Unexpected attachment: ' + category)
