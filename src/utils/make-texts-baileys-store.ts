@@ -442,7 +442,8 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   const map: { [id: string]: T } = {}
   for (const update of updates) {
     const msgId = mapMessageID(update.key)
-    const id = `${jidNormalizedUser(update.key.remoteJid!)},${msgId}`
+    const threadId = jidNormalizedUser(update.key.remoteJid!)
+    const id = `${threadId},${msgId}`
     map[id] = update
   }
 
@@ -556,7 +557,8 @@ const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WA
       qb => {
         for (const { key } of keys) {
           const msgId = mapMessageID(key)
-          qb = qb.orWhere(`(thread_id='${key.remoteJid!}' AND id='${msgId}')`)
+          const threadId = jidNormalizedUser(key.remoteJid || '')
+          qb = qb.orWhere(`(thread_id='${threadId}' AND id='${msgId}')`)
         }
         return qb
       },
