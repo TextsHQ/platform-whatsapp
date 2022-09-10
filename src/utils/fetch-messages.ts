@@ -5,7 +5,7 @@ import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContext } from '../types'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
-import { shouldMapMessage } from './generics'
+import { comparableStringToNumber, shouldMapMessage } from './generics'
 import getEotMessage from './get-eot-message'
 
 const MESSAGE_PAGE_SIZE = 20
@@ -25,7 +25,8 @@ const fetchMessages = async (
     .orderBy('order_key', 'DESC')
     .limit(MESSAGE_PAGE_SIZE + (pagination?.cursor ? 1 : 0))
   if (pagination?.cursor) {
-    qb = qb.andWhere(`order_key <= '${pagination.cursor}'`)
+    const numCursor = comparableStringToNumber(pagination.cursor)
+    qb = qb.andWhere(`order_key <= '${numCursor}'`)
   }
   let items = (await qb.getMany()).reverse()
 

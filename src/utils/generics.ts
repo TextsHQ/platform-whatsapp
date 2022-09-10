@@ -214,3 +214,12 @@ export const shouldMapMessage = (m: Message) =>
   && !m.isDeleted
   && !m.links?.length
   && !m.tweets?.length
+
+export function numberToComparableString(num: number) {
+  const str = Math.abs(num).toString(16).padStart(5, '0')
+  return (num < 0 ? '-' : '0') + str
+}
+
+export function comparableStringToNumber(str: string) {
+  return parseInt(str, 16)
+}

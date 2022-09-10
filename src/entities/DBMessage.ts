@@ -3,10 +3,10 @@ import type { Message, MessageAction, MessageAttachment, MessageBehavior, Messag
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
-import { isHiddenMessage, mapMessageID, safeJSONStringify } from '../utils/generics'
+import { isHiddenMessage, mapMessageID, numberToComparableString, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, getKeyAuthor, messageFooter, numberToComparableString } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter } from './DBMessage-util'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -110,7 +110,7 @@ export default class DBMessage implements Message {
   cursor?: string
 
   // derived from orderKey
-  sortKey?: string
+  sortKey?: number
 
   _original?: string
 
@@ -146,8 +146,8 @@ export default class DBMessage implements Message {
     }
 
     if (typeof item.orderKey !== 'undefined') {
-      item.cursor = item.orderKey?.toString()
-      item.sortKey = numberToComparableString(item.orderKey)
+      item.cursor = numberToComparableString(item.orderKey)
+      item.sortKey = item.orderKey
     }
 
     delete item.original

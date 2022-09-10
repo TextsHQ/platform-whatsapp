@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 4.5.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=696fe0de9fcd75e25d1cee9aff3fda39c93e775e"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=14def126cf523264a09745c68dcd2393c4b79b58"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 5f1f8a65c92df5edd36d4c7862a58c52ab262f139e19cc26a083d355c0ab11de241f12ca1ba4eb430b4996afa8cc13d0a46ef5aaf70828883b6e2211d693c357
+  checksum: 6fbb2cfb26781610b3dfd1bd43db824c2ed6485c3edf76170e32a40b58a3b73fe92b91b2fb14b868f93995c98d678e03634791a8e1e365dc2751e4b449e6b1ab
   languageName: node
   linkType: hard
 
@@ -2451,11 +2451,11 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=7c69864fdc4d82c5550d7ccaeeb5543ea2df4180"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=6c1c4caa217cf9ae158cbb5945f0f2de9374c448"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: 18df6b182920e04348004c352e3d8fea2e967e414690033a2305ebe3b7fd74d6a812adb4ed9620c4748e5b3157ecd5fcdeee5116eb60caa446b1ea542b438472
+  checksum: 3cd1cc9236ce66f214be53252e41b22dbb52c366ad4d00f22084c136aec58bbef0f329a61f91ce338419f19a605a8d15984cdbf423ba8618641aa75c5b0a3139
   languageName: node
   linkType: hard
 
@@ -7020,7 +7020,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: 006c3d0b129639e9c9269362d20e1415663f2264c030bfd4b6d13732f10c43aae089069d6cc8021ee774be7dc1eaf30f6420a0fa74fd88d03ecd0d61db038012
+  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
   languageName: node
   linkType: hard
 
