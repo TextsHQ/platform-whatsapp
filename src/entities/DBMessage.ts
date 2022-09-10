@@ -3,7 +3,7 @@ import type { Message, MessageAction, MessageAttachment, MessageBehavior, Messag
 import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
-import { isHiddenMessage, mapMessageID, numberToComparableString, safeJSONStringify } from '../utils/generics'
+import { isHiddenMessage, mapMessageID, sortKeyToString, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter } from './DBMessage-util'
@@ -146,7 +146,7 @@ export default class DBMessage implements Message {
     }
 
     if (typeof item.orderKey !== 'undefined') {
-      item.cursor = numberToComparableString(item.orderKey)
+      item.cursor = sortKeyToString(item.orderKey)
       item.sortKey = item.orderKey
     }
 

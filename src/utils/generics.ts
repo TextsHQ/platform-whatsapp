@@ -215,11 +215,10 @@ export const shouldMapMessage = (m: Message) =>
   && !m.links?.length
   && !m.tweets?.length
 
-export function numberToComparableString(num: number) {
-  const str = Math.abs(num).toString(16).padStart(5, '0')
-  return (num < 0 ? '-' : '0') + str
+export function sortKeyToString(num: number) {
+  return num.toString(16)
 }
 
-export function comparableStringToNumber(str: string) {
+export function stringToSortKey(str: string) {
   return parseInt(str, 16)
 }
