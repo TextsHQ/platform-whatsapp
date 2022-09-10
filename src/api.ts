@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink } from '@textshq/platform-sdk'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket } from '@adiwajshing/baileys'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Awaitable } from '@textshq/platform-sdk'
 import { getDataURI, smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -316,6 +316,24 @@ export default class WhatsAppAPI implements PlatformAPI {
       summary: info.description,
       img: info.jpegThumbnail ? getDataURI(info.jpegThumbnail, 'image/jpeg') : undefined,
     }
+  }
+
+  searchThreads = async (typed: string): Promise<Thread[]> => {
+    while (!this.canServeThreads) {
+      await delay(50)
+    }
+
+    const result = await fetchThreads(
+      this.db,
+      this.connState.connection === 'open' ? this.client! : undefined,
+      this,
+      undefined,
+      undefined,
+      undefined,
+      typed,
+    )
+
+    return result.items
   }
 
   serializeSession = () => {

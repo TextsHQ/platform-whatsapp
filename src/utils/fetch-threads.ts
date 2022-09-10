@@ -20,6 +20,7 @@ const fetchThreads = async (
   pagination?: PaginationArg,
   tillCursor?: string,
   threadID?: string,
+  q?: string,
 ) => {
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
@@ -37,6 +38,14 @@ const fetchThreads = async (
 
   if (threadID) {
     whereClauses.push(`id = '${threadID}'`)
+  }
+
+  if (q) {
+    whereClauses.push(`(
+      title LIKE '%${q}%'
+      OR thread_user.full_name LIKE '%${q}%'
+      OR thread_user.phone_number LIKE '%${q}%'
+    )`)
   }
 
   if (tillCursor) {
