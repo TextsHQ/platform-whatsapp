@@ -156,7 +156,7 @@ export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string
 )
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
-  if (message.status === WAMessageStatus.READ) {
+  if (message.status! >= WAMessageStatus.READ) {
     return true
   }
 
