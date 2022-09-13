@@ -543,7 +543,7 @@ export function messageLink(message: WAMessageContent): MessageLink | undefined 
     const jpgThumb = mess.jpegThumbnail && Buffer.from(mess.jpegThumbnail)
     return {
       url: mess.matchedText,
-      img: jpgThumb && jpgThumb.length > 0 ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
+      img: jpgThumb?.length ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
       imgSize: {
         width: 90,
         height: 90,
