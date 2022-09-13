@@ -391,9 +391,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     return this.loadWAMessageFromDB(jid, id)
   }
 
-  private publishEvent = (...events: ServerEvent[]) => {
-    this.logger.trace(`pushing ${events.length} events`)
-    this.evCallback(events)
+  private publishEvent = (event: ServerEvent) => {
+    if (event) {
+      this.evCallback([event])
+    }
   }
 
   private async allowDataFetch() {
