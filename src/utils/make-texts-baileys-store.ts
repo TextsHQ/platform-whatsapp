@@ -293,6 +293,10 @@ async function handleMessagesUpsert(
       mappedMsg.behavior = MessageBehavior.DONT_NOTIFY
     }
 
+    if (mappedMsg.original.seenByMe) {
+      mappedMsg.behavior = MessageBehavior.KEEP_READ
+    }
+
     if (excludeEvent) {
       mappedMsg.shouldFireEvent = false
     }
