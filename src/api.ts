@@ -308,7 +308,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getLinkPreview = async (link: string): Promise<MessageLink | undefined> => {
-    const info = await getUrlInfo(link)
+    const info = await getUrlInfo(link, undefined, this.logger)
     if (!info) return undefined
     return {
       url: info['canonical-url'],
