@@ -9,16 +9,15 @@
  * - ```monospace```
  */
 
-import emojiRegex from 'emoji-regex'
+import { emojiRegex } from '@textshq/platform-sdk/dist/emoji'
 import type { TextEntity } from '@textshq/platform-sdk'
 
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
-const RE_EMOJI = emojiRegex()
 
 const isStartSep = (c: string) => RE_SEP.test(c)
 
-const isEndSep = (c: string) => RE_EMOJI.test(c) || RE_SEP.test(c)
+const isEndSep = (c: string) => emojiRegex.test(c) || RE_SEP.test(c)
 
 const getClosingToken = (token: string): string => (token === '@{{' ? '}}' : token)
 

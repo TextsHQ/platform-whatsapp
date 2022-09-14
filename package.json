@@ -16,7 +16,6 @@
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
     "better-sqlite3": "^7.4.5",
-    "emoji-regex": "^9.2.0",
     "jimp": "^0.16.1",
     "link-preview-js": "2.1.15",
     "match-sorter": "^4.2.1",
@@ -36,7 +35,7 @@
     "eslint": "^8.21.0",
     "husky": "^4.3.0",
     "jest": "^26.6.3",
-    "typescript": "^4.6.4"
+    "typescript": "^4.8.3"
   },
   "packageManager": "yarn@3.2.1"
 }

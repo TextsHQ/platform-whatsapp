@@ -2451,11 +2451,11 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=6c1c4caa217cf9ae158cbb5945f0f2de9374c448"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=f65628395587c3a321cd8f405a016a6169ac30fe"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: 3cd1cc9236ce66f214be53252e41b22dbb52c366ad4d00f22084c136aec58bbef0f329a61f91ce338419f19a605a8d15984cdbf423ba8618641aa75c5b0a3139
+  checksum: 008487d1b680887cb76cdd023c8f94b7f574afd09a14bf479c02f98a188034655eb62ed3581fc169d2df6e7e71c9b6379cacbb987b0ef621156caf3c6c2e0520
   languageName: node
   linkType: hard
 
@@ -2472,7 +2472,6 @@ __metadata:
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
     better-sqlite3: ^7.4.5
-    emoji-regex: ^9.2.0
     eslint: ^8.21.0
     husky: ^4.3.0
     jest: ^26.6.3
@@ -2484,7 +2483,7 @@ __metadata:
     react: "https://github.com/TextsHQ/react-global-shim#main"
     typeorm: ^0.2.41
     typeorm-naming-strategies: ^2.0.0
-    typescript: ^4.6.4
+    typescript: ^4.8.3
   languageName: unknown
   linkType: soft
 
@@ -4386,7 +4385,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"emoji-regex@npm:^9.2.0, emoji-regex@npm:^9.2.2":
+"emoji-regex@npm:^9.2.2":
   version: 9.2.2
   resolution: "emoji-regex@npm:9.2.2"
   checksum: 8487182da74aabd810ac6d6f1994111dfc0e331b01271ae01ec1eb0ad7b5ecc2bbbbd2f053c05cb55a1ac30449527d819bbfbf0e3de1023db308cbcb47f86601
@@ -7020,7 +7019,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 006c3d0b129639e9c9269362d20e1415663f2264c030bfd4b6d13732f10c43aae089069d6cc8021ee774be7dc1eaf30f6420a0fa74fd88d03ecd0d61db038012
   languageName: node
   linkType: hard
 
@@ -9941,23 +9940,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.6.4":
-  version: 4.7.4
-  resolution: "typescript@npm:4.7.4"
+"typescript@npm:^4.8.3":
+  version: 4.8.3
+  resolution: "typescript@npm:4.8.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 5750181b1cd7e6482c4195825547e70f944114fb47e58e4aa7553e62f11b3f3173766aef9c281783edfd881f7b8299cf35e3ca8caebe73d8464528c907a164df
+  checksum: 8286a5edcaf3d68e65c451aa1e7150ad1cf53ee0813c07ec35b7abdfdb10f355ecaa13c6a226a694ae7a67785fd7eeebf89f845da0b4f7e4a35561ddc459aba0
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.6.4#~builtin<compat/typescript>":
-  version: 4.7.4
-  resolution: "typescript@patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=7ad353"
+"typescript@patch:typescript@^4.8.3#~builtin<compat/typescript>":
+  version: 4.8.3
+  resolution: "typescript@patch:typescript@npm%3A4.8.3#~builtin<compat/typescript>::version=4.8.3&hash=7ad353"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 9096d8f6c16cb80ef3bf96fcbbd055bf1c4a43bd14f3b7be45a9fbe7ada46ec977f604d5feed3263b4f2aa7d4c7477ce5f9cd87de0d6feedec69a983f3a4f93e
+  checksum: 0404a09c625df01934ef774b45ce1ca57ccae41cd625fcdbb82056715320d9329e70d9d75c2c732ec6ef947444ca978c189a332b71fa21f5c1437d5a83e24906
   languageName: node
   linkType: hard
 
