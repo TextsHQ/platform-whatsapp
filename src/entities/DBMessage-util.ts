@@ -537,16 +537,27 @@ export function messageText(message: WAMessageContent) {
   return message?.conversation
 }
 
-export function messageLink(message: WAMessageContent): MessageLink | undefined {
-  const mess = message?.extendedTextMessage
+export function messageLink(
+  { key, message }: Pick<WAMessage, 'message' | 'key'>,
+): MessageLink | undefined {
+  const mess = normalizeMessageContent(message)?.extendedTextMessage
   if (mess?.matchedText) {
-    const jpgThumb = mess.jpegThumbnail && Buffer.from(mess.jpegThumbnail)
+    let imgUrl: string
+    if (mess.thumbnailDirectPath) {
+      imgUrl = attachmentUrl(undefined, key.remoteJid!, mapMessageID(key), 'thumb')
+    } else if (mess.jpegThumbnail?.length) {
+      const jpgThumb = Buffer.from(mess.jpegThumbnail)
+      imgUrl = getDataURIFromBuffer(jpgThumb, 'image/jpeg')
+    } else {
+      imgUrl = ''
+    }
+
     return {
       url: mess.matchedText,
-      img: jpgThumb?.length ? getDataURIFromBuffer(jpgThumb, 'image/jpeg') : undefined,
+      img: imgUrl,
       imgSize: {
-        width: 90,
-        height: 90,
+        width: mess.thumbnailWidth || 90,
+        height: mess.thumbnailHeight || 90,
       },
       title: mess.title!,
       summary: mess.description!,

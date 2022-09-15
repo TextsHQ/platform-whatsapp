@@ -29,7 +29,7 @@ const downloadMessage = async (
   )
 
   return {
-    contentLength: m.attachments[0].fileSize,
+    contentLength: m.attachments?.[0]?.fileSize,
     data: result,
   }
 }
@@ -39,8 +39,8 @@ export const getAttachmentInfo = async (db: Connection, threadID: string, messag
     threadID,
   })
   return {
-    contentType: m.attachments[0].mimeType,
-    contentLength: m.attachments[0].fileSize,
+    contentType: m.attachments?.[0]?.mimeType,
+    contentLength: m.attachments?.[0]?.fileSize,
   }
 }
 

@@ -227,7 +227,7 @@ export default class DBMessage implements Message {
     const timestamp = toNumber(message.messageTimestamp!) * 1000
 
     const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
-    const link = messageLink(messageContent!)
+    const link = messageLink(message)
     const action = messageAction(message)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
