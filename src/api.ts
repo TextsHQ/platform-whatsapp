@@ -40,6 +40,7 @@ const config: Partial<SocketConfig> = {
   syncFullHistory: true,
   connectTimeoutMs: 10_000,
   keepAliveIntervalMs: 15_000,
+  generateHighQualityLinkPreview: true,
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -314,7 +315,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       url: info['canonical-url'],
       title: info.title,
       summary: info.description,
-      img: info.jpegThumbnail ? getDataURI(info.jpegThumbnail, 'image/jpeg') : undefined,
+      img: info.originalThumbnailUrl,
     }
   }
 

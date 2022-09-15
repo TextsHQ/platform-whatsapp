@@ -564,6 +564,7 @@ export function messageLink(
     }
   }
 }
+
 export function messageStubText(message: WAMessage) {
   const mapped = PRE_DEFINED_MESSAGES[message.messageStubType!]
   let txt = typeof mapped === 'function' ? mapped(message) : mapped
