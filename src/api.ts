@@ -579,9 +579,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    const result = await this.db.transaction(
-      db => fetchMessages(db, this.client!, this, threadID, () => this.waitForConnectionOpen(), pagination),
-    )
+    const result = await fetchMessages(this, threadID, pagination)
     return result
   }
 

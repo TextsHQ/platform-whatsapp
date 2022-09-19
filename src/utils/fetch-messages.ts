@@ -1,9 +1,7 @@
-import type { WASocket } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
-import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
-import type { MappingContext } from '../types'
+import type { MappingContextWithDB } from '../types'
 import { stringToSortKey } from './generics'
 import getEotMessage from './get-eot-message'
 import { remapMessagesAndSave } from './remapping'
@@ -11,13 +9,12 @@ import { remapMessagesAndSave } from './remapping'
 const MESSAGE_PAGE_SIZE = 20
 
 const fetchMessages = async (
-  db: Connection | EntityManager,
-  conn: WASocket,
-  mappingCtx: MappingContext,
+  mappingCtx: MappingContextWithDB,
   threadID: string,
-  waitForConnectionOpen: () => Promise<void>,
   pagination?: PaginationArg,
 ) => {
+  const { db } = mappingCtx
+
   const repo = db.getRepository(DBMessage)
   let qb = await repo
     .createQueryBuilder()
