@@ -34,6 +34,11 @@ const addLastMessageToThreads = async (
         items: [msg],
         oldestCursor: msg.orderKey.toString(),
       }
+    } else {
+      chat.messages = {
+        hasMore: false,
+        items: [],
+      }
     }
   }
 }
