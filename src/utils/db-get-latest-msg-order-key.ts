@@ -3,6 +3,6 @@ import DBMessage from '../entities/DBMessage'
 
 export default async (db: EntityManager | Connection) => {
   const msg = await db.getRepository(DBMessage)
-    .findOne({ order: { orderKey: 'DESC' } })
+    .findOne({ order: { orderKey: 'DESC' }, select: ['orderKey'] })
   return msg?.orderKey
 }

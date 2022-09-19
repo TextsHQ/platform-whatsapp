@@ -1,6 +1,5 @@
 import type { WASocket } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
-import type { Connection, EntityManager } from 'typeorm'
 
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -8,20 +7,20 @@ import DBUser from '../entities/DBUser'
 import addLastMessageToThreads from './add-last-message-to-threads'
 import chunkedWrite from './chunked-write'
 import { shouldFetchGroupMetadata } from './generics'
-import type { MappingContext } from '../types'
+import type { MappingContextWithDB } from '../types'
 import setParticipantUsers from './set-participant-users'
 
 const THREAD_PAGE_SIZE = 15
 
 const fetchThreads = async (
-  db: Connection | EntityManager,
   sock: WASocket | undefined,
-  mappingCtx: MappingContext,
+  mappingCtx: MappingContextWithDB,
   pagination?: PaginationArg,
   tillCursor?: string,
   threadID?: string,
   q?: string,
 ) => {
+  const { db } = mappingCtx
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
     const cursorStr = pagination?.cursor
@@ -100,7 +99,7 @@ const fetchThreads = async (
             mappingCtx.logger.info({ chats: itemsToSave.length }, 'updated metadatas')
           }
         })(),
-        addLastMessageToThreads(db, items, mappingCtx.accountID),
+        addLastMessageToThreads(items, mappingCtx),
       ],
     )
   }
@@ -128,10 +127,12 @@ const fetchThreads = async (
     },
   )
 
+  const hasMore = items.length >= THREAD_PAGE_SIZE
+
   return {
     items: processedItems,
     oldestCursor,
-    hasMore: items.length >= THREAD_PAGE_SIZE,
+    hasMore,
   }
 }
 

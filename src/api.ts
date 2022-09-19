@@ -29,6 +29,7 @@ import getLatestWAVersion from './utils/get-latest-wa-version'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
 import { CURRENT_MAPPING_VERSION } from './config.json'
+import { remapMessagesAndSave } from './utils/remapping'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -304,7 +305,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const result = await fetchThreads(
-      this.db,
       this.connState.connection === 'open' ? this.client! : undefined,
       this,
       undefined,
@@ -349,6 +349,9 @@ export default class WhatsAppAPI implements PlatformAPI {
   private loadWAMessageFromDB = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
     const dbmsg = await repo.findOne({ id: messageID, threadID })
+    if (dbmsg) {
+      await remapMessagesAndSave(repo, [dbmsg], this)
+    }
 
     return dbmsg?.original.message
   }
@@ -547,9 +550,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    const result = await this.db.transaction(
-      db => fetchThreads(db, this.connState.connection === 'open' ? this.client! : undefined, this, pagination),
-    )
+    const result = await fetchThreads(this.connState.connection === 'open' ? this.client! : undefined, this, pagination)
 
     for (const item of result.items) {
       this.loadedThreadSet.add(item.id)
@@ -563,7 +564,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getThread = async (threadID: string) => {
-    const result = await fetchThreads(this.db, this.client, this, undefined, undefined, threadID)
+    const result = await fetchThreads(this.client, this, undefined, undefined, threadID)
     return result.items[0]
   }
 
@@ -695,6 +696,10 @@ export default class WhatsAppAPI implements PlatformAPI {
   getMessage = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
     const msg = await repo.findOne({ threadID, id: messageID })
+    if (msg) {
+      await remapMessagesAndSave(repo, [msg], this)
+    }
+
     return msg
       ? DBMessage.prepareForSending(msg, this.accountID)
       : undefined

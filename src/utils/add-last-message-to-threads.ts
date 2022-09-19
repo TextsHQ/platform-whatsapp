@@ -1,12 +1,13 @@
-import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import type DBThread from '../entities/DBThread'
+import type { MappingContextWithDB } from '../types'
+import { remapMessagesAndSave } from './remapping'
 
 const addLastMessageToThreads = async (
-  db: EntityManager | Connection,
   chats: DBThread[],
-  accountID: string,
+  mappingCtx: MappingContextWithDB,
 ) => {
+  const { db, accountID } = mappingCtx
   const messageRepo = db.getRepository(DBMessage)
   const messages = await messageRepo
     .createQueryBuilder()
@@ -19,6 +20,7 @@ const addLastMessageToThreads = async (
       { chats: chats.map(c => c.id) },
     )
     .getMany()
+  await remapMessagesAndSave(messageRepo, messages, mappingCtx)
 
   const messageMap = messages.reduce((dict, message) => {
     dict[message.threadID] = message

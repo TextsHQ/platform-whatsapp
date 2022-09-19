@@ -4,8 +4,9 @@ import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContext } from '../types'
-import { stringToSortKey, shouldMapMessage } from './generics'
+import { stringToSortKey } from './generics'
 import getEotMessage from './get-eot-message'
+import { remapMessagesAndSave } from './remapping'
 
 const MESSAGE_PAGE_SIZE = 20
 
@@ -17,7 +18,8 @@ const fetchMessages = async (
   waitForConnectionOpen: () => Promise<void>,
   pagination?: PaginationArg,
 ) => {
-  let qb = await db.getRepository(DBMessage)
+  const repo = db.getRepository(DBMessage)
+  let qb = await repo
     .createQueryBuilder()
     .where('thread_id = :threadID', { threadID })
     .orderBy('order_key', 'DESC')
@@ -42,14 +44,12 @@ const fetchMessages = async (
     }
   }
 
+  await remapMessagesAndSave(repo, items, mappingCtx)
+
   return {
-    items: items.map(item => {
-      // remap message if required
-      if (shouldMapMessage(item)) {
-        item.mapFromOriginal(mappingCtx)
-      }
-      return DBMessage.prepareForSending(item, mappingCtx.accountID)
-    }),
+    items: items.map(item => (
+      DBMessage.prepareForSending(item, mappingCtx.accountID)
+    )),
     hasMore,
     oldestCursor: items[0]?.orderKey?.toString(),
   }

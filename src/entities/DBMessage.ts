@@ -7,6 +7,7 @@ import { isHiddenMessage, mapMessageID, sortKeyToString, safeJSONStringify } fro
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter } from './DBMessage-util'
+import { CURRENT_MAPPING_VERSION } from '../config.json'
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -278,6 +279,7 @@ export default class DBMessage implements Message {
     }
 
     Object.assign(this, mapped)
+    this.original.lastMappedVersion = CURRENT_MAPPING_VERSION
     this.isHistoryMessage = isHistoryMessage
   }
 }
