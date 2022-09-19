@@ -462,7 +462,7 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
 
 const ProtocolMessageType = WAProto.Message.ProtocolMessage.Type
 
-export function messageText(message: WAMessageContent) {
+export function messageText(message: WAMessageContent | undefined) {
   switch (message?.protocolMessage?.type) {
     case ProtocolMessageType.EPHEMERAL_SETTING: {
       const exp = message.protocolMessage.ephemeralExpiration

@@ -213,6 +213,8 @@ export default class DBMessage implements Message {
     if (id !== this.id && !!this.id) {
       id = this.id
     }
+
+    const normalizedMessageContent = normalizeMessageContent(message.message)
     const messageContent = extractMessageContent(message.message)
     const messageType = getContentType(messageContent)
     const messageInner = messageType && messageContent ? messageContent[messageType] : undefined
@@ -246,7 +248,7 @@ export default class DBMessage implements Message {
       id,
       threadID,
       textHeading: [...messageHeading(message)].join('\n'),
-      text: isDeleted ? 'This message has been deleted.' : (messageText(messageContent!) ?? stubBasedMessage),
+      text: isDeleted ? 'This message has been deleted.' : (messageText(normalizedMessageContent) ?? stubBasedMessage),
       textFooter: messageFooter(message),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,
