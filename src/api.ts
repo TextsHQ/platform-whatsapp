@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds } from '@adiwajshing/baileys'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -41,6 +41,11 @@ const config: Partial<SocketConfig> = {
   connectTimeoutMs: 10_000,
   keepAliveIntervalMs: 15_000,
   generateHighQualityLinkPreview: true,
+  options: {
+    headers: {
+      'User-Agent': texts.constants.USER_AGENT,
+    },
+  },
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
@@ -829,7 +834,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       case 'attachment': {
         const msgID = _msgID ? decodeURIComponent(_msgID) : _msgID
         const endByte = opts.range?.end ? opts.range!.end + 1 : opts.range?.end
-        const result = await downloadMessage(this.db, this.client!, jid, msgID, { startByte: opts.range?.start, endByte }, this.logger)
+        const downloadOpts: MediaDownloadOptions = {
+          startByte: opts.range?.start,
+          endByte,
+          options: config.options,
+        }
+        const result = await downloadMessage(this.db, this.client!, jid, msgID, downloadOpts, this.logger)
         return result
       }
       default:
