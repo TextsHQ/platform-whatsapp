@@ -1,8 +1,7 @@
-import { WASocket, downloadMediaMessage } from '@adiwajshing/baileys'
+import { WASocket, downloadMediaMessage, MediaDownloadOptions } from '@adiwajshing/baileys'
 import type { Asset } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
-
 import DBMessage from '../entities/DBMessage'
 
 const downloadMessage = async (
@@ -10,7 +9,7 @@ const downloadMessage = async (
   sock: WASocket,
   threadID: string,
   messageID: string,
-  { startByte, endByte }: { startByte?: number, endByte?: number },
+  opts: MediaDownloadOptions,
   logger: Logger,
 ): Promise<Asset> => {
   const m = await db.getRepository(DBMessage).findOneOrFail({
@@ -21,7 +20,7 @@ const downloadMessage = async (
   const result = await downloadMediaMessage(
     m.original.message,
     'stream',
-    { startByte, endByte },
+    opts,
     {
       logger,
       reuploadRequest: sock.updateMediaMessage,

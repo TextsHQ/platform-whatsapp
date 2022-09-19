@@ -32,7 +32,7 @@ const makeTextsBaileysStore = (
     lastSyncMsgRecv = undefined
 
     async function processEvents(
-      events: Partial<BaileysEventMap<any>>,
+      events: Partial<BaileysEventMap>,
       ctx: MappingContextWithDB,
     ) {
       if (events['creds.update']) {
@@ -164,7 +164,7 @@ const makeTextsBaileysStore = (
 
 const NON_DB_EVENTS = new Set<BaileysEvent>(['connection.update'])
 
-function hasDBEvent(map: Partial<BaileysEventMap<any>>) {
+function hasDBEvent(map: Partial<BaileysEventMap>) {
   for (const key in map) {
     if (!NON_DB_EVENTS.has(key as BaileysEvent)) {
       return true
@@ -175,7 +175,7 @@ function hasDBEvent(map: Partial<BaileysEventMap<any>>) {
 }
 
 async function handleGroupsUpdate(
-  updates: BaileysEventMap<any>['groups.update'],
+  updates: BaileysEventMap['groups.update'],
   excludeEvent: boolean,
   groupMetadata: WASocket['groupMetadata'],
   ctx: MappingContextWithDB,
@@ -201,8 +201,8 @@ async function handleGroupsUpdate(
 }
 
 async function handleMessagesUpsert(
-  { messages, type }: BaileysEventMap<any>['messages.upsert'],
-  chatUpdates: BaileysEventMap<any>['chats.update'] | undefined,
+  { messages, type }: BaileysEventMap['messages.upsert'],
+  chatUpdates: BaileysEventMap['chats.update'] | undefined,
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
@@ -348,7 +348,7 @@ async function handleMessagesUpsert(
 }
 
 async function handleMessagesDelete(
-  item: BaileysEventMap<any>['messages.delete'],
+  item: BaileysEventMap['messages.delete'],
   excludeEvent: boolean,
   { db, logger }: MappingContextWithDB,
 ) {
@@ -372,7 +372,7 @@ async function handleMessagesDelete(
 }
 
 async function handleChatsSync(
-  { chats, isLatest }: BaileysEventMap<any>['chats.set'],
+  { chats, isLatest }: BaileysEventMap['chats.set'],
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -484,7 +484,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
 }
 
 async function handleContactsSync(
-  { contacts, isLatest }: BaileysEventMap<any>['contacts.set'],
+  { contacts, isLatest }: BaileysEventMap['contacts.set'],
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -513,7 +513,7 @@ async function handleContactsSync(
 }
 
 async function handleMessagesSync(
-  { messages, isLatest }: BaileysEventMap<any>['messages.set'],
+  { messages, isLatest }: BaileysEventMap['messages.set'],
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -568,7 +568,7 @@ const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WA
 }
 
 async function handleGroupParticipantsUpdate(
-  { participants, action, id: threadID }: BaileysEventMap<any>['group-participants.update'],
+  { participants, action, id: threadID }: BaileysEventMap['group-participants.update'],
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
@@ -626,7 +626,7 @@ async function handleGroupParticipantsUpdate(
 }
 
 async function handleChatsDelete(
-  ids: BaileysEventMap<any>['chats.delete'],
+  ids: BaileysEventMap['chats.delete'],
   excludeEvent: boolean,
   { db, logger }: MappingContextWithDB,
 ) {

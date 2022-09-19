@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket } from '@adiwajshing/baileys'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds } from '@adiwajshing/baileys'
 import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -27,7 +27,7 @@ import setParticipantUsers from './utils/set-participant-users'
 import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
-import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
+import type { ButtonCallbackType, LoginCallback, Transaction } from './types'
 import { CURRENT_MAPPING_VERSION } from './config.json'
 import { remapMessagesAndSave } from './utils/remapping'
 
@@ -70,7 +70,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private dataStore: ReturnType<typeof makeTextsBaileysStore>
 
-  private session: AnyAuthenticationCreds
+  private session: AuthenticationCreds
 
   private dataDirPath: string
 
@@ -324,7 +324,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private getAuthSessionFromClient = () => {
-    let auth: AnyAuthenticationCreds | undefined
+    let auth: AuthenticationCreds | undefined
     if (this.client) {
       auth = this.client.authState.creds
     }

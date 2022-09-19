@@ -1,4 +1,4 @@
-import type { AuthenticationCreds, Chat, Contact, GroupMetadata, GroupParticipant, LegacyAuthenticationCreds, WAMessage } from '@adiwajshing/baileys'
+import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from '@adiwajshing/baileys'
 import type { texts } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection, EntityManager } from 'typeorm'
@@ -28,8 +28,6 @@ export type MappingContext = {
 }
 
 export type MappingContextWithDB = MappingContext & { db: Connection | EntityManager }
-
-export type AnyAuthenticationCreds = AuthenticationCreds | LegacyAuthenticationCreds
 
 export type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
 

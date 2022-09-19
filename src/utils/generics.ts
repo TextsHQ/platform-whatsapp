@@ -1,7 +1,7 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
-import type { AnyAuthenticationCreds, MappingContext } from '../types'
+import type { MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
 
 export const LOGGED_OUT_CODES = [
@@ -180,17 +180,7 @@ export const isHiddenMessage = (msg: WAMessage) => {
     || (!contentType && !msg.messageStubType)
 }
 
-export const decodeSerializedSession = (sess: string) => {
-  const parsed: AnyAuthenticationCreds = typeof sess === 'string' ? JSON.parse(sess, BufferJSON.reviver) : sess
-  if ('encKey' in parsed) {
-    if (typeof parsed.encKey === 'string') {
-      parsed.encKey = Buffer.from(parsed.encKey, 'base64')
-      // @ts-expect-error
-      parsed.macKey = Buffer.from(parsed.macKey, 'base64')
-    }
-  }
-  return parsed
-}
+export const decodeSerializedSession = (sess: string) => (typeof sess === 'string' ? JSON.parse(sess, BufferJSON.reviver) : sess)
 
 export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { chat, metadata, lastMetadataFetchDate } }: DBThread) => {
   if (isJidGroup(chat.id || '')) {
@@ -202,13 +192,7 @@ export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { 
   }
 }
 
-export const isLoggedIn = (creds: AnyAuthenticationCreds) => {
-  if ('clientID' in creds) {
-    return !!creds.encKey && !!creds.macKey
-  }
-
-  return !!creds.me?.id
-}
+export const isLoggedIn = (creds: AuthenticationCreds) => !!creds.me?.id
 
 export const shouldMapMessage = (m: Message) =>
   !m.attachments?.length
