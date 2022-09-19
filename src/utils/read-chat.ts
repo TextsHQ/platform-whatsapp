@@ -1,4 +1,4 @@
-import type { AnyWASocket } from '@adiwajshing/baileys'
+import type { WASocket } from '@adiwajshing/baileys'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
@@ -8,7 +8,7 @@ import getLastMessagesOfThread from './get-last-messages-of-thread'
 /**
  * utility function to mark a chat read
  */
-const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
+const readChat = async (db: Connection | EntityManager, sock: WASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
   const repo = db.getRepository(DBThread)
   const item = await repo.findOne({ id: threadID })
 
@@ -37,12 +37,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
           ctx.logger.debug({ keys }, 'reading msgs')
 
           if (msgs.length) {
-            if (sock.type === 'md') {
-              await sock.readMessages(keys)
-            } else {
-              const [key] = keys
-              await sock.chatRead(key, msgs.length)
-            }
+            await sock.readMessages(keys)
           }
 
           item.update({ unreadCount: 0 }, ctx)
@@ -55,8 +50,7 @@ const readChat = async (db: Connection | EntityManager, sock: AnyWASocket, ctx: 
       // and the unread state is just a notional "dot" to show in the UI
       await sock.chatModify(
         { markRead: true, lastMessages: await getLastMessagesOfThread(db, threadID) },
-        threadID,
-        {},
+        threadID
       )
     }
   }

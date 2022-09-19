@@ -1,4 +1,4 @@
-import { AnyWASocket, downloadMediaMessage } from '@adiwajshing/baileys'
+import { WASocket, downloadMediaMessage } from '@adiwajshing/baileys'
 import type { Asset } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -7,7 +7,7 @@ import DBMessage from '../entities/DBMessage'
 
 const downloadMessage = async (
   db: Connection,
-  sock: AnyWASocket,
+  sock: WASocket,
   threadID: string,
   messageID: string,
   { startByte, endByte }: { startByte?: number, endByte?: number },

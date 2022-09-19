@@ -1,4 +1,4 @@
-import type { AnyWASocket } from '@adiwajshing/baileys'
+import type { WASocket } from '@adiwajshing/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
 
@@ -15,7 +15,7 @@ const THREAD_PAGE_SIZE = 15
 
 const fetchThreads = async (
   db: Connection | EntityManager,
-  sock: AnyWASocket | undefined,
+  sock: WASocket | undefined,
   mappingCtx: MappingContext,
   pagination?: PaginationArg,
   tillCursor?: string,
@@ -75,7 +75,7 @@ const fetchThreads = async (
             items.map(async item => {
               if (shouldFetchGroupMetadata(item) && sock) {
                 try {
-                  const metadata = await sock.groupMetadata(item.id, item.isReadOnly)
+                  const metadata = await sock.groupMetadata(item.id)
                   item.original = { ...item.original, metadata, lastMetadataFetchDate: new Date() }
                   item.shouldFireEvent = false
                   item.mapFromOriginal(mappingCtx)

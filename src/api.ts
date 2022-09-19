@@ -1,8 +1,8 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, DisconnectReason, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, AnyWASocket, makeWALegacySocket, getAuthenticationCredsType, newLegacyAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Awaitable } from '@textshq/platform-sdk'
-import { getDataURI, smartJSONStringify } from '@textshq/platform-sdk/dist/json'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket } from '@adiwajshing/baileys'
+import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink } from '@textshq/platform-sdk'
+import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 
@@ -29,8 +29,6 @@ import getLatestWAVersion from './utils/get-latest-wa-version'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
 
-const MAX_PHONE_RESPONSE_TIME_MS = 35_000
-
 const RECONNECT_DELAY_MS = 2500
 
 const MAX_RECONNECT_TRIES = 500
@@ -44,7 +42,7 @@ const config: Partial<SocketConfig> = {
 }
 
 export default class WhatsAppAPI implements PlatformAPI {
-  private client?: AnyWASocket
+  private client?: WASocket
 
   private evCallback: OnServerEventCallback = () => {}
 
@@ -86,9 +84,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private latestWAVersion: WAVersion
 
-  // data recv for legacy connections
-  private recvDataSet = new Set<Receivable>()
-
   private lastActivityType = ActivityType.ONLINE
 
   private initPromise: Promise<void>
@@ -101,16 +96,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   get meID(): string | undefined {
     if (!this.client) return
-    if (this.client.type === 'md') {
-      const id = this.client.authState.creds.me?.id
-      return id ? jidNormalizedUser(id) : undefined
-    }
-    return this.client.state?.legacy?.user?.id
-  }
-
-  get connectionType() {
-    if (this.client) return this.client.type
-    return getAuthenticationCredsType(this.session)
+    const id = this.client.authState.creds.me?.id
+    return id ? jidNormalizedUser(id) : undefined
   }
 
   init = async (session: string | undefined, { accountID, dataDirPath }: AccountInfo) => {
@@ -157,12 +144,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private logoutAllLinkedDevices = async () => {
     await this.waitForConnectionOpen()
-    if (this.client?.type !== 'md') throw Error('not supported')
+
     this.logoutAllInterval = setInterval(() => {
       this.client?.chatModify(
         { pin: true },
         String(Math.random() * 10).replace('.', '') + '@s.whatsapp.net',
-        {},
       )
     }, 0)
   }
@@ -253,7 +239,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw new Error('already connecting')
     }
 
-    delayMs && await delay(delayMs)
+    if (delayMs) {
+      await delay(delayMs)
+    }
     // set on app start only
     if (typeof this.isNewLogin === 'undefined') {
       this.isNewLogin = !this.session
@@ -261,30 +249,20 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const logger = this.logger.child({ class: 'baileys' })
-
-    if (this.connectionType === 'md') {
-      this.client = makeWASocket({
-        ...config,
-        logger,
-        markOnlineOnConnect: false,
-        version: this.latestWAVersion,
-        auth: {
-          creds: this.session as any,
-          keys: makeDBKeyStore(this.db),
-        },
-        getMessage: async key => {
-          const msg = await this.loadWAMessageFromDBWithKey(key)
-          return msg?.message || undefined
-        },
-      })
-    } else {
-      this.client = makeWALegacySocket({
-        ...config,
-        logger,
-        auth: this.session as any,
-        phoneResponseTimeMs: MAX_PHONE_RESPONSE_TIME_MS,
-      })
-    }
+    this.client = makeWASocket({
+      ...config,
+      logger,
+      markOnlineOnConnect: false,
+      version: this.latestWAVersion,
+      auth: {
+        creds: this.session as any,
+        keys: makeDBKeyStore(this.db),
+      },
+      getMessage: async key => {
+        const msg = await this.loadWAMessageFromDBWithKey(key)
+        return msg?.message || undefined
+      },
+    })
 
     this.registerCallbacks(this.client!.ev)
   }
@@ -347,9 +325,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   private getAuthSessionFromClient = () => {
     let auth: AnyAuthenticationCreds | undefined
     if (this.client) {
-      auth = this.client.type === 'md'
-        ? this.client.authState.creds
-        : this.client.authInfo
+      auth = this.client.authState.creds
     }
     if (!auth) {
       this.logger.warn('no client found, using session in memory')
@@ -404,80 +380,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         await delay(100)
       }
     }
-    // since we already had all threads
-    // ask the Texts client to reload them for the user to get the latest data
-    if (this.canServeThreads && !this.refreshedThreadsInConnectionLifetime && this.client?.type === 'legacy') {
-      this.refreshedThreadsInConnectionLifetime = true
-
-      this.logger.info('refreshing data')
-
-      const events: ServerEvent[] = []
-
-      await this.db.transaction(
-        async db => {
-          const { items: threads } = await fetchThreads(db, this.client!, this, undefined, this.earliestLoadedThreadCursor)
-
-          this.logger.info(`loaded ${threads.length} threads to refresh`)
-
-          const newLoadedThreadSet = new Set<string>()
-          for (const thread of threads) {
-            newLoadedThreadSet.add(thread.id)
-            events.push({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'message',
-              objectIDs: { threadID: thread.id },
-              mutationType: 'delete-all',
-            })
-          }
-
-          const threadsToDelete = Array.from(this.loadedThreadSet).filter(threadID => !newLoadedThreadSet.has(threadID))
-
-          events.push({
-            type: ServerEventType.STATE_SYNC,
-            objectName: 'thread',
-            objectIDs: { },
-            mutationType: 'upsert',
-            entries: threads,
-          })
-
-          if (threadsToDelete.length) {
-            events.push({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'thread',
-              objectIDs: { },
-              mutationType: 'delete',
-              entries: threadsToDelete,
-            })
-          }
-
-          if (this.openedThreadId) {
-            const { items: messages } = await fetchMessages(db, this.client!, this, this.openedThreadId, () => this.waitForConnectionOpen(), undefined)
-            events.push({
-              type: ServerEventType.STATE_SYNC,
-              objectName: 'message',
-              objectIDs: { },
-              mutationType: 'upsert',
-              entries: messages,
-            })
-          }
-
-          this.loadedThreadSet = newLoadedThreadSet
-        },
-      )
-
-      this.evCallback(events)
-    }
 
     this.canServeThreads = true
     this.canServeMessages = true
-  }
-
-  private onDataRecv = (type: Receivable) => {
-    this.recvDataSet.add(type)
-    // contacts & messages have been received
-    if (this.recvDataSet.size === 2) {
-      this.allowDataFetch()
-    }
   }
 
   private registerCallbacks = (ev: BaileysEventEmitter) => {
@@ -541,22 +446,12 @@ export default class WhatsAppAPI implements PlatformAPI {
           this.reconnectTriesLeft -= 1
 
           const { isReconnecting, statusCode } = canReconnect(lastDisconnect?.error, this.reconnectTriesLeft)
-          let reconnectDelayMs = RECONNECT_DELAY_MS
-          // magic of switching between multi-device
-          if (statusCode === DisconnectReason.multideviceMismatch) {
-            const newType = this.connectionType === 'md' ? 'legacy' : 'md'
-            if (newType === 'md') this.session = initAuthCreds()
-            else if (newType === 'legacy') this.session = newLegacyAuthCreds()
-
-            this.logger.info(`multi-device mismatch (switching to "${newType}")`)
-            reconnectDelayMs = 0 // no need to delay QR generation
-          }
           this.logger.info(`disconnected, reconnecting=${isReconnecting}, retries left=${this.reconnectTriesLeft}`)
           // auto reconnect logic
           if (isReconnecting) {
             connection = 'connecting'
             this.client = undefined
-            this.connectInternal(reconnectDelayMs)
+            this.connectInternal(RECONNECT_DELAY_MS)
           } else if (LOGGED_OUT_CODES.includes(statusCode)) {
             makeDBKeyStore(this.db).clear()
             this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
@@ -572,19 +467,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('creds.update', () => {
       if (this.client) {
         this.session = this.getAuthSessionFromClient()!
-        if (texts.trackPlatformEvent && this.connectionType === 'legacy') {
-          texts.trackPlatformEvent({ platform: 'whatsapp', isOnLegacy: true })
-        }
         this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
-      }
-    })
-
-    ev.on('contacts.set', () => {
-      this.onDataRecv('contacts')
-    })
-    ev.on('messages.set', ({ isLatest }) => {
-      if (isLatest) {
-        this.onDataRecv('messages')
       }
     })
   }
@@ -706,14 +589,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       const result = await this.client!.onWhatsApp(jid)
 
       let fetchedJid: string | undefined
-      // MD returns a list of jids as it supports fetching multiple contacts at once
-      if (Array.isArray(result)) {
-        const [item] = result
-        if (item?.exists) {
-          fetchedJid = item.jid
-        }
-      } else if (result && result.exists) {
-        fetchedJid = result.jid
+      const [item] = result
+      if (item?.exists) {
+        fetchedJid = item.jid
       }
 
       if (fetchedJid) {
@@ -748,10 +626,9 @@ export default class WhatsAppAPI implements PlatformAPI {
           const message = (await this.client!.sendMessage(threadID, compose, {
             ...options,
             cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
-            waitForAck: true,
           }))!
           const mappedMsg = new DBMessage()
-          mappedMsg.original = { message, downloadedReceipts: true }
+          mappedMsg.original = { message }
           mappedMsg.mapFromOriginal(this)
 
           messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))
@@ -810,10 +687,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       this.logger.info({ inviteCode }, 'joining group')
 
-      const sock = this.client!
-      if (sock.type === 'md') {
-        await sock.groupAcceptInviteV4(senderJid, { groupJid, inviteCode, inviteExpiration })
-      }
+      await this.client!.groupAcceptInviteV4(senderJid, { groupJid, inviteCode, inviteExpiration })
     }
   }
 
@@ -841,10 +715,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         text: reactionKey,
         senderTimestampMs: unixTimestampSeconds(),
       },
-    }, {
-      waitForAck: true,
-      ...opts,
-    })
+    }, opts)
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
@@ -880,7 +751,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             { id: msg.key.id!, fromMe: msg.key.fromMe!, timestamp: toNumber(msg.messageTimestamp!) },
           ],
         },
-      }, threadID, { })
+      }, threadID)
     }
   }
 
@@ -998,13 +869,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     const chat = await this.getChat(threadID)
     if (!chat) throw new Error('modThread: thread not found')
 
-    const getLastMessages = async () => {
-      const msgs = await getLastMessagesOfThread(this.db, threadID)
-      if (this.connectionType === 'legacy' && Array.isArray(msgs)) {
-        return msgs.slice(0, 1)
-      }
-      return msgs
-    }
+    const getLastMessages = () => getLastMessagesOfThread(this.db, threadID)
 
     if (!!chat[key] === value) {
       // already done, nothing to do
@@ -1026,8 +891,10 @@ export default class WhatsAppAPI implements PlatformAPI {
       case 'isUnread':
         mod = { markRead: !value, lastMessages: await getLastMessages() }
         break
+      default:
+        throw new Error(`unexpected key "${key}"`)
     }
-    await this.client!.chatModify(mod, threadID, chat?.original.chat || { })
+    await this.client!.chatModify(mod, threadID)
   }
 
   private getChat = (threadID: string) => {

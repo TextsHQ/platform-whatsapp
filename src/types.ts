@@ -12,8 +12,6 @@ export type FullBaileysChat = {
 export type FullBaileysMessage = {
   message: WAMessage
   seenByMe?: boolean
-  /** only for legacy group chat messages */
-  downloadedReceipts?: boolean
 }
 
 export type FullChatParticipant = {

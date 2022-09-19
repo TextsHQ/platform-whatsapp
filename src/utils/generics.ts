@@ -73,6 +73,9 @@ export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
     && !!error // was not an intentional close
   // reconnect on all WebSocket errors
   isReconnecting = isReconnecting || !!error?.message.includes('WebSocket Error')
+  if (statusCode === DisconnectReason.multideviceMismatch) {
+    isReconnecting = false
+  }
 
   return {
     isReconnecting,

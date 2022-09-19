@@ -1,4 +1,4 @@
-import { AnyWASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -13,7 +13,7 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl } from './generic
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 
-type StoreBindContext = Pick<AnyWASocket, 'ev' | 'groupMetadata'>
+type StoreBindContext = Pick<WASocket, 'ev' | 'groupMetadata'>
 
 const DEFAULT_CHUNK_SIZE = 350
 
@@ -38,13 +38,6 @@ const makeTextsBaileysStore = (
         const { me } = events['creds.update']
         if (me) {
           await saveMeUser(me, ctx)
-        }
-      }
-
-      if (events['connection.update']) {
-        const { legacy } = events['connection.update']
-        if (legacy?.user) {
-          await saveMeUser(legacy.user, ctx)
         }
       }
 
@@ -137,33 +130,29 @@ const makeTextsBaileysStore = (
       }
     }
 
-    if ('process' in ev) {
-      ev.process(async events => {
-        if (hasDBEvent(events)) {
-          await mappingCtx.db.transaction(
-            async db => {
-              await processEvents(
-                events,
-                {
-                  db,
-                  meID: mappingCtx.meID,
-                  logger: mappingCtx.logger,
-                  accountID: mappingCtx.accountID,
-                },
-              )
-            },
-          )
-            .catch(
-              err => mappingCtx.logger.error(
-                { trace: err.stack, events },
-                'error in processing events',
-              ),
+    ev.process(async events => {
+      if (hasDBEvent(events)) {
+        await mappingCtx.db.transaction(
+          async db => {
+            await processEvents(
+              events,
+              {
+                db,
+                meID: mappingCtx.meID,
+                logger: mappingCtx.logger,
+                accountID: mappingCtx.accountID,
+              },
             )
-        }
-      })
-    } else {
-      // TODO
-    }
+          },
+        )
+          .catch(
+            err => mappingCtx.logger.error(
+              { trace: err.stack, events },
+              'error in processing events',
+            ),
+          )
+      }
+    })
   }
 
   return {
@@ -187,7 +176,7 @@ function hasDBEvent(map: Partial<BaileysEventMap<any>>) {
 async function handleGroupsUpdate(
   updates: BaileysEventMap<any>['groups.update'],
   excludeEvent: boolean,
-  groupMetadata: AnyWASocket['groupMetadata'],
+  groupMetadata: WASocket['groupMetadata'],
   ctx: MappingContextWithDB,
 ) {
   return handleItemsUpsert(DBThread, updates, excludeEvent, mapGroup, ctx)
@@ -195,7 +184,7 @@ async function handleGroupsUpdate(
   async function mapGroup(metadata: Partial<GroupMetadata>, dbChat: DBThread | undefined) {
     if (dbChat && isJidGroup(dbChat.id)) {
       if (!dbChat.original.metadata) {
-        dbChat.original.metadata = await groupMetadata(dbChat.id, true)
+        dbChat.original.metadata = await groupMetadata(dbChat.id)
           .catch(() => undefined)
       }
 
@@ -650,7 +639,7 @@ async function handleChatsDelete(
 async function handleChatsUpsert(
   chats: Partial<Chat>[],
   excludeEvent: boolean,
-  groupMetadata: AnyWASocket['groupMetadata'],
+  groupMetadata: WASocket['groupMetadata'],
   ctx: MappingContextWithDB,
 ) {
   const participants: DBParticipant[] = []
@@ -684,7 +673,7 @@ async function handleChatsUpsert(
         dbChat = new DBThread()
 
         const metadata = isJidGroup(chat.id!)
-          ? await groupMetadata(chat.id!, true).catch(() => undefined)
+          ? await groupMetadata(chat.id!).catch(() => undefined)
           : undefined
 
         dbChat.original = { chat, metadata }
