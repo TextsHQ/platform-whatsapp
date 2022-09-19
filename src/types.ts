@@ -12,6 +12,8 @@ export type FullBaileysChat = {
 export type FullBaileysMessage = {
   message: WAMessage
   seenByMe?: boolean
+  // the last version of platform-whatsapp the message was mapped on
+  lastMappedVersion: number | undefined
 }
 
 export type FullChatParticipant = {

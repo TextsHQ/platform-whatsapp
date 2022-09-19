@@ -60,7 +60,7 @@ describe('Message Mapping Tests', () => {
       ],
     })
     const dbmsg = new DBMessage()
-    dbmsg.original = { message }
+    dbmsg.original = { message, lastMappedVersion: 0 }
     dbmsg.mapFromOriginal(mappingCtx)
 
     expect(dbmsg.isHidden).toEqual(true)

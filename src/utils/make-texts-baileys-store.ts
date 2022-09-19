@@ -12,6 +12,7 @@ import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
 import { shouldExcludeMessage, mapMessageID, profilePictureUrl } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
+import { CURRENT_MAPPING_VERSION } from '../config.json'
 
 type StoreBindContext = Pick<WASocket, 'ev' | 'groupMetadata'>
 
@@ -254,7 +255,10 @@ async function handleMessagesUpsert(
       msg.messageTimestamp = mappedMsg.original.message.messageTimestamp
       mappedMsg.original.message = msg
     } else {
-      mappedMsg.original = { message: msg }
+      mappedMsg.original = {
+        message: msg,
+        lastMappedVersion: CURRENT_MAPPING_VERSION
+      }
     }
 
     if (!mappedMsg.orderKey) {
@@ -526,7 +530,10 @@ async function handleMessagesSync(
 
   const dbMessages = messages.map(m => {
     const mappedMsg = new DBMessage()
-    mappedMsg.original = { message: m }
+    mappedMsg.original = {
+      message: m,
+      lastMappedVersion: CURRENT_MAPPING_VERSION,
+    }
     mappedMsg.mapFromOriginal(ctx)
     mappedMsg.shouldFireEvent = false
     mappedMsg.orderKey = key

@@ -28,6 +28,7 @@ import getLogger from './utils/get-logger'
 import getLatestWAVersion from './utils/get-latest-wa-version'
 import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 import type { AnyAuthenticationCreds, ButtonCallbackType, LoginCallback, Receivable, Transaction } from './types'
+import { CURRENT_MAPPING_VERSION } from './config.json'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -628,7 +629,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
           }))!
           const mappedMsg = new DBMessage()
-          mappedMsg.original = { message }
+          mappedMsg.original = { message, lastMappedVersion: CURRENT_MAPPING_VERSION }
           mappedMsg.mapFromOriginal(this)
 
           messages.push(DBMessage.prepareForSending(mappedMsg, this.accountID))
