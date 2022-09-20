@@ -1,8 +1,7 @@
 import type { Connection } from 'typeorm'
-import type { SignalKeyStore, SignalDataTypeMap } from '@adiwajshing/baileys'
+import type { Logger } from 'pino'
+import { SignalKeyStore, SignalDataTypeMap, makeCacheableSignalKeyStore } from '@adiwajshing/baileys'
 import AccountKeyValue from '../entities/AccountKeyValue'
-
-type DBKeyStore = SignalKeyStore & { clear: () => Promise<void> }
 
 const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
   'pre-key': 'pre-key',
@@ -17,7 +16,7 @@ const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
  * Key store required for baileys.
  * Stores all keys in the sqlite database
  */
-export const makeDBKeyStore = (db: Connection): DBKeyStore => {
+const _makeDBKeyStore = (db: Connection): SignalKeyStore => {
   const repo = db.getRepository(AccountKeyValue)
 
   return {
@@ -74,4 +73,17 @@ export const makeDBKeyStore = (db: Connection): DBKeyStore => {
       await repo.delete({})
     },
   }
+}
+
+export const makeDBKeyStore = (db: Connection, logger: Logger) => {
+  const store = _makeDBKeyStore(db)
+  return makeCacheableSignalKeyStore(
+    store,
+    logger,
+    {
+      deleteOnExpire: true,
+      stdTTL: 60 * 60, // 1 hour
+      checkperiod: 60 * 60, // check every hour
+    },
+  )
 }

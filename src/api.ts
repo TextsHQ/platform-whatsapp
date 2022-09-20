@@ -263,7 +263,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       version: this.latestWAVersion,
       auth: {
         creds: this.session as any,
-        keys: makeDBKeyStore(this.db),
+        keys: makeDBKeyStore(this.db, this.logger),
       },
       getMessage: async key => {
         const msg = await this.loadWAMessageFromDBWithKey(key)
@@ -404,8 +404,8 @@ export default class WhatsAppAPI implements PlatformAPI {
       const { lastDisconnect, qr, receivedPendingNotifications } = update
       let { connection } = update
 
-      if (qr) {
-        this.loginCallback && this.loginCallback({ qr, isOpen: false })
+      if (qr && this.loginCallback) {
+        this.loginCallback({ qr, isOpen: false })
       }
 
       if (receivedPendingNotifications && !this.isNewLogin) {
@@ -424,7 +424,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               this.connectionTransaction!.data = { }
               this.connectionTransaction!.finish()
             }
-            this.loginCallback && this.loginCallback({ qr: undefined, isOpen: true })
+            this.loginCallback?.({ qr: undefined, isOpen: true })
 
             this.reconnectTriesLeft = MAX_RECONNECT_TRIES
             if (this.lastActivityType !== ActivityType.OFFLINE) {
@@ -445,7 +445,7 @@ export default class WhatsAppAPI implements PlatformAPI {
               }
               this.connectionLifetimeTransaction!.finish()
             }
-            this.loginCallback && this.loginCallback({ qr: undefined, isOpen: false })
+            this.loginCallback?.({ qr: undefined, isOpen: false })
             break
           default:
             break
@@ -462,7 +462,7 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.client = undefined
             this.connectInternal(RECONNECT_DELAY_MS)
           } else if (LOGGED_OUT_CODES.includes(statusCode)) {
-            makeDBKeyStore(this.db).clear()
+            makeDBKeyStore(this.db, this.logger).clear!()
             this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
             this.isNewLogin = true
             return
