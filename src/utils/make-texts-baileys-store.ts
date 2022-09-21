@@ -1,6 +1,6 @@
 import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent } from '@textshq/platform-sdk'
-import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull } from 'typeorm'
+import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -234,6 +234,21 @@ async function handleMessagesUpsert(
     // not a new message
     // so this chat may require timestamp correction
     if (mappedMsg.id) {
+      // if the message already existed, as a non-CIPHERTEXT message
+      // and we received a new copy of the message
+      const chat = chatUpdateMap[mappedMsg.threadID]
+      if (
+        chat
+        && chat.unreadCount
+        && mappedMsg.original.message.messageStubType !== WAMessageStubType.CIPHERTEXT
+      ) {
+        chat.unreadCount -= 1
+        logger.warn(
+          { chatId: chat.id, msgId: mappedMsg.id },
+          'recv new copy of non-ciphertext message, correcting unread count'
+        )
+      }
+
       chatsRequiringTimestampCorrection.push(mappedMsg.threadID)
     }
 
@@ -471,13 +486,11 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   // execute those updates
   const threadIds = Object.keys(readMsgsUpdateMap)
   if (threadIds.length) {
-    const chats = await chatRepo.find({ id: In(threadIds) })
+    const chats = await chatRepo.find({ id: In(threadIds), unreadCount: MoreThan(0) })
     for (const chat of chats) {
       // if the chat had unread messages
-      if (chat.unreadCount > 0) {
-        chat.updateWithDecrementingUnreadCount(readMsgsUpdateMap[chat.id], ctx)
-        logger.info({ id: chat.id, unreadCount: chat.unreadCount }, 'marked chat unread')
-      }
+      chat.updateWithDecrementingUnreadCount(readMsgsUpdateMap[chat.id], ctx)
+      logger.info({ id: chat.id, unreadCount: chat.unreadCount }, 'marked chat unread')
     }
     await chatRepo.save(chats, { chunk: 50 })
   }
