@@ -147,10 +147,13 @@ const makeTextsBaileysStore = (
           },
         )
           .catch(
-            err => mappingCtx.logger.error(
-              { trace: err.stack, events },
-              'error in processing events',
-            ),
+            err => {
+              mappingCtx.logger.error(
+                { trace: err.stack, events },
+                'error in processing events',
+              )
+              texts.Sentry?.captureException(err)
+            },
           )
       }
     })
