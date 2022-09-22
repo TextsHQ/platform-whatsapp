@@ -58,7 +58,7 @@ const makeTextsBaileysStore = (
       }
 
       if (events['messages.upsert']) {
-        await handleMessagesUpsert(events['messages.upsert'], events['chats.update'], excludeEvent, ctx)
+        await handleMessagesUpsert(events['messages.upsert'], excludeEvent, ctx)
       }
 
       if (events['chats.upsert'] || events['chats.update']) {
@@ -205,7 +205,6 @@ async function handleGroupsUpdate(
 
 async function handleMessagesUpsert(
   { messages, type }: BaileysEventMap['messages.upsert'],
-  chatUpdates: BaileysEventMap['chats.update'] | undefined,
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
