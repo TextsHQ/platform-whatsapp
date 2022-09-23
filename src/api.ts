@@ -167,7 +167,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   dispose = async () => {
     this.logger?.info('disposing...')
     try {
-      await this._init()
+      await this.initPromise
     } catch {
       // nothing
     }
