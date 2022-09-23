@@ -503,6 +503,12 @@ export default class WhatsAppAPI implements PlatformAPI {
         unreadCount: 0,
       }
     } else if (userIDs.length === 1) {
+      // return the chat if it already exists
+      const thread = await this.getThread(userIDs[0])
+      if (thread) {
+        return thread
+      }
+
       const id = jidNormalizedUser(userIDs[0])
       chat = {
         name,
