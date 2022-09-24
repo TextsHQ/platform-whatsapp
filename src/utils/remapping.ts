@@ -12,8 +12,11 @@ export async function remapMessagesAndSave(
   const msgsToSave: DBMessage[] = []
   for (const msg of messages) {
     if (
-      (msg.original.lastMappedVersion || 0) < CURRENT_MAPPING_VERSION
-      || shouldMapMessage(msg)
+      msg.original
+      && (
+        (msg.original.lastMappedVersion || 0) < CURRENT_MAPPING_VERSION
+        || shouldMapMessage(msg)
+      )
     ) {
       msg.mapFromOriginal(ctx)
       msg.shouldFireEvent = false
