@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions } from '@adiwajshing/baileys'
-import { texts, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink } from '@textshq/platform-sdk'
+import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage } from '@adiwajshing/baileys'
+import { texts, Sticker, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Awaitable } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -30,6 +30,7 @@ import getGroupParticipantsFromDB from './utils/get-group-participants-from-db'
 import type { ButtonCallbackType, LoginCallback, Transaction } from './types'
 import { CURRENT_MAPPING_VERSION } from './config.json'
 import { remapMessagesAndSave } from './utils/remapping'
+import { getStickerPacks, getStickersInPack } from './utils/stickers'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -856,7 +857,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client!.groupParticipantsUpdate(threadID, [participantID], PARTICIPANT_ACTION_MAP[role])
   }
 
-  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment', _jid: string, _msgID: string) => {
+  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment' | 'sticker', _jid: string, _msgID: string) => {
     const jid = decodeURIComponent(_jid)
     switch (category) {
       case 'profile-picture': {
@@ -880,6 +881,19 @@ export default class WhatsAppAPI implements PlatformAPI {
         }
         const result = await downloadMessage(this.db, this.client!, jid, msgID, downloadOpts, this.logger)
         return result
+      }
+      case 'sticker': {
+        const mediaKey = Buffer.from(
+          decodeURIComponent(_msgID),
+          'base64',
+        )
+        const directPath = jid
+        const data = await downloadContentFromMessage(
+          { mediaKey, directPath },
+          'sticker',
+        )
+
+        return { data }
       }
       default:
         throw new Error('Unexpected attachment: ' + category)
@@ -953,5 +967,15 @@ export default class WhatsAppAPI implements PlatformAPI {
   private getChat = (threadID: string) => {
     const repo = this.db.getRepository(DBThread)
     return repo.findOne({ id: threadID })
+  }
+
+  getStickerPacks = async(): Promise<Paginated<StickerPack>> => {
+    const items = await getStickerPacks()
+    return { items, hasMore: false }
+  }
+
+  getStickers = async(stickerPackID: string): Promise<Paginated<Sticker>> => {
+    const items = await getStickersInPack(stickerPackID)
+    return { items, hasMore: false }
   }
 }
