@@ -479,6 +479,39 @@ export default class WhatsAppAPI implements PlatformAPI {
         this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
       }
     })
+
+    // fire profile picture updates
+    ev.on('contacts.update', async contacts => {
+      if (this.connState.receivedPendingNotifications) {
+        for (const { id, imgUrl } of contacts) {
+          if (typeof imgUrl !== 'undefined') {
+            delete this.profilePictureUrlCache[id!]
+            const ppUrl = await this.getAsset({}, 'profile-picture', id!, '')
+            if (isJidGroup(id)) {
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'thread',
+                objectIDs: { },
+                mutationType: 'update',
+                entries: [
+                  { id: id!, imgURL: `${ppUrl}` },
+                ],
+              })
+            } else {
+              this.publishEvent({
+                type: ServerEventType.STATE_SYNC,
+                objectName: 'participant',
+                objectIDs: { threadID: id! },
+                mutationType: 'update',
+                entries: [
+                  { id: id!, imgURL: `${ppUrl}` },
+                ],
+              })
+            }
+          }
+        }
+      }
+    })
   }
 
   searchUsers = async (typed: string) => {
