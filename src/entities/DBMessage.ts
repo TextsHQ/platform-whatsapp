@@ -249,7 +249,9 @@ export default class DBMessage implements Message {
       id,
       threadID,
       textHeading: [...messageHeading(message)].join('\n'),
-      text: isDeleted ? 'This message has been deleted.' : (messageText(normalizedMessageContent) ?? stubBasedMessage),
+      text: isDeleted
+        ? 'This message has been deleted.'
+        : (messageText(normalizedMessageContent) || stubBasedMessage),
       textFooter: messageFooter(message),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,
