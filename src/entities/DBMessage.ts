@@ -1,6 +1,6 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import type { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
+import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
 import { isHiddenMessage, mapMessageID, sortKeyToString, safeJSONStringify } from '../utils/generics'
@@ -8,6 +8,23 @@ import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
 import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter } from './DBMessage-util'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
+
+const MessageTransformer: ValueTransformer = {
+  from: (buff: Buffer | null) => {
+    const result = buff ? deserialize(buff) : undefined
+    if (result) {
+      result.message = WAProto.WebMessageInfo.decode(result.message)
+    }
+
+    return result
+  },
+  to: (item: FullBaileysMessage | null) => {
+    if (item) {
+      return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
+    }
+    return null
+  },
+}
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -69,25 +86,7 @@ export default class DBMessage implements Message {
   @Column({ type: 'boolean', nullable: false, default: false })
     isAction: boolean
 
-  @Column({
-    type: 'blob',
-    transformer: {
-      from: (buff: Buffer | null) => {
-        const result = buff ? deserialize(buff) : undefined
-        if (result) {
-          result.message = WAProto.WebMessageInfo.decode(result.message)
-        }
-
-        return result
-      },
-      to: (item: FullBaileysMessage | null) => {
-        if (item) {
-          return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
-        }
-        return null
-      },
-    },
-  })
+  @Column({ type: 'blob', transformer: MessageTransformer })
     original: FullBaileysMessage
 
   @Column({ type: 'int', nullable: false, unique: true })
