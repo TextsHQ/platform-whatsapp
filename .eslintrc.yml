@@ -1,3 +1,5 @@
 extends: '@textshq/eslint-config/base.yml'
 parserOptions:
   project: ./tsconfig.json
+rules:
+  '@typescript-eslint/no-use-before-define': 'off'
