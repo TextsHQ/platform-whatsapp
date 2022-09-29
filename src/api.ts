@@ -80,13 +80,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private dataDirPath: string
 
-  private refreshedThreadsInConnectionLifetime = false
-
   private reconnectTriesLeft = MAX_RECONNECT_TRIES
 
   private loadedThreadSet = new Set<string>()
-
-  private openedThreadId: string | undefined
 
   private earliestLoadedThreadCursor?: string
 
@@ -439,7 +435,6 @@ export default class WhatsAppAPI implements PlatformAPI {
             })
             break
           case 'close':
-            this.refreshedThreadsInConnectionLifetime = false
             if (this.connectionLifetimeTransaction) {
               this.connectionLifetimeTransaction!.data = {
                 reason: lastDisconnect,
@@ -917,8 +912,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   onThreadSelected = async (threadID: string) => {
-    this.openedThreadId = threadID
-
     if (!threadID) {
       return
     }

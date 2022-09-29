@@ -42,19 +42,20 @@ const makeTextsBaileysStore = (
         }
       }
 
-      if (events['chats.set']) {
-        await handleChatsSync(events['chats.set'], ctx)
-        lastSyncMsgRecv = new Date()
-      }
+      if (events['messaging-history.set']) {
+        const {
+          messages,
+          chats,
+          contacts,
+          isLatest,
+        } = events['messaging-history.set']
+        await handleChatsSync({ chats, isLatest }, ctx)
+        await handleContactsSync({ contacts, isLatest }, ctx)
+        await handleMessagesSync({ messages, isLatest }, ctx)
 
-      if (events['contacts.set']) {
-        await handleContactsSync(events['contacts.set'], ctx)
-        lastSyncMsgRecv = new Date()
-      }
-
-      if (events['messages.set']) {
-        await handleMessagesSync(events['messages.set'], ctx)
-        lastSyncMsgRecv = new Date()
+        if (chats.length) {
+          lastSyncMsgRecv = new Date()
+        }
       }
 
       if (events['messages.upsert']) {
@@ -247,7 +248,7 @@ async function handleMessagesUpsert(
         chat.unreadCount -= 1
         logger.warn(
           { chatId: chat.id, msgId: mappedMsg.id },
-          'recv new copy of non-ciphertext message, correcting unread count'
+          'recv new copy of non-ciphertext message, correcting unread count',
         )
       }
 
@@ -274,7 +275,7 @@ async function handleMessagesUpsert(
     } else {
       mappedMsg.original = {
         message: msg,
-        lastMappedVersion: CURRENT_MAPPING_VERSION
+        lastMappedVersion: CURRENT_MAPPING_VERSION,
       }
     }
 
@@ -389,7 +390,7 @@ async function handleMessagesDelete(
 }
 
 async function handleChatsSync(
-  { chats, isLatest }: BaileysEventMap['chats.set'],
+  { chats, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'chats' | 'isLatest'>,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -499,7 +500,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
 }
 
 async function handleContactsSync(
-  { contacts, isLatest }: BaileysEventMap['contacts.set'],
+  { contacts, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'contacts' | 'isLatest'>,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -511,24 +512,14 @@ async function handleContactsSync(
     const contactDeleteResult = await db.getRepository(DBUser).delete({})
     logger.info({ contacts: contactDeleteResult.affected }, 'cleared existing contacts')
   }
-
-  const items: DBUser[] = []
-  // only save individual contacts
-  for (const item of contacts) {
-    if (isJidUser(item.id)) {
-      const mapped = DBUser.fromOriginal(item, ctx)
-      mapped.shouldFireEvent = false
-      items.push(mapped)
-    }
-  }
-
-  await chunkedWrite(db.getRepository(DBUser), items, DEFAULT_CHUNK_SIZE)
-
-  logger.info({ length: items.length }, 'synced contacts')
+  // no need to fire events if it's the latest piece of history we're getting
+  // otherwise, we'd need to update the names loaded on Texts
+  const excludeEvent = isLatest
+  await handleContactsUpsert(contacts, excludeEvent, ctx)
 }
 
 async function handleMessagesSync(
-  { messages, isLatest }: BaileysEventMap['messages.set'],
+  { messages, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'messages' | 'isLatest'>,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
@@ -569,13 +560,13 @@ const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WA
   const qb = repo
     .createQueryBuilder()
     .where(new Brackets(
-      qb => {
+      brackets => {
         for (const { key } of keys) {
           const msgId = mapMessageID(key)
           const threadId = jidNormalizedUser(key.remoteJid || '')
-          qb = qb.orWhere(`(thread_id='${threadId}' AND id='${msgId}')`)
+          brackets = brackets.orWhere(`(thread_id='${threadId}' AND id='${msgId}')`)
         }
-        return qb
+        return brackets
       },
     ))
   const dbItems = await qb.getMany()
@@ -719,6 +710,7 @@ function handleContactsUpsert(
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
+  contacts = contacts.filter(c => isJidUser(c.id))
   return handleItemsUpsert(DBUser, contacts, excludeEvent, mapContact, ctx)
 
   function mapContact(contact: Partial<Contact>, dbItem: DBUser | undefined) {
@@ -752,7 +744,10 @@ async function handleItemsUpsert<T extends { id: string, shouldFireEvent?: boole
 ) {
   const { db, logger } = ctx
   const repo = db.getRepository(entity)
-  const dbItemsArr = await repo.find({ id: In(items.map(m => m.id!)) })
+  const dbItemsArr = await repo
+    .createQueryBuilder()
+    .where(`id IN (${items.map(i => `'${i.id}'`).join(',')})`)
+    .getMany()
 
   const itemsToSave: T[] = []
 

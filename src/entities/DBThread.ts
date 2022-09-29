@@ -191,8 +191,8 @@ export default class DBThread implements Thread {
     }
 
     let mute: DBThread['mutedUntil'] | null = null
-    if (chat.mute) {
-      mute = chat.mute < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.mute)
+    if (chat.muteEndTime) {
+      mute = chat.muteEndTime < 0 ? new Date(CHAT_MUTE_DURATION_S) : new Date(+chat.muteEndTime)
     }
     const createDate = metadata ? new Date(metadata.creation! * 1000) : undefined
     const stamp = +toNumber(chat.conversationTimestamp || chat.lastMsgTimestamp || 0)
@@ -205,7 +205,7 @@ export default class DBThread implements Thread {
       type,
       createdAt: createDate,
       participantsList: participants!,
-      isArchived: !!chat.archive,
+      isArchived: !!chat.archived,
       isReadOnly: metadata && ctx.meID
         ? !canWriteToGroup(metadata, ctx.meID)
         : false,
