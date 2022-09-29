@@ -491,7 +491,7 @@ export function messageText(message: WAMessageContent | undefined) {
   }
   const loc = message?.locationMessage || message?.liveLocationMessage
   if (loc) {
-    return `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}\n${message?.locationMessage?.address || ''}`
+    return [message?.locationMessage?.address, message?.liveLocationMessage?.caption].filter(Boolean).join('\n')
   }
   const product = message?.productMessage?.product
   if (product) {
@@ -537,9 +537,7 @@ export function messageText(message: WAMessageContent | undefined) {
   return message?.conversation
 }
 
-export function messageLink(
-  { key, message }: Pick<WAMessage, 'message' | 'key'>,
-): MessageLink | undefined {
+export function messageLink({ key, message }: Pick<WAMessage, 'message' | 'key'>): MessageLink | undefined {
   const mess = normalizeMessageContent(message)?.extendedTextMessage
   if (mess?.matchedText) {
     let imgUrl: string
@@ -561,6 +559,14 @@ export function messageLink(
       },
       title: mess.title!,
       summary: mess.description!,
+    }
+  }
+  const loc = message?.locationMessage || message?.liveLocationMessage
+  if (loc) {
+    return {
+      url: `https://www.google.com/maps?q=${loc.degreesLatitude},${loc.degreesLongitude}`,
+      title: 'Google Maps',
+      summary: `${loc.degreesLatitude}, ${loc.degreesLongitude}`,
     }
   }
 }
