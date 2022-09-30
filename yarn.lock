@@ -2477,11 +2477,11 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=18dc52ad3a73a2702009e906fee44ee833de0113"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=a6a807e08b3ada8c405e5e8bbaccefcad88f1097"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: eba883e23aaf4da1ab62b5df45d5def6f5269d48460221d96b67b1b532ea71a079e947284fd64393ebc20ef51b44664f3322a4db6f789a64b57755452858e144
+  checksum: ed9916e04834e62300e28a568b2a46aafb8df42211b79a1ebbfcd846c2d70440ee86084cad533f70782148f9350624de524d2fa59ca484607339c462eb0aef20
   languageName: node
   linkType: hard
 

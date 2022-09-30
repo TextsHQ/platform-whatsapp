@@ -50,6 +50,7 @@ const info: PlatformInfo = {
     recordedAudioMimeType: 'audio/ogg',
     gifMimeType: 'video/mp4',
     supportsCaption: true,
+    supportsStickers: true,
     maxSize: {
       // https://faq.whatsapp.com/general/i-get-a-message-that-my-video-is-too-long-and-it-wont-send/
       // "Note: For documents, the maximum file size allowed is 100 MB."
