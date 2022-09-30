@@ -4,7 +4,11 @@ import type { Logger } from 'pino'
 import type { Connection, EntityManager } from 'typeorm'
 
 export type FullBaileysChat = {
-  chat: Partial<Chat>
+  chat: Partial<Chat> & {
+    // old baileys properties
+    mute?: number
+    archive?: number
+  }
   metadata: GroupMetadata | undefined | null
   lastMetadataFetchDate?: Date | string
 }
