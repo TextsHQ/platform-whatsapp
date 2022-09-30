@@ -15,7 +15,6 @@
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
-    "axios": "^0.27.2",
     "better-sqlite3": "^7.4.5",
     "jimp": "^0.16.2",
     "link-preview-js": "2.1.15",

@@ -2477,11 +2477,11 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=225a75d4b84e32c421f4fa79333f3c646098977f"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=18dc52ad3a73a2702009e906fee44ee833de0113"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: 619bd82ef48e1a527c3c853aa229f887fcb98ffa7504c8b621f67e9d51104325d0fde9753aa4af70c4794185f426b68c9902bb1eb784b8696024ebf5e0e1c0e7
+  checksum: eba883e23aaf4da1ab62b5df45d5def6f5269d48460221d96b67b1b532ea71a079e947284fd64393ebc20ef51b44664f3322a4db6f789a64b57755452858e144
   languageName: node
   linkType: hard
 
@@ -2497,7 +2497,6 @@ __metadata:
     "@types/match-sorter": ^4.0.0
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
-    axios: ^0.27.2
     better-sqlite3: ^7.4.5
     eslint: ^8.23.1
     jest: ^26.6.3
@@ -3299,16 +3298,6 @@ __metadata:
   dependencies:
     follow-redirects: ^1.14.4
   checksum: 468cf496c08a6aadfb7e699bebdac02851e3043d4e7d282350804ea8900e30d368daa6e3cd4ab83b8ddb5a3b1e17a5a21ada13fc9cebd27b74828f47a4236316
-  languageName: node
-  linkType: hard
-
-"axios@npm:^0.27.2":
-  version: 0.27.2
-  resolution: "axios@npm:0.27.2"
-  dependencies:
-    follow-redirects: ^1.14.9
-    form-data: ^4.0.0
-  checksum: 38cb7540465fe8c4102850c4368053c21683af85c5fdf0ea619f9628abbcb59415d1e22ebc8a6390d2bbc9b58a9806c874f139767389c862ec9b772235f06854
   languageName: node
   linkType: hard
 
@@ -5311,7 +5300,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.14.4, follow-redirects@npm:^1.14.9":
+"follow-redirects@npm:^1.14.4":
   version: 1.15.2
   resolution: "follow-redirects@npm:1.15.2"
   peerDependenciesMeta:
@@ -5336,17 +5325,6 @@ __metadata:
     combined-stream: ^1.0.8
     mime-types: ^2.1.12
   checksum: b019e8d35c8afc14a2bd8a7a92fa4f525a4726b6d5a9740e8d2623c30e308fbb58dc8469f90415a856698933c8479b01646a9dff33c87cc4e76d72aedbbf860d
-  languageName: node
-  linkType: hard
-
-"form-data@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "form-data@npm:4.0.0"
-  dependencies:
-    asynckit: ^0.4.0
-    combined-stream: ^1.0.8
-    mime-types: ^2.1.12
-  checksum: 01135bf8675f9d5c61ff18e2e2932f719ca4de964e3be90ef4c36aacfc7b9cb2fceb5eca0b7e0190e3383fe51c5b37f4cb80b62ca06a99aaabfcfd6ac7c9328c
   languageName: node
   linkType: hard
 
@@ -7093,7 +7071,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 006c3d0b129639e9c9269362d20e1415663f2264c030bfd4b6d13732f10c43aae089069d6cc8021ee774be7dc1eaf30f6420a0fa74fd88d03ecd0d61db038012
   languageName: node
   linkType: hard
 

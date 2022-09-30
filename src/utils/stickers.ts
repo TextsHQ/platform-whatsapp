@@ -1,19 +1,46 @@
-import type { Sticker, StickerPack } from '@textshq/platform-sdk'
-import axios from 'axios'
+import { Sticker, StickerPack, texts } from '@textshq/platform-sdk'
 
-const STICKER_PACK_URL = 'https://static.whatsapp.net/sticker?cat=sticker_store_data&id=all&lg=en&country={{region}}'
-const STICKERS_IN_PACK_URL = 'https://static.whatsapp.net/sticker?cat=sticker_pack_data&id={{id}}&lg=en'
+const STICKER_API_URL = 'https://static.whatsapp.net/sticker'
 
-export async function getStickerPacks() {
-  const url = STICKER_PACK_URL.replace('{{region}}', 'IN')
-  const { data } = await axios.get<any[]>(url, { responseType: 'json' })
+const http = texts.createHttpClient!()
+
+const headers = {
+  accept: 'application/json',
+  // 'accept-language': 'en',
+  // 'sec-ch-ua': '"Chromium";v="105", "Google Chrome";v="105", "Not;A=Brand";v="99"',
+  // 'sec-ch-ua-mobile': '?0',
+  // 'sec-ch-ua-platform': '"macOS"',
+  // 'sec-fetch-dest': 'empty',
+  // 'sec-fetch-mode': 'cors',
+  // 'sec-fetch-site': 'cross-site',
+  'user-agent': 'axios/1.2.3', // can be anything that's unpopular and not chrome otherwise fb html error page is sent more frequently by the server
+}
+
+export async function getStickerPacks(country: string) {
+  const res = await http.requestAsString(STICKER_API_URL, {
+    headers,
+    searchParams: {
+      cat: 'sticker_store_data',
+      id: 'all',
+      lg: 'en',
+      country,
+    },
+  })
+  const data = JSON.parse(res.body) as any[]
   return data.map(mapStickerPack)
 }
 
-export async function getStickersInPack(id: string) {
-  const url = STICKERS_IN_PACK_URL.replace('{{id}}', id)
-  const { data } = await axios.get<{ stickers: any[] }[]>(url, { responseType: 'json' })
-  return data[0].stickers.map(mapSticker)
+export async function getStickersInPack(id: string, accountID: string) {
+  const res = await http.requestAsString(STICKER_API_URL, {
+    headers,
+    searchParams: {
+      cat: 'sticker_pack_data',
+      id,
+      lg: 'en',
+    },
+  })
+  const data = JSON.parse(res.body) as { stickers: any[] }
+  return data[0].stickers.map(s => mapSticker(s, accountID))
 }
 
 function mapStickerPack(pack: any): StickerPack {
@@ -30,10 +57,10 @@ function mapStickerPack(pack: any): StickerPack {
   }
 }
 
-function mapSticker(sticker: any): Sticker {
+function mapSticker(sticker: any, accountID: string): Sticker {
   return {
     id: sticker.handle,
-    url: getStickerURL(sticker),
+    url: getStickerURL(sticker, accountID),
     type: 'img',
     size: {
       width: sticker.width,
@@ -44,10 +71,8 @@ function mapSticker(sticker: any): Sticker {
   }
 }
 
-function getStickerURL(sticker: any) {
-  return `asset://$accountID/sticker/${encodeURIComponent(sticker['direct-path'])}/${encodeURIComponent(sticker['media-key'])}}`
-}
+const getStickerURL = (sticker: any, accountID: string) =>
+  `asset://${accountID}/sticker/${encodeURIComponent(sticker['direct-path'])}/${encodeURIComponent(sticker['media-key'])}}`
 
-function getStickerPreviewURL(id: string) {
-  return `https://static.whatsapp.net/sticker?cat=sticker_preview_png&id=${id}`
-}
+const getStickerPreviewURL = (id: string) =>
+  `https://static.whatsapp.net/sticker?cat=sticker_preview_png&id=${id}`

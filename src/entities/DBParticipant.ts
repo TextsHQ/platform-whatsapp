@@ -27,14 +27,14 @@ export default class DBParticipant {
   @JoinColumn({
     name: 'id',
     referencedColumnName: 'id',
-  })
+    })
     user?: DBUser
 
   @ManyToOne(() => DBThread, { createForeignKeyConstraints: false, cascade: false, persistence: false })
   @JoinColumn({
     name: 'thread_id',
     referencedColumnName: 'id',
-  })
+    })
     thread?: DBThread
 
   shouldFireEvent?: boolean

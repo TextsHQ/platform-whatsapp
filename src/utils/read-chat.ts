@@ -50,7 +50,7 @@ const readChat = async (db: Connection | EntityManager, sock: WASocket, ctx: Map
       // and the unread state is just a notional "dot" to show in the UI
       await sock.chatModify(
         { markRead: true, lastMessages: await getLastMessagesOfThread(db, threadID) },
-        threadID
+        threadID,
       )
     }
   }

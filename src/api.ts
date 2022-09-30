@@ -92,6 +92,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private initPromise: Promise<void>
 
+  private country: string
+
   logger: Logger
 
   accountID: string
@@ -104,11 +106,12 @@ export default class WhatsAppAPI implements PlatformAPI {
     return id ? jidNormalizedUser(id) : undefined
   }
 
-  init = async (session: string | undefined, { accountID, dataDirPath }: AccountInfo) => {
+  init = async (session: string | undefined, { accountID, dataDirPath, country }: AccountInfo) => {
     this.dataDirPath = dataDirPath
     // if session was there, use that -- otherwise init default credentials
     this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
     this.accountID = accountID
+    this.country = country ?? 'US'
 
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
     process.on('unhandledRejection', this.logUnhandledException)
@@ -962,13 +965,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     return repo.findOne({ id: threadID })
   }
 
-  getStickerPacks = async(): Promise<Paginated<StickerPack>> => {
-    const items = await getStickerPacks()
+  getStickerPacks = async (): Promise<Paginated<StickerPack>> => {
+    const items = await getStickerPacks(this.country)
     return { items, hasMore: false }
   }
 
-  getStickers = async(stickerPackID: string): Promise<Paginated<Sticker>> => {
-    const items = await getStickersInPack(stickerPackID)
+  getStickers = async (stickerPackID: string): Promise<Paginated<Sticker>> => {
+    const items = await getStickersInPack(stickerPackID, this.accountID)
     return { items, hasMore: false }
   }
 }
