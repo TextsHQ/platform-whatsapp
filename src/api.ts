@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage } from '@adiwajshing/baileys'
-import { texts, Sticker, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Awaitable } from '@textshq/platform-sdk'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -978,7 +978,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     return { items, hasMore: false }
   }
 
-  getStickers = async (stickerPackID: string): Promise<Paginated<Sticker>> => {
+  getStickers = async (stickerPackID: string): Promise<Paginated<Attachment>> => {
     const items = await getStickersInPack(stickerPackID, this.accountID)
     return { items, hasMore: false }
   }

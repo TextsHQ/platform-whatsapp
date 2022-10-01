@@ -1,5 +1,5 @@
 import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { MessageAction, MessageActionType, MessageAttachment, MessageAttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
+import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 
 const participantAdded = (message: WAMessage) =>
@@ -110,11 +110,11 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
 const NOTIFYING_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
 
 const ATTACHMENT_MAP = {
-  audioMessage: MessageAttachmentType.AUDIO,
-  imageMessage: MessageAttachmentType.IMG,
-  stickerMessage: MessageAttachmentType.IMG,
-  videoMessage: MessageAttachmentType.VIDEO,
-} as { [T in MessageType]: MessageAttachmentType }
+  audioMessage: AttachmentType.AUDIO,
+  imageMessage: AttachmentType.IMG,
+  stickerMessage: AttachmentType.IMG,
+  videoMessage: AttachmentType.VIDEO,
+} as { [T in MessageType]: AttachmentType }
 
 const MESSAGE_ACTION_MAP = {
   [WAMessageStubType.GROUP_PARTICIPANT_ADD]: MessageActionType.THREAD_PARTICIPANTS_ADDED,
@@ -287,17 +287,17 @@ export function getNotificationType(message: WAMessage, currentUserId: string) {
   return MessageBehavior.DONT_NOTIFY
 }
 
-export function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: MessageAttachment[], media: boolean } {
-  const response = { attachments: [] as MessageAttachment[], media: false }
+export function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: Attachment[], media: boolean } {
+  const response = { attachments: [] as Attachment[], media: false }
   if (!message) return response
 
   const messageInner = Object.values(extractMessageContent(message)!)[0]
 
   if (message.contactMessage || message.contactsArrayMessage) {
     const contacts = message.contactsArrayMessage?.contacts || [message.contactMessage]
-    response.attachments = contacts.map<MessageAttachment>(c => ({
+    response.attachments = contacts.map<Attachment>(c => ({
       id: `${id}_${c!.displayName}`,
-      type: MessageAttachmentType.UNKNOWN,
+      type: AttachmentType.UNKNOWN,
       data: Buffer.from(c!.vcard!, 'utf-8'),
       fileName: `${c!.displayName}.vcf`,
     }))
@@ -316,7 +316,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
     response.attachments = [{
       id,
       size: (size.width && size.height) ? size : undefined,
-      type: ATTACHMENT_MAP[messageType] || MessageAttachmentType.UNKNOWN,
+      type: ATTACHMENT_MAP[messageType] || AttachmentType.UNKNOWN,
       isGif: !!message.videoMessage?.gifPlayback,
       isSticker: message.stickerMessage ? true : undefined,
       mimeType: messageInner.mimetype,
@@ -333,7 +333,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
     response.attachments = [
       {
         id,
-        type: MessageAttachmentType.IMG,
+        type: AttachmentType.IMG,
         srcURL: attachmentUrl(undefined, jid, id, ''),
         mimeType: img.mimetype!,
         posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,

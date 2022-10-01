@@ -1,4 +1,4 @@
-import { Sticker, StickerPack, texts } from '@textshq/platform-sdk'
+import { Attachment, AttachmentType, StickerPack, texts } from '@textshq/platform-sdk'
 
 const STICKER_API_URL = 'https://static.whatsapp.net/sticker'
 
@@ -57,17 +57,17 @@ function mapStickerPack(pack: any): StickerPack {
   }
 }
 
-function mapSticker(sticker: any, accountID: string): Sticker {
+function mapSticker(sticker: any, accountID: string): Attachment {
   return {
     id: sticker.handle,
-    url: getStickerURL(sticker, accountID),
-    type: 'img',
+    srcURL: getStickerURL(sticker, accountID),
+    type: AttachmentType.IMG,
     size: {
       width: sticker.width,
       height: sticker.height,
     },
     mimeType: sticker.mimetype,
-    emojis: sticker.emojis,
+    // emojis: sticker.emojis,
   }
 }
 

@@ -2477,11 +2477,11 @@ __metadata:
 
 "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=a6a807e08b3ada8c405e5e8bbaccefcad88f1097"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=662c2f358efa67c1987d0396d73bc4128fbaace7"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: ed9916e04834e62300e28a568b2a46aafb8df42211b79a1ebbfcd846c2d70440ee86084cad533f70782148f9350624de524d2fa59ca484607339c462eb0aef20
+  checksum: 84d002f6b72d018a6d2e4c8cb1cdb447fb6dc95bad234e9586d72fbf51ac40ece9c77adf80eac2bc7413b2654208b7465e8d7c5a3f925fdeaac2318a0aa03421
   languageName: node
   linkType: hard
 
@@ -7071,7 +7071,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 006c3d0b129639e9c9269362d20e1415663f2264c030bfd4b6d13732f10c43aae089069d6cc8021ee774be7dc1eaf30f6420a0fa74fd88d03ecd0d61db038012
   languageName: node
   linkType: hard
 
