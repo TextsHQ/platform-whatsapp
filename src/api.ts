@@ -31,6 +31,7 @@ import type { ButtonCallbackType, LoginCallback, Transaction } from './types'
 import { CURRENT_MAPPING_VERSION } from './config.json'
 import { remapMessagesAndSave } from './utils/remapping'
 import { getStickerPacks, getStickersInPack } from './utils/stickers'
+import { FileCache, makeFileCache } from './utils/file-cache'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -72,8 +73,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private isNewLogin: boolean | undefined = undefined
 
-  private profilePictureUrlCache: { [id: string]: Promise<string> } = {}
-
   private dataStore: ReturnType<typeof makeTextsBaileysStore>
 
   private session: AuthenticationCreds
@@ -93,6 +92,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   private initPromise: Promise<void>
 
   private country: string
+
+  private fileCache: FileCache
 
   logger: Logger
 
@@ -114,6 +115,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.country = country ?? 'US'
 
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
+    this.fileCache = makeFileCache(path.join(dataDirPath, 'cache'), this.logger)
     process.on('unhandledRejection', this.logUnhandledException)
 
     this.initPromise = this._init()
@@ -484,7 +486,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (this.connState.receivedPendingNotifications) {
         for (const { id, imgUrl } of contacts) {
           if (typeof imgUrl !== 'undefined') {
-            delete this.profilePictureUrlCache[id!]
+            await this.fileCache.clear(['profile-picture', id!])
             const ppUrl = await this.getAsset({}, 'profile-picture', id!, '')
             if (isJidGroup(id)) {
               this.publishEvent({
@@ -855,18 +857,24 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.client!.groupParticipantsUpdate(threadID, [participantID], PARTICIPANT_ACTION_MAP[role])
   }
 
-  getAsset = async (opts: GetAssetOptions, category: 'profile-picture' | 'attachment' | 'sticker', _jid: string, _msgID: string) => {
+  get getAsset() {
+    return this.fileCache.makeGetAssetWithCache(this.getAssetFromSource)
+  }
+
+  private getAssetFromSource = async (
+    opts: GetAssetOptions,
+    category: 'profile-picture' | 'attachment' | 'sticker',
+    _jid: string,
+    _msgID: string,
+  ) => {
     const jid = decodeURIComponent(_jid)
     switch (category) {
       case 'profile-picture': {
         await this.waitForConnectionOpen()
 
-        if (typeof this.profilePictureUrlCache[jid] === 'undefined') {
-          this.profilePictureUrlCache[jid] = this.client!.profilePictureUrl(jid)
-            .catch(() => '')
-            .then(url => url || '')
-        }
-        const url = await this.profilePictureUrlCache[jid]
+        const url = await this.client!.profilePictureUrl(jid)
+          .catch(() => '')
+          .then(pp => pp || '')
         return url
       }
       case 'attachment': {
