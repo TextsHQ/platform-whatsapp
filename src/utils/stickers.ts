@@ -46,7 +46,11 @@ export async function getStickersInPack(id: string, accountID: string) {
 function mapStickerPack(pack: any): StickerPack {
   return {
     id: pack['sticker-pack-id'],
-    imgURL: getStickerPreviewURL(pack['tray-image-preview']),
+    preview: {
+      id: pack['tray-image-id'],
+      type: AttachmentType.IMG,
+      srcURL: getStickerPreviewURL(pack['tray-image-preview']),
+    },
     name: pack.name,
     publisher: pack.publisher,
     description: pack.description,
