@@ -158,6 +158,10 @@ export default class DBThread implements Thread {
       }
     }
 
+    if (typeof item.title !== 'undefined') {
+      item.title = item.title || undefined
+    }
+
     delete item.participantsList
     delete item.unreadCount
     delete item.original
@@ -201,7 +205,8 @@ export default class DBThread implements Thread {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
       id: threadID,
-      title: chat.name || metadata?.subject || '',
+      // @ts-expect-error
+      title: chat.name || metadata?.subject || null,
       unreadCount: chat.unreadCount || 0,
       type,
       createdAt: createDate,
