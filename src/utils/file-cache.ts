@@ -58,7 +58,11 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     }
 
     if (typeof fetchResult === 'string') {
-      readable = await getHttpStream(fetchResult, { isStream: true })
+      if (fetchResult) {
+        readable = await getHttpStream(fetchResult, { isStream: true })
+      } else {
+        readable = toReadable(Buffer.alloc(0))
+      }
     } else if (typeof readable === 'undefined') {
       readable = fetchResult as Readable
     }
