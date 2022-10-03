@@ -5,14 +5,19 @@ import { createWriteStream, createReadStream } from 'fs'
 import { stat, rm, mkdir } from 'fs/promises'
 import { pathToFileURL } from 'url'
 import { join } from 'path'
+import sanitizeFilename from 'sanitize-filename'
 import { getHttpStream, toReadable } from '@adiwajshing/baileys'
 
 type GetAssetFunction = Exclude<PlatformAPI['getAsset'], undefined>
 
 /** cache attachments/files */
 export const makeFileCache = (folderPath: string, logger: Logger) => {
+  function getKey(path: string[]) {
+    return path.join('-')
+  }
+
   function getKeyPath(key: string) {
-    return join(folderPath, key)
+    return join(folderPath, sanitizeFilename(key))
   }
 
   function getFileInfo(file: string) {
@@ -24,7 +29,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     pathParams: string[],
     getAssetFromSource: GetAssetFunction,
   ) {
-    const key = pathParams.join('-')
+    const key = getKey(pathParams)
     const path = getKeyPath(key)
     const info = await getFileInfo(path)
     if (info) {
@@ -107,7 +112,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
 
   return {
     async clear(pathParams: string[]) {
-      const key = pathParams.join('-')
+      const key = getKey(pathParams)
       logger.trace({ key }, 'clearing cache')
       const path = getKeyPath(key)
       if (await getFileInfo(path)) {
