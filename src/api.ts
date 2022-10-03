@@ -50,12 +50,14 @@ const config: Partial<SocketConfig> = {
   },
 }
 
+const SUCCESS_LOGIN = async (): Promise<LoginResult> => ({ type: 'success' })
+
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: WASocket
 
-  private evCallback: OnServerEventCallback = () => {}
+  private evCallback: OnServerEventCallback
 
-  private connCallback: OnConnStateChangeCallback = () => {}
+  private connCallback: OnConnStateChangeCallback
 
   private loginCallback?: LoginCallback
 
@@ -186,7 +188,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.logger?.info('disposed')
   }
 
-  login = async (): Promise<LoginResult> => ({ type: 'success' })
+  login = SUCCESS_LOGIN
 
   logout = async () => {
     try {
@@ -201,7 +203,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   /** initialize default MD credentials */
-  private getDefaultSession = () => initAuthCreds()
+  private getDefaultSession = initAuthCreds
 
   private connect = async () => {
     await this.connectInternal()
@@ -381,7 +383,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private publishEvent = (event: ServerEvent) => {
     if (event) {
-      this.evCallback([event])
+      this.evCallback?.([event])
     }
   }
 
@@ -464,13 +466,13 @@ export default class WhatsAppAPI implements PlatformAPI {
             this.connectInternal(RECONNECT_DELAY_MS)
           } else if (LOGGED_OUT_CODES.includes(statusCode)) {
             makeDBKeyStore(this.db, this.logger).clear!()
-            this.connCallback({ status: ConnectionStatus.UNAUTHORIZED })
+            this.connCallback?.({ status: ConnectionStatus.UNAUTHORIZED })
             this.isNewLogin = true
             return
           }
         }
 
-        this.connCallback({ status: CONNECTION_STATE_MAP[connection] })
+        this.connCallback?.({ status: CONNECTION_STATE_MAP[connection] })
       }
     })
 
@@ -667,9 +669,9 @@ export default class WhatsAppAPI implements PlatformAPI {
       const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
       const messages: DBMessage[] = []
       try {
-        for (const { compose, options } of msgCompositions) {
+        for (const { compose, options: compOptions } of msgCompositions) {
           const message = (await this.client!.sendMessage(threadID, compose, {
-            ...options,
+            ...compOptions,
             cachedGroupMetadata: id => getGroupParticipantsFromDB(this.db, id),
           }))!
           const mappedMsg = new DBMessage()
@@ -750,7 +752,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   addReaction = (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, reactionKey)
 
-  removeReaction = async (threadID: string, messageID: string, reactionKey: string) => this.setReaction(threadID, messageID, null)
+  removeReaction = async (threadID: string, messageID: string) => this.setReaction(threadID, messageID, null)
 
   private setReaction = async (threadID: string, messageID: string, reactionKey: string | null) => {
     await this.waitForConnectionOpen()
@@ -836,7 +838,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  changeThreadImage = async (threadID: string, imageBuffer: Buffer, mimeType: string) => {
+  changeThreadImage = async (threadID: string, imageBuffer: Buffer) => {
     await this.client!.updateProfilePicture(threadID, imageBuffer)
   }
 
