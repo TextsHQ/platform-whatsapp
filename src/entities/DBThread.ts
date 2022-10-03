@@ -205,8 +205,7 @@ export default class DBThread implements Thread {
       // if it's a group and we do not have metadata
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
       id: threadID,
-      // @ts-expect-error
-      title: chat.name || metadata?.subject || null,
+      title: chat.name || metadata?.subject || '',
       unreadCount: chat.unreadCount || 0,
       type,
       createdAt: createDate,
