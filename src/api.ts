@@ -880,6 +880,8 @@ export default class WhatsAppAPI implements PlatformAPI {
         return url
       }
       case 'attachment': {
+        await this.waitForConnectionOpen()
+
         const msgID = _msgID ? decodeURIComponent(_msgID) : _msgID
         const endByte = opts.range?.end ? opts.range!.end + 1 : opts.range?.end
         const downloadOpts: MediaDownloadOptions = {
