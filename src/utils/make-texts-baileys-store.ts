@@ -1,5 +1,5 @@
 import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
-import { Awaitable, MessageBehavior, ServerEvent, texts } from '@textshq/platform-sdk'
+import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
@@ -154,6 +154,14 @@ const makeTextsBaileysStore = (
                 'error in processing events',
               )
               texts.Sentry?.captureException(err)
+
+              publishEvent({
+                type: ServerEventType.TOAST,
+                toast: {
+                  text: `Events Dropped: "${err.message}"`,
+                  timeoutMs: -1,
+                },
+              })
             },
           )
       }
