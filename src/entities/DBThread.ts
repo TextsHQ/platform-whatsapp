@@ -206,6 +206,7 @@ export default class DBThread implements Thread {
       requiresMapWithMetadata: type !== 'single' && typeof metadata === 'undefined',
       id: threadID,
       title: chat.name || metadata?.subject || '',
+      description: metadata?.desc,
       unreadCount: chat.unreadCount || 0,
       type,
       createdAt: createDate,
