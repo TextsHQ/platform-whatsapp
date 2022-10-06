@@ -549,7 +549,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       chat = {
         name,
         id,
-        conversationTimestamp: unixTimestampSeconds(),
+        conversationTimestamp: null,
         unreadCount: 0,
       }
     } else throw new Error('no users provided')
@@ -931,7 +931,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       return
     }
     const jid = threadID
-    // await this.client.updatePresence(jid, Presence.available)
     // update presence when clicking through
     if (!isJidBroadcast(jid)) {
       await this.waitForConnectionOpen()
