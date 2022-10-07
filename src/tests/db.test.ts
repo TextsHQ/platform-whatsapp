@@ -1,3 +1,5 @@
+import getConnection from '../utils/get-connection'
+
 import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
@@ -5,7 +7,6 @@ import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContextWithDB } from '../types'
 import { mapMessageID } from '../utils/generics'
-import getConnection from '../utils/get-connection'
 import getLogger from '../utils/get-logger'
 import makeTextsBaileysStore from '../utils/make-texts-baileys-store'
 
@@ -113,5 +114,55 @@ describe('Database Sync Tests', () => {
         id: jid,
       }),
     ).toHaveProperty('unreadCount', 1)
+  })
+
+  it('should not update a thread timestamp and unread count', async () => {
+    const phone = Math.random().toString().replace('.', '')
+    const jid = phone + '@s.whatsapp.net'
+
+    const ogTimstamp = unixTimestampSeconds() - 1000
+    const msgId = generateMessageID()
+
+    const msg1 = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: msgId,
+      },
+      // messageStubType: WAMessageStubType.CIPHERTEXT,
+      message: { conversation: 'hello' },
+      messageTimestamp: ogTimstamp,
+    })
+
+    const msg2 = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: msgId,
+      },
+      message: { conversation: 'hello 2' },
+      messageTimestamp: unixTimestampSeconds(),
+    })
+
+    ev.buffer()
+    ev.emit('chats.update', [{ id: jid, unreadCount: 1, conversationTimestamp: ogTimstamp }])
+    ev.emit('messages.upsert', { messages: [msg1], type: 'notify' })
+
+    await ev.flush()
+
+    await delay(200)
+
+    ev.buffer()
+    ev.emit('chats.update', [{ id: jid, unreadCount: 1, conversationTimestamp: unixTimestampSeconds() }])
+    ev.emit('messages.upsert', { messages: [msg2], type: 'notify' })
+
+    await ev.flush()
+
+    await delay(200)
+
+    const repo = db.getRepository(DBThread)
+    const thread = await repo.findOne({ id: jid })
+    expect(thread?.unreadCount).toEqual(1)
+    expect(thread?.timestamp).toEqual(new Date(ogTimstamp * 1000))
   })
 })

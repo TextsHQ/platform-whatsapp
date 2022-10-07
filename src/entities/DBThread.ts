@@ -178,7 +178,7 @@ export default class DBThread implements Thread {
       chat.conversationTimestamp = 0
     }
     if (chat.id === STORIES_JID) {
-      texts.Sentry.captureException(new Error('stories thread being mapped'))
+      texts?.Sentry.captureException(new Error('stories thread being mapped'))
     }
     const type = threadType(threadID)!
 

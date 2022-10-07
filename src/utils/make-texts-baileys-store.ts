@@ -58,17 +58,22 @@ const makeTextsBaileysStore = (
         }
       }
 
+      const updatedChats = [
+        ...(events['chats.upsert'] || []),
+        ...(events['chats.update'] || []),
+      ]
+
       if (events['messages.upsert']) {
-        await handleMessagesUpsert(events['messages.upsert'], excludeEvent, ctx)
+        await handleMessagesUpsert(
+          events['messages.upsert'],
+          updatedChats,
+          excludeEvent,
+          ctx,
+        )
       }
 
-      if (events['chats.upsert'] || events['chats.update']) {
-        const updated = [
-          ...(events['chats.upsert'] || []),
-          ...(events['chats.update'] || []),
-        ]
-
-        await handleChatsUpsert(updated, excludeEvent, groupMetadata, ctx)
+      if (updatedChats.length) {
+        await handleChatsUpsert(updatedChats, excludeEvent, groupMetadata, ctx)
       }
 
       if (events['contacts.upsert'] || events['contacts.update']) {
@@ -153,7 +158,7 @@ const makeTextsBaileysStore = (
                 { trace: err.stack, events },
                 'error in processing events',
               )
-              texts.Sentry?.captureException(err)
+              texts?.Sentry?.captureException(err)
 
               publishEvent({
                 type: ServerEventType.TOAST,
@@ -214,6 +219,7 @@ async function handleGroupsUpdate(
 
 async function handleMessagesUpsert(
   { messages, type }: BaileysEventMap['messages.upsert'],
+  chatUpdates: Partial<Chat>[],
   excludeEvent: boolean,
   ctx: MappingContextWithDB,
 ) {
@@ -231,6 +237,10 @@ async function handleMessagesUpsert(
   const chatUpdateMap: { [id: string]: Partial<Chat> } = { }
   const chatsRequiringTimestampCorrection: string[] = []
   const missingThreadMap: { [id: string]: { timestamp: number } } = { }
+
+  for (const update of chatUpdates) {
+    chatUpdateMap[update.id!] = update
+  }
 
   const msgs = await fetchMessagesInDB(db, messages)
   for (const msg of msgs) {
@@ -254,6 +264,10 @@ async function handleMessagesUpsert(
         && mappedMsg.original.message.messageStubType !== WAMessageStubType.CIPHERTEXT
       ) {
         chat.unreadCount -= 1
+        if (chat.unreadCount === 0) {
+          delete chat.unreadCount
+        }
+
         logger.warn(
           { chatId: chat.id, msgId: mappedMsg.id },
           'recv new copy of non-ciphertext message, correcting unread count',
@@ -364,6 +378,7 @@ async function handleMessagesUpsert(
         return thread
       },
     )
+
     await threadRepo
       .createQueryBuilder()
       .insert()
