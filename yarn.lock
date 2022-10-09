@@ -7,7 +7,7 @@ __metadata:
 
 "@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
   version: 5.0.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=d0330d1863de1a0ea0e9148e1a5e330542d82040"
+  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=6c3958bb16596bebb8f2097b0fce1f5a966c7d6b"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^0.24.0
@@ -35,7 +35,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 33278052be77cd67826950252d16b7a6092c71bfc9a001033a30de3ee9742f093ac24eba677aebf03b5c296240d1b70266ba816112ef9163768fde8fb773da18
+  checksum: d9b9ca5ec848549db710865fa8dd9735c70026825549ae7e8316921bb1523ed4f0db7110c1f88b005631404eb7cf7584fc1155cc7d380bb8cd9f882d12f470b1
   languageName: node
   linkType: hard
 
@@ -6480,7 +6480,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: 9adc2f2a1476140f650ac25270b98850499e8eb8968171fb53ce1a256d6d931d5a5719f2d9c0d7706f2ef332a1ba149598bd7035000ddb74cc9408dd45800f39
+  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
   languageName: node
   linkType: hard
 
