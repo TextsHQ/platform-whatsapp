@@ -1,5 +1,5 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds } from '@adiwajshing/baileys'
+import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, BufferJSON, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
 import type { MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
@@ -178,6 +178,7 @@ export const isHiddenMessage = (msg: WAMessage) => {
   return contentType === 'reactionMessage'
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
+    || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
 }
 
 export const decodeSerializedSession = (sess: string) => (typeof sess === 'string' ? JSON.parse(sess, BufferJSON.reviver) : sess)
