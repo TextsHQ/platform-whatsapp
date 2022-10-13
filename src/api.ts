@@ -666,7 +666,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.logger.info('sending message')
 
       await this.waitForConnectionOpen()
-      const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, options)
+      const msgCompositions = await getMessageCompose(this.db, threadID, msgContent, this.getDefaultDisappearingMode(), options)
       const messages: DBMessage[] = []
       try {
         for (const { compose, options: compOptions } of msgCompositions) {
@@ -759,14 +759,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const msg = await this.assertLoadWAMessageFromDB(threadID, messageID)
 
-    const opts = await getEphemeralOptions(this.db, threadID)
     await this.client!.sendMessage(threadID, {
       react: {
         key: msg.key,
         text: reactionKey,
         senderTimestampMs: unixTimestampSeconds(),
       },
-    }, opts)
+    }, { })
   }
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
@@ -985,4 +984,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     const items = await getStickersInPack(stickerPackID, this.accountID)
     return { items, hasMore: false }
   }
+
+  private getDefaultDisappearingMode = () => (
+    this.client?.authState.creds.accountSettings.defaultDisappearingMode
+  )
 }

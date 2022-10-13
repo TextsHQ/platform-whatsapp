@@ -1,4 +1,4 @@
-import { AnyMediaMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
+import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
@@ -7,12 +7,16 @@ import generateMessageID from './generate-message-id'
 import DBMessage from '../entities/DBMessage'
 import getEphemeralOptions from './get-ephemeral-options'
 
-const getMessageCompose = async (db: Connection | EntityManager, threadID: string, msgContent: MessageContent, options?: MessageSendOptions) => {
+const getMessageCompose = async (
+  db: Connection | EntityManager,
+  threadID: string,
+  msgContent: MessageContent,
+  defaultMode: AccountSettings['defaultDisappearingMode'],
+  options?: MessageSendOptions,
+) => {
   let content: AnyRegularMessageContent
   let { text, mimeType } = msgContent
   let sendAdditionalTextMessage = false
-
-  const opts: MiscMessageGenerationOptions = await getEphemeralOptions(db, threadID) || {}
 
   if (msgContent.mentionedUserIDs) {
     for (const mention of msgContent.mentionedUserIDs) {
@@ -80,10 +84,24 @@ const getMessageCompose = async (db: Connection | EntityManager, threadID: strin
     }
   }
 
-  const composes: { compose: AnyRegularMessageContent, options: MiscMessageGenerationOptions }[] = []
+  const ephemeralOpts = await getEphemeralOptions(db, threadID)
+  const composes: { compose: AnyMessageContent, options: MiscMessageGenerationOptions }[] = []
   const messageId = options?.pendingMessageID?.includes('-')
     ? generateMessageID() // for ios
     : options?.pendingMessageID
+  const opts: MiscMessageGenerationOptions = ephemeralOpts || { }
+
+  // if the thread doesn't exist
+  // hence ephemeral opts are undefined
+  // we fire a message to set disappearing mode if that was the user's preference
+  if (!ephemeralOpts && defaultMode?.ephemeralExpiration) {
+    opts.ephemeralExpiration = defaultMode.ephemeralExpiration
+    composes.push({
+      compose: { disappearingMessagesInChat: defaultMode?.ephemeralExpiration },
+      options: { },
+    })
+  }
+
   composes.push({
     compose: content,
     options: { messageId, quoted: quotedMsg, ...opts },
