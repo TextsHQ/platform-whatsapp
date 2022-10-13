@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/order
 import getConnection from '../utils/get-connection'
 
-import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -124,7 +124,7 @@ describe('Database Sync Tests', () => {
     expect(thread?.timestamp).toEqual(new Date(ogTimstamp * 1000))
   })
 
-  it('should start a chat with a toggle disappearing message', async() => {
+  it('should start a chat with a toggle disappearing message', async () => {
     const phone = Math.random().toString().replace('.', '')
     const jid = phone + '@s.whatsapp.net'
 
