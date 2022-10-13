@@ -32,7 +32,7 @@ const fetchThreads = async (
 
   const whereClauses: string[] = []
   if (cursor) {
-    whereClauses.push(`(timestamp, id) < (datetime(${cursor[0].getTime() / 1000}, 'unixepoch', 'utc'), '${cursor[1]}')`)
+    whereClauses.push(`(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
   }
 
   if (threadID) {
@@ -50,7 +50,7 @@ const fetchThreads = async (
   if (tillCursor) {
     const [date] = tillCursor.split(',')
     const till = new Date(date)
-    whereClauses.push(`timestamp > datetime(${till.getTime() / 1000}, 'unixepoch', 'utc')`)
+    whereClauses.push(`timestamp > '${till.toJSON()}'`)
   }
 
   const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
@@ -58,10 +58,10 @@ const fetchThreads = async (
     .createQueryBuilder('thread')
     .innerJoin(selectClause, 't2', 't2.id = thread.id')
     .leftJoinAndSelect('thread.user', 'thread_user')
-    .leftJoinAndSelect('thread.participantsList', 'participant')
+    // only load participants for group threads (quicker fetch due to lesser data)
+    .leftJoinAndSelect('thread.participantsList', 'participant', 'thread.type = \'group\'')
     .leftJoinAndSelect('participant.user', 'user')
     .orderBy('timestamp', 'DESC')
-    .addOrderBy('user.is_self', 'ASC')
     .getMany()
 
   if (items.length) {
