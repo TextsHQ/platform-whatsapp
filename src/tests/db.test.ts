@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/order
 import getConnection from '../utils/get-connection'
 
 import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
@@ -73,49 +74,6 @@ describe('Database Sync Tests', () => {
     ).toBeTruthy()
   })
 
-  it('should keep a chat unread', async () => {
-    const jid = '912212122@s.whatsapp.net'
-
-    const msg1 = WAProto.WebMessageInfo.fromObject({
-      key: {
-        remoteJid: jid,
-        fromMe: false,
-        id: generateMessageID(),
-      },
-      message: { conversation: 'hello' },
-      messageTimestamp: unixTimestampSeconds(),
-    })
-
-    const msg2 = WAProto.WebMessageInfo.fromObject({
-      key: {
-        remoteJid: jid,
-        fromMe: false,
-        id: generateMessageID(),
-      },
-      message: { conversation: 'hello 2' },
-      messageTimestamp: unixTimestampSeconds(),
-    })
-
-    ev.emit('messages.upsert', { messages: [msg1], type: 'notify' })
-
-    await delay(200)
-
-    ev.buffer()
-    ev.emit('chats.update', [{ id: jid, unreadCount: 2, conversationTimestamp: unixTimestampSeconds() }])
-    ev.emit('messages.update', [{ key: msg1.key, update: { status: WAMessageStatus.READ } }])
-    ev.emit('messages.upsert', { messages: [msg2], type: 'notify' })
-
-    await ev.flush()
-
-    await delay(200)
-
-    expect(
-      await db.getRepository(DBThread).findOne({
-        id: jid,
-      }),
-    ).toHaveProperty('unreadCount', 1)
-  })
-
   it('should not update a thread timestamp and unread count', async () => {
     const phone = Math.random().toString().replace('.', '')
     const jid = phone + '@s.whatsapp.net'
@@ -164,5 +122,43 @@ describe('Database Sync Tests', () => {
     const thread = await repo.findOne({ id: jid })
     expect(thread?.unreadCount).toEqual(1)
     expect(thread?.timestamp).toEqual(new Date(ogTimstamp * 1000))
+  })
+
+  it('should start a chat with a toggle disappearing message', async() => {
+    const phone = Math.random().toString().replace('.', '')
+    const jid = phone + '@s.whatsapp.net'
+
+    const timestamp = unixTimestampSeconds()
+
+    const msg1 = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: generateMessageID(),
+      },
+      message: {
+        protocolMessage: {
+          type: WAProto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING,
+          ephemeralExpiration: 60 * 60 * 24,
+        },
+      },
+      messageTimestamp: timestamp,
+    })
+
+    ev.buffer()
+    ev.emit('chats.update', [{
+      id: jid,
+      ephemeralSettingTimestamp: timestamp,
+      ephemeralExpiration: 60 * 60 * 24,
+    }])
+    ev.emit('messages.upsert', { messages: [msg1], type: 'notify' })
+
+    await ev.flush()
+
+    await delay(200)
+
+    const repo = db.getRepository(DBThread)
+    const thread = await repo.findOne({ id: jid })
+    expect(thread?.original?.chat?.ephemeralExpiration).toEqual(60 * 60 * 24)
   })
 })

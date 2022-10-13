@@ -698,33 +698,30 @@ async function handleChatsUpsert(
       }
     }
 
-    // upsert if conversationTimestamp has been incremented
-    // or regular update if DB chat exists
-    if (
-      chat.conversationTimestamp
-      || dbChat
-    ) {
-      let shouldSaveParticipants = false
-      if (!dbChat) {
-        dbChat = new DBThread()
-
-        const metadata = isJidGroup(chat.id!)
-          ? await groupMetadata(chat.id!).catch(() => undefined)
-          : undefined
-
-        dbChat.original = { chat, metadata }
-        shouldSaveParticipants = true
+    let shouldSaveParticipants = false
+    if (!dbChat) {
+      if (!chat.conversationTimestamp) {
+        chat.conversationTimestamp = unixTimestampSeconds()
       }
 
-      Object.assign(dbChat.original.chat, chat)
-      dbChat.mapFromOriginal(ctx)
+      dbChat = new DBThread()
 
-      if (dbChat.participantsList && shouldSaveParticipants) {
-        participants.push(...dbChat.participantsList!)
-      }
+      const metadata = isJidGroup(chat.id!)
+        ? await groupMetadata(chat.id!).catch(() => undefined)
+        : undefined
 
-      return dbChat
+      dbChat.original = { chat, metadata }
+      shouldSaveParticipants = true
     }
+
+    Object.assign(dbChat.original.chat, chat)
+    dbChat.mapFromOriginal(ctx)
+
+    if (dbChat.participantsList && shouldSaveParticipants) {
+      participants.push(...dbChat.participantsList!)
+    }
+
+    return dbChat
   }
 }
 
