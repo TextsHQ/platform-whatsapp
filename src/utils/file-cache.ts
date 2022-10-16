@@ -2,7 +2,7 @@ import type { Asset, GetAssetOptions, PlatformAPI } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import { Readable, PassThrough } from 'stream'
 import { createWriteStream, createReadStream } from 'fs'
-import { stat, rm, mkdir } from 'fs/promises'
+import { stat, rm, mkdir, rename } from 'fs/promises'
 import { pathToFileURL } from 'url'
 import { join } from 'path'
 import sanitizeFilename from 'sanitize-filename'
@@ -87,6 +87,10 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     }
 
     const destPath = getKeyPath(key)
+    // we move to a temp file first, then rename it to the final file
+    // this is to accommodate for the case where the process is killed
+    // or any other error occurs while writing the file
+    const tmpDestPath = destPath + '.tmp'
     if (!await stat(folderPath).catch(() => false)) {
       await mkdir(folderPath)
       logger.debug('init directory')
@@ -95,13 +99,21 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     const result = new PassThrough()
     readable.pipe(result)
 
-    const writeStream = createWriteStream(destPath)
+    // remove tmp file if it exists
+    const tmpExists = await getFileInfo(tmpDestPath)
+    if (tmpExists) {
+      await rm(tmpDestPath)
+    }
+
+    const writeStream = createWriteStream(tmpDestPath)
     readable.pipe(writeStream)
 
     readable.on('end', () => {
       logger.debug({ key }, 'wrote to cache')
       writeStream.end()
       result.end()
+
+      rename(tmpDestPath, destPath)
     })
 
     return {
