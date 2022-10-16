@@ -12,14 +12,14 @@ function chunkArray<T extends ObjectLiteral>(array: T[], chunkSize: number) {
 
 async function chunkedWrite<T extends ObjectLiteral>(repo: Repository<T>, items: T[], size: number) {
   const chunks = chunkArray(items, size)
-  for (const itemChunk of chunks) {
+  await Promise.all(chunks.map(async itemChunk => {
     await repo
       .createQueryBuilder()
       .insert()
       .values(itemChunk)
       .orIgnore()
       .execute()
-  }
+  }))
 }
 
 export default chunkedWrite

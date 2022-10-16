@@ -16,7 +16,7 @@ import { CURRENT_MAPPING_VERSION } from '../config.json'
 
 type StoreBindContext = Pick<WASocket, 'ev' | 'groupMetadata'>
 
-const DEFAULT_CHUNK_SIZE = 350
+const DEFAULT_CHUNK_SIZE = 250
 
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
@@ -360,7 +360,7 @@ async function handleMessagesUpsert(
     }
   }
 
-  await msgRepo.save(mapped, { chunk: 500 })
+  await msgRepo.save(mapped, { chunk: DEFAULT_CHUNK_SIZE })
 
   const missingThreadIds = Object.keys(missingThreadMap)
 
@@ -509,7 +509,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
       item.shouldFireEvent = false
     }
   }
-  await repo.save(dbItems as any[], { chunk: 50 })
+  await repo.save(dbItems as any[], { chunk: DEFAULT_CHUNK_SIZE })
   logger.info({ updates }, `updating ${dbItems.length}/${updates.length} messages`)
   // after messages are saved, if there are any updates to thread read counters
   // execute those updates
@@ -521,7 +521,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
       chat.updateWithDecrementingUnreadCount(readMsgsUpdateMap[chat.id], ctx)
       logger.info({ id: chat.id, unreadCount: chat.unreadCount }, 'marked chat unread')
     }
-    await chatRepo.save(chats, { chunk: 50 })
+    await chatRepo.save(chats, { chunk: DEFAULT_CHUNK_SIZE })
   }
 }
 
