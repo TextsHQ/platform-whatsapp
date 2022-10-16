@@ -158,12 +158,13 @@ const makeTextsBaileysStore = (
                 { trace: err.stack, events },
                 'error in processing events',
               )
-              texts?.Sentry?.captureException(err)
+              texts.Sentry.captureException(err)
+              texts.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
 
               publishEvent({
                 type: ServerEventType.TOAST,
                 toast: {
-                  text: `Events Dropped: "${err.message}"`,
+                  text: `Dropped WhatsApp Events due to error: "${err.message}"`,
                   timeoutMs: -1,
                 },
               })
