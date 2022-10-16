@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/order
 import getConnection from '../utils/get-connection'
 
-import { delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { Chat, delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -10,6 +10,7 @@ import type { MappingContextWithDB } from '../types'
 import { mapMessageID } from '../utils/generics'
 import getLogger from '../utils/get-logger'
 import makeTextsBaileysStore from '../utils/make-texts-baileys-store'
+import fetchThreads from '../utils/fetch-threads'
 
 const TEST_DATA_PATH = './test-data'
 const DB_PATH = `${TEST_DATA_PATH}/test-db.sqlite`
@@ -41,6 +42,10 @@ describe('Database Sync Tests', () => {
     mappingCtx.db = db
     store = makeTextsBaileysStore(() => { }, mappingCtx)
     store.bind({ ev, groupMetadata: async () => { throw new Error('not supported') } })
+  })
+
+  beforeEach(async () => {
+    await db.getRepository(DBThread).clear()
   })
 
   it('should insert new CIPHERTEXT message & make new thread', async () => {
@@ -160,5 +165,41 @@ describe('Database Sync Tests', () => {
     const repo = db.getRepository(DBThread)
     const thread = await repo.findOne({ id: jid })
     expect(thread?.original?.chat?.ephemeralExpiration).toEqual(60 * 60 * 24)
+  })
+
+  it('should correctly fetch all threads', async () => {
+    const chats: Chat[] = [...Array(123)].map((_, i) => {
+      const phone = Math.random().toString().replace('.', '')
+      const jid = phone + '@s.whatsapp.net'
+
+      return {
+        id: jid,
+        name: 'test',
+        conversationTimestamp: unixTimestampSeconds() - Math.floor(Math.random() * 1000 * i),
+      }
+    })
+
+    ev.emit('chats.upsert', chats)
+
+    await delay(200)
+
+    const threads: DBThread[] = []
+
+    let cursor: string | undefined
+    do {
+      const {
+        items,
+        oldestCursor,
+      } = await fetchThreads(undefined, mappingCtx, cursor ? { cursor, direction: 'before' } : undefined)
+      threads.push(...items)
+
+      expect(cursor).not.toEqual(oldestCursor)
+
+      cursor = oldestCursor
+
+      await delay(50)
+    } while (cursor)
+
+    expect(threads).toHaveLength(chats.length)
   })
 })

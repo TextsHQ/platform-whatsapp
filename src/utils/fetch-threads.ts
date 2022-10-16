@@ -26,13 +26,13 @@ const fetchThreads = async (
     const cursorStr = pagination?.cursor
     if (cursorStr) {
       const [date, id] = cursorStr.split(',')
-      return [new Date(date), id] as const
+      return [date, id] as const
     }
   })()
 
   const whereClauses: string[] = []
   if (cursor) {
-    whereClauses.push(`(timestamp, id) < ('${cursor[0].toJSON()}', '${cursor[1]}')`)
+    whereClauses.push(`(timestamp, id) < ('${cursor[0]}', '${cursor[1]}')`)
   }
 
   if (threadID) {
@@ -53,7 +53,7 @@ const fetchThreads = async (
     whereClauses.push(`timestamp > '${till.toJSON()}'`)
   }
 
-  const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
+  const selectClause = `(SELECT id FROM db_thread ${whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''} ORDER BY timestamp DESC, id DESC ${tillCursor ? '' : ` LIMIT ${THREAD_PAGE_SIZE}`})`
   const items = await repo
     .createQueryBuilder('thread')
     .innerJoin(selectClause, 't2', 't2.id = thread.id')
@@ -62,6 +62,7 @@ const fetchThreads = async (
     .leftJoinAndSelect('thread.participantsList', 'participant', 'thread.type = \'group\'')
     .leftJoinAndSelect('participant.user', 'user')
     .orderBy('timestamp', 'DESC')
+    .addOrderBy('thread.id', 'DESC')
     .getMany()
 
   if (items.length) {
@@ -110,7 +111,7 @@ const fetchThreads = async (
     if (!stamp?.toJSON()) {
       stamp = new Date()
     }
-    oldestCursor = `${stamp.toJSON()},${items[items.length - 1].id}`
+    oldestCursor = `${toSqliteFormattedDateTimeString(stamp)},${items[items.length - 1].id}`
   }
 
   const processedItems = items.map(
@@ -134,6 +135,10 @@ const fetchThreads = async (
     oldestCursor,
     hasMore,
   }
+}
+
+function toSqliteFormattedDateTimeString(date: Date) {
+  return date.toISOString().replace('T', ' ').replace('Z', '')
 }
 
 export default fetchThreads
