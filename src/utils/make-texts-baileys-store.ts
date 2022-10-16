@@ -35,6 +35,8 @@ const makeTextsBaileysStore = (
       events: Partial<BaileysEventMap>,
       ctx: MappingContextWithDB,
     ) {
+      mappingCtx.logger.trace({ events }, 'recv event')
+
       if (events['creds.update']) {
         const { me } = events['creds.update']
         if (me) {
