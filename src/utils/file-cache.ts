@@ -1,8 +1,8 @@
 import type { Asset, GetAssetOptions, PlatformAPI } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import { Readable, PassThrough } from 'stream'
-import { createWriteStream, createReadStream } from 'fs'
-import { stat, rm, mkdir, rename } from 'fs/promises'
+import { createWriteStream, createReadStream, renameSync } from 'fs'
+import { stat, rm, mkdir } from 'fs/promises'
 import { pathToFileURL } from 'url'
 import { join } from 'path'
 import sanitizeFilename from 'sanitize-filename'
@@ -98,22 +98,22 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
 
     const result = new PassThrough()
     readable.pipe(result)
-
-    // remove tmp file if it exists
-    const tmpExists = await getFileInfo(tmpDestPath)
-    if (tmpExists) {
-      await rm(tmpDestPath)
-    }
-
     const writeStream = createWriteStream(tmpDestPath)
-    readable.pipe(writeStream)
 
-    readable.on('end', () => {
-      logger.debug({ key }, 'wrote to cache')
+    readable.pipe(writeStream)
+    readable.once('error', error => {
+      logger.error({ err: error.stack, key }, 'error while reading stream')
+    })
+    readable.once('end', () => {
       writeStream.end()
       result.end()
 
-      rename(tmpDestPath, destPath)
+      logger.debug({ key }, 'wrote to cache')
+    })
+
+    writeStream.once('finish', () => {
+      logger.debug('renamed file')
+      renameSync(tmpDestPath, destPath)
     })
 
     return {

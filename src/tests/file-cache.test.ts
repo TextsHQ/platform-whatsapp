@@ -47,7 +47,33 @@ describe('File Cache Tests', () => {
         const newStr = await readFile(path, { encoding: 'utf-8' })
         expect(newStr).toBe('hello world')
       }
+
+      await delay(100)
     }
+  })
+
+  it('should gracefully handle erros', async () => {
+    const key = `test-stream-${Date.now()}`
+    const stream = new Readable()
+    stream.push('hello world')
+    stream.destroy(new Error('test error'))
+
+    await cache.getAsset(undefined, [key], async () => stream)
+    await delay(100)
+
+    // now actually save the asset
+    const stream2 = new Readable()
+    stream2.push('hello world')
+    stream2.push(null)
+
+    await cache.getAsset(undefined, [key], async () => stream)
+    await delay(100)
+
+    // check read correctly
+    const cached = await cache.getAsset(undefined, [key], async () => stream)
+    const path = (cached as any).data.replace('file://', '')
+    const cachedData = await readFile(path, { encoding: 'utf-8' })
+    expect(cachedData).toEqual('hello world')
   })
 
   it('should cache a remote URL', async () => {
