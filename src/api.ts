@@ -986,6 +986,6 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private getDefaultDisappearingMode = () => (
-    this.client?.authState.creds.accountSettings.defaultDisappearingMode
+    this.client?.authState?.creds?.accountSettings?.defaultDisappearingMode
   )
 }
