@@ -1,4 +1,4 @@
-import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType } from '@adiwajshing/baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -304,6 +304,9 @@ async function handleMessagesUpsert(
       }
     }
 
+    mappedMsg.original.seenByMe = !msg.key.fromMe
+      && (msg.status === WAMessageStatus.READ || msg.status === WAMessageStatus.PLAYED)
+
     if (!mappedMsg.orderKey) {
       key += 1
       mappedMsg.orderKey = key
@@ -327,10 +330,6 @@ async function handleMessagesUpsert(
 
     if (type !== 'notify' && !mappedMsg.behavior) {
       mappedMsg.behavior = MessageBehavior.DONT_NOTIFY
-    }
-
-    if (mappedMsg.original.seenByMe) {
-      mappedMsg.behavior = MessageBehavior.KEEP_READ
     }
 
     if (excludeEvent) {

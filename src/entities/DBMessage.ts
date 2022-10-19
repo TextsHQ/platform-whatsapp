@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import type { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
+import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
@@ -200,7 +200,7 @@ export default class DBMessage implements Message {
   }
 
   mapFromOriginal(ctx: MappingContext) {
-    const { message } = this.original
+    const { message, seenByMe } = this.original
 
     const threadID = message.key.remoteJid || ''
     if (!threadID) {
@@ -267,7 +267,9 @@ export default class DBMessage implements Message {
       isAction,
       action,
       // @ts-expect-error
-      behavior: getNotificationType(message, currentUserID),
+      behavior: seenByMe
+        ? MessageBehavior.KEEP_READ
+        : getNotificationType(message, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
