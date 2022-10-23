@@ -348,12 +348,15 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
 export function messageFooter(message: WAMessage) {
   let footer: string | undefined
   const content = message.message ? normalizeMessageContent(message.message) : undefined
+  const template = content?.templateMessage?.hydratedTemplate
   if (content?.groupInviteMessage) {
     if (isExpiredInvite(content.groupInviteMessage)) {
       footer = 'Invite expired'
     }
   } else if (message.status === WAMessageStatus.PLAYED) {
     footer = 'Played'
+  } else if (template) {
+    footer = template?.hydratedFooterText || undefined
   }
 
   return footer

@@ -215,7 +215,12 @@ export default class DBMessage implements Message {
     }
 
     const normalizedMessageContent = normalizeMessageContent(message.message)
-    const messageContent = extractMessageContent(message.message)
+
+    let messageContent = extractMessageContent(message.message)
+    if (messageContent?.documentWithCaptionMessage) {
+      messageContent = messageContent?.documentWithCaptionMessage?.message || undefined
+    }
+
     const messageType = getContentType(messageContent)
     const messageInner = messageType && messageContent ? messageContent[messageType] : undefined
 
@@ -242,6 +247,7 @@ export default class DBMessage implements Message {
       )
       || typeof protocolMessageType !== 'undefined'
     )
+    const msgText = messageText(normalizedMessageContent) || stubBasedMessage
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
@@ -250,7 +256,7 @@ export default class DBMessage implements Message {
       textHeading: [...messageHeading(message)].join('\n'),
       text: isDeleted
         ? 'This message has been deleted.'
-        : (messageText(normalizedMessageContent) || stubBasedMessage),
+        : msgText,
       textFooter: messageFooter(message),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,
@@ -263,7 +269,9 @@ export default class DBMessage implements Message {
       // @ts-expect-error
       linkedMessage: linked || null,
       links: link ? [link] : [],
-      parseTemplate: isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage,
+      parseTemplate: !!msgText && (
+        isAction || !!(contextInfo?.mentionedJid) || isPaymentMessage(message.message!) || !!messageContent?.reactionMessage
+      ),
       isAction,
       action,
       // @ts-expect-error
