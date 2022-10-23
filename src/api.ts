@@ -939,12 +939,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private async modThread(threadID: string, value: boolean, key: 'pin' | 'mutedUntil' | 'isArchived' | 'isUnread') {
-    const chat = await this.getChat(threadID)
-    if (!chat) throw new Error('modThread: thread not found')
+    const thread = await this.getChat(threadID)
+    if (!thread) throw new Error('modThread: thread not found')
+
+    DBThread.prepareForSending(thread, this.accountID)
 
     const getLastMessages = () => getLastMessagesOfThread(this.db, threadID)
 
-    if (!!chat[key] === value) {
+    if (!!thread[key] === value) {
       // already done, nothing to do
       this.logger.info(`ignoring patch as already done ${key}:${value} on ${threadID}`)
       return
