@@ -1,32 +1,17 @@
 import { WAProto } from '@adiwajshing/baileys'
-import { unlink, stat } from 'fs/promises'
-import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import type { MappingContext } from '../types'
-import getConnection from '../utils/get-connection'
 import getLogger from '../utils/get-logger'
 
-const TEST_DATA_PATH = './test-data'
-const DB_PATH = `${TEST_DATA_PATH}/test-db-m.sqlite`
 const logger = getLogger(undefined)
 logger.level = 'trace'
 
 describe('Message Mapping Tests', () => {
-  let db: Connection
   const mappingCtx: MappingContext = {
     logger: logger.child({ level: 'debug' }),
     accountID: '1234',
     meID: '911724345330@s.whatsapp.net',
   }
-
-  beforeAll(async () => {
-    const exists = await stat(DB_PATH).then(() => true).catch(() => false)
-    if (exists) {
-      logger.info('removing existing DB')
-      await unlink(DB_PATH)
-    }
-    db = await getConnection('default', DB_PATH, logger)
-  })
 
   it('should map a senderKeyDistributionMessage', () => {
     const message = WAProto.WebMessageInfo.fromObject({
