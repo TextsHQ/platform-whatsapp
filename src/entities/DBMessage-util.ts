@@ -1,4 +1,4 @@
-import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
@@ -250,42 +250,25 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 }
 
 export function getNotificationType(message: WAMessage, currentUserId: string) {
-  const msgContent = message.message ? normalizeMessageContent(message.message) : undefined
-  if (
-    message.messageStubType === WAMessageStubType.E2E_ENCRYPTED
-    || message.messageStubType === WAMessageStubType.CIPHERTEXT
-    || message.messageStubType === WAMessageStubType.CHANGE_EPHEMERAL_SETTING
-  ) {
-    return MessageBehavior.SILENT
-  }
-
-  // do not notify if reacted to somebody else's message
-  if (
-    (msgContent?.reactionMessage && !msgContent?.reactionMessage?.key?.fromMe)
-    || msgContent?.protocolMessage
-  ) {
-    return MessageBehavior.SILENT
-  }
-
-  // only notify if
-  if (
-    (
-      // not a broadcast
-      !message.broadcast && (
-        // and some content
-        !!msgContent || (
-          // or has a stub type that is important
-          NOTIFYING_STUB_TYPES.has(message.messageStubType!)
-          && !!message.messageStubParameters?.find(w => areJidsSameUser(w, currentUserId))
-        )
-      )
-    ) || !message.key.fromMe // no flag for fromMe messages
-  ) {
-    // default notify behaviour
+  if (message.key.fromMe) { // no flag for fromMe messages
     return null
   }
 
-  return MessageBehavior.DONT_NOTIFY
+  const incrementReadCounter = shouldIncrementChatUnread(message)
+  const isRealMsg = isRealMessage(message, currentUserId)
+  if (!isRealMsg) {
+    return MessageBehavior.SILENT
+  }
+
+  if (!incrementReadCounter) {
+    return MessageBehavior.KEEP_READ
+  }
+
+  if (message.broadcast) {
+    return MessageBehavior.DONT_NOTIFY
+  }
+
+  return null
 }
 
 export function messageAttachments(message: WAMessageContent, jid: string, id: string): { attachments: Attachment[], media: boolean } {
