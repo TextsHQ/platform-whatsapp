@@ -24,6 +24,10 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     return stat(file).catch(() => undefined)
   }
 
+  function getFileURLForPathParams(pathParams: string[]) {
+    return pathToFileURL(getKeyPath(getKey(pathParams))).toString()
+  }
+
   async function getAsset(
     opts: GetAssetOptions | undefined,
     pathParams: string[],
@@ -44,7 +48,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
       }
 
       return {
-        data: pathToFileURL(path).toString(),
+        data: getFileURLForPathParams(pathParams),
         contentLength: info.size,
       }
     }
@@ -132,6 +136,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
         logger.info({ key }, 'cleared cache')
       }
     },
+    getFileURLForPathParams,
     getAsset,
     makeGetAssetWithCache(fn: GetAssetFunction): GetAssetFunction {
       return (opts, ...pathParams) => (

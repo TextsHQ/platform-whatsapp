@@ -5,7 +5,7 @@ import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOpti
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
-
+import { PassThrough } from 'stream'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl } from './utils/generics'
@@ -492,29 +492,33 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (this.connState.receivedPendingNotifications) {
         for (const { id, imgUrl } of contacts) {
           if (typeof imgUrl !== 'undefined') {
-            await this.fileCache.clear(['profile-picture', id!])
-            const ppUrl = await this.getAsset({}, 'profile-picture', id!, '')
-            if (isJidGroup(id)) {
-              this.publishEvent({
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'thread',
-                objectIDs: { },
-                mutationType: 'update',
-                entries: [
-                  { id: id!, imgURL: `${ppUrl}` },
-                ],
-              })
-            } else {
-              this.publishEvent({
-                type: ServerEventType.STATE_SYNC,
-                objectName: 'participant',
-                objectIDs: { threadID: id! },
-                mutationType: 'update',
-                entries: [
-                  { id: id!, imgURL: `${ppUrl}` },
-                ],
-              })
+            // re-fetch the asset, and return the file URL
+            const params = ['profile-picture', encodeURIComponent(id!)]
+            await this.fileCache.clear(params)
+            const asset = await this.getAsset({ }, ...params)
+            if (
+              typeof asset === 'object'
+              && 'data' in asset
+              && asset.data instanceof PassThrough
+            ) {
+              for await (const _ of asset.data) {
+                // wait for download to complete
+                // otherwise, when the Texts client fetches the file
+                // it'll be incomplete
+              }
             }
+
+
+            const objectName = isJidGroup(id) ? 'thread' : 'participant'
+            this.publishEvent({
+              type: ServerEventType.STATE_SYNC,
+              objectName,
+              objectIDs: { },
+              mutationType: 'update',
+              entries: [
+                { id: id!, imgURL: this.fileCache.getFileURLForPathParams(params) },
+              ],
+            })
           }
         }
       }
