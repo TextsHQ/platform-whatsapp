@@ -15,11 +15,14 @@ import type { TextEntity } from '@textshq/platform-sdk'
 // Punctuation range: https://stackoverflow.com/a/25575009
 const RE_SEP = /[\s\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,\-./:;<=>?@[\]^_`{|}~]/
 
+export const MENTION_START_TOKEN = '@{{'
+export const MENTION_END_TOKEN = '}}'
+
 const isStartSep = (c: string) => RE_SEP.test(c)
 
 const isEndSep = (c: string) => emojiRegex.test(c) || RE_SEP.test(c)
 
-const getClosingToken = (token: string): string => (token === '@{{' ? '}}' : token)
+const getClosingToken = (token: string): string => (token === MENTION_START_TOKEN ? MENTION_END_TOKEN : token)
 
 /**
  * Try to find the closing index for curToken.
@@ -101,7 +104,7 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
         curToken = c1
       }
     } else if (c1 === '@' && input[1] === '{' && input[2] === '{') {
-      curToken = '@{{'
+      curToken = MENTION_START_TOKEN
     } else {
       curToken = null
     }
@@ -131,7 +134,7 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
           }))
           entities.push(...childEntities)
           output += nestedAttributes!.text
-        } else if (curToken !== '@{{') {
+        } else if (curToken !== MENTION_START_TOKEN) {
           output += content
         }
         // Construct the entity of the current token.
@@ -152,7 +155,7 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
           case '```':
             entity.code = true
             break
-          case '@{{': {
+          case MENTION_START_TOKEN: {
             const username = contactUsername(content)
             const text = username || content
             output += `@${text}`

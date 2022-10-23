@@ -1,6 +1,7 @@
 import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
+import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
   (message.participant
@@ -388,7 +389,7 @@ export function* messageHeading(message: WAMessage) {
 
 const replaceJids = (jids: string[], text: string) => {
   if (!jids) return text
-  return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `@{{${jid}}}`), text)
+  return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `${MENTION_START_TOKEN}${jid}${MENTION_END_TOKEN}`), text)
 }
 
 const generateDeepLink = (type: 'template' | 'plain', key: WAMessageKey, button: ButtonReplyInfo) => {
