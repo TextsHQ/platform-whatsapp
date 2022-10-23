@@ -462,6 +462,10 @@ export default class WhatsAppAPI implements PlatformAPI {
           // auto reconnect logic
           if (isReconnecting) {
             connection = 'connecting'
+            // end client if required & set to undefined
+            // remove this listener to avoid a potential loop
+            this.client?.ev.removeAllListeners('connection.update')
+            this.client?.end(lastDisconnect?.error)
             this.client = undefined
             this.connectInternal(RECONNECT_DELAY_MS)
           } else if (LOGGED_OUT_CODES.includes(statusCode)) {
