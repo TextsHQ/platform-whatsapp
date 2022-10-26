@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import { makeMutex } from './generics'
@@ -9,12 +10,11 @@ import { makeMutex } from './generics'
  * to prevent that, we queue each transaction with this wrapper
 */
 const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
-  // eslint-disable-next-line no-param-reassign
   logger = logger.child({ class: 'transactions' })
 
   const { mutex } = makeMutex()
-  const { transaction } = db
-  // eslint-disable-next-line no-param-reassign
+  const { transaction, close } = db
+
   db.transaction = (...args) => {
     if (logger.level === 'trace') logger.trace('called transaction')
     return mutex(async () => {
@@ -28,6 +28,10 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
         logger.trace('ended transaction')
       }
     })
+  }
+
+  db.close = async () => {
+    await mutex(() => close.apply(db))
   }
 }
 
