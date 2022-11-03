@@ -185,13 +185,14 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
       // in case quoted is ephemeral
       quoted = normalizeMessageContent(quoted)
       chatId = contextInfo.remoteJid! || chatId
+      const key = { id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }
       const preview: MessagePreview = {
-        id: mapMessageID({ id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }),
+        id: mapMessageID(key),
         threadID: jidNormalizedUser(chatId),
         senderID: jidNormalizedUser(contextInfo.participant || chatId),
       }
 
-      const text = messageText(quoted!)
+      const text = messageText({ message: quoted, key })
       if (text) {
         preview.text = text
       }
@@ -451,7 +452,7 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
 
 const ProtocolMessageType = WAProto.Message.ProtocolMessage.Type
 
-export function messageText(message: WAMessageContent | undefined) {
+export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>) {
   switch (message?.protocolMessage?.type) {
     case ProtocolMessageType.EPHEMERAL_SETTING: {
       const exp = message.protocolMessage.ephemeralExpiration
@@ -497,11 +498,12 @@ export function messageText(message: WAMessageContent | undefined) {
 
   if (message?.reactionMessage) {
     const reactedKey = message.reactionMessage.key
-    const sender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
-    return `{{sender}} reacted ${message.reactionMessage!.text!} to ${sender} message`
+    const msgSender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
+    const reactionSender = key.fromMe ? 'You' : '{{sender}}'
+    return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
   }
 
-  const type = getContentType(message)!
+  const type = getContentType(message!)!
   const messageInner = message?.[type] as any
 
   const text = messageInner?.text ?? messageInner?.caption

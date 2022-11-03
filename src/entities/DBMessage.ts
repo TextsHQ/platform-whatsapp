@@ -247,7 +247,8 @@ export default class DBMessage implements Message {
       )
       || typeof protocolMessageType !== 'undefined'
     )
-    const msgText = messageText(normalizedMessageContent) || stubBasedMessage
+    const msgText = messageText({ message: normalizedMessageContent, key: message.key })
+      || stubBasedMessage
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
