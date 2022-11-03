@@ -5,6 +5,8 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 import entities from '../entities'
 import dbMutexAllTransactions from './db-mutex-all-transactions'
 
+const logSql = process.env.LOG_SQL === '1'
+
 const getConnection = async (name: string, sqlitePath: string, logger: Logger) => {
   const connection = await createConnection(
     {
@@ -12,7 +14,7 @@ const getConnection = async (name: string, sqlitePath: string, logger: Logger) =
       database: sqlitePath,
       type: 'better-sqlite3',
       synchronize: true,
-      logging: texts?.isLoggingEnabled ? ['error'] : false,
+      logging: logSql ? true : (texts?.isLoggingEnabled ? ['error'] : false),
       entities,
       migrations: [],
       cli: { migrationsDir: 'src/migrations' },
