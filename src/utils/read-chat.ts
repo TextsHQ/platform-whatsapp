@@ -16,7 +16,8 @@ const readChat = async (db: Connection | EntityManager, sock: WASocket, ctx: Map
     if (item.unreadCount > 0) {
       await db.transaction(
         async db => {
-          let msgs = await db.getRepository(DBMessage)
+          const msgRepo = db.getRepository(DBMessage)
+          let msgs = await msgRepo
             .find({
               where: {
                 threadID,
@@ -38,6 +39,14 @@ const readChat = async (db: Connection | EntityManager, sock: WASocket, ctx: Map
 
           if (msgs.length) {
             await sock.readMessages(keys)
+
+            for (const msg of msgs) {
+              msg.original.seenByMe = true
+              msg.mapFromOriginal(ctx)
+              msg.shouldFireEvent = false
+            }
+
+            await msgRepo.save(msgs)
           }
 
           item.update({ unreadCount: 0 }, ctx)
