@@ -1,4 +1,4 @@
-import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus } from '@adiwajshing/baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -229,6 +229,7 @@ async function handleMessagesUpsert(
   const { db, logger } = ctx
 
   logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
+  messages = messages.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
 
   let key = (await dbGetLatestMsgOrderKey(db)) || 0
 
@@ -476,6 +477,8 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
+  updates = updates.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
+
   // create a map for which thread ID has number of read messages
   const readMsgsUpdateMap: { [threadId: string]: number } = {}
   // map for messageId => update for easy access
@@ -765,6 +768,11 @@ async function handleItemsUpsert<T extends { id: string, shouldFireEvent?: boole
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
+  items = items.filter(i => !isJidStatusBroadcast(i.id!))
+  if (!items.length) {
+    return
+  }
+
   const repo = db.getRepository(entity)
   const dbItemsArr = await repo
     .createQueryBuilder()
