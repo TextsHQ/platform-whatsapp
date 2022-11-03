@@ -351,8 +351,8 @@ export function* messageHeading(message: WAMessage) {
   if (message.broadcast) yield 'Broadcast'
   const m = message.message ? normalizeMessageContent(message.message) : undefined
   if (m) {
-    if (isPaymentMessage(m)) {
-      const paymentInfo = message.paymentInfo!
+    const { paymentInfo } = message
+    if (isPaymentMessage(m) && paymentInfo) {
       const amount = `${paymentInfo.currency} ${numberToBigInt(paymentInfo.amount1000!) / BigInt(1000)}`
       const status = PAYMENT_STATUS_MAP[paymentInfo.status!]
       if (m.sendPaymentMessage) {
