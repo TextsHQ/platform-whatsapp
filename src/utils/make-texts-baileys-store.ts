@@ -230,6 +230,9 @@ async function handleMessagesUpsert(
 
   logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
   messages = messages.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
+  if (!messages.length) {
+    return
+  }
 
   let key = (await dbGetLatestMsgOrderKey(db)) || 0
 
@@ -478,6 +481,9 @@ async function updateMessages<T extends { key: WAMessageKey }>(
 ) {
   const { db, logger } = ctx
   updates = updates.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
+  if (!updates.length) {
+    return
+  }
 
   // create a map for which thread ID has number of read messages
   const readMsgsUpdateMap: { [threadId: string]: number } = {}
