@@ -116,7 +116,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
     })
 
     writeStream.once('finish', () => {
-      logger.debug('renamed file')
+      logger.trace('renamed file')
       renameSync(tmpDestPath, destPath)
     })
 
@@ -142,7 +142,7 @@ export const makeFileCache = (folderPath: string, logger: Logger) => {
       return (opts, ...pathParams) => (
         getAsset(opts, pathParams, fn)
           .catch(err => {
-            console.error('err in asset get', pathParams, err)
+            logger.error({ err, pathParams }, 'err in asset get')
             throw err
           })
       )
