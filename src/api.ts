@@ -32,6 +32,7 @@ import { CURRENT_MAPPING_VERSION } from './config.json'
 import { remapMessagesAndSave } from './utils/remapping'
 import { getStickerPacks, getStickersInPack } from './utils/stickers'
 import { FileCache, makeFileCache } from './utils/file-cache'
+import { dropDatabase } from './utils/drop-database'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -257,6 +258,11 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (typeof this.isNewLogin === 'undefined') {
       this.isNewLogin = !this.session
       this.logger.info({ isNewLogin: this.isNewLogin }, 'connecting')
+
+      if (this.isNewLogin) {
+        await dropDatabase(this.db)
+        this.logger.info('cleared db')
+      }
     }
 
     const logger = this.logger.child({ class: 'baileys' })
