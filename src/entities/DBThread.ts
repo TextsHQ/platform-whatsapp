@@ -168,6 +168,8 @@ export default class DBThread implements Thread {
     delete item._original
     delete item.requiresMapWithMetadata
     delete item.hasMoreMessageHistory
+    delete item.user
+
     return item
   }
 
