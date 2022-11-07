@@ -116,12 +116,14 @@ const fetchThreads = async (
 
   const processedItems = items.map(
     item => {
+      item.user = item.user || null
       const result = DBThread.prepareForSending(item, mappingCtx.accountID)
       if (result.participants) {
         for (const participant of result.participants.items) {
           DBUser.prepareForSending(participant, mappingCtx.accountID)
         }
       } else {
+        mappingCtx.logger.warn({ item }, 'participants unexpectedly empty')
         result.participants = { items: [], hasMore: false }
       }
       return result
