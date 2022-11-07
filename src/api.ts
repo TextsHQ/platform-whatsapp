@@ -33,6 +33,7 @@ import { remapMessagesAndSave } from './utils/remapping'
 import { getStickerPacks, getStickersInPack } from './utils/stickers'
 import { FileCache, makeFileCache } from './utils/file-cache'
 import { dropDatabase } from './utils/drop-database'
+import { decodeSerializedSession, encodeSerializedSession } from './utils/session'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -112,12 +113,13 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   init = async (session: string | undefined, { accountID, dataDirPath, country }: AccountInfo) => {
     this.dataDirPath = dataDirPath
-    // if session was there, use that -- otherwise init default credentials
-    this.session = session ? decodeSerializedSession(session) : this.getDefaultSession()
     this.accountID = accountID
     this.country = country ?? 'US'
+    this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log'))
+      .child({ stream: 'pw-' + accountID })
+    // if session was there, use that -- otherwise init default credentials
+    this.session = session ? decodeSerializedSession(session, this.logger) : this.getDefaultSession()
 
-    this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log')).child({ stream: 'pw' })
     this.fileCache = makeFileCache(path.join(dataDirPath, 'cache'), this.logger)
     process.on('unhandledRejection', this.logUnhandledException)
 
@@ -334,7 +336,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   serializeSession = () => {
     const auth = this.getAuthSessionFromClient()
     if (auth) {
-      return JSON.stringify(auth, BufferJSON.replacer)
+      return encodeSerializedSession(auth)
     }
   }
 
@@ -489,6 +491,9 @@ export default class WhatsAppAPI implements PlatformAPI {
     ev.on('creds.update', () => {
       if (this.client) {
         this.session = this.getAuthSessionFromClient()!
+        if (this.session) {
+          encodeSerializedSession(this.session)
+        }
         this.publishEvent({ type: ServerEventType.SESSION_UPDATED })
       }
     })
