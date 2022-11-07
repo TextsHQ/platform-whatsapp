@@ -37,7 +37,7 @@ import { decodeSerializedSession, encodeSerializedSession } from './utils/sessio
 
 const RECONNECT_DELAY_MS = 2500
 
-const MAX_RECONNECT_TRIES = 500
+const MAX_RECONNECT_TRIES = 5000
 
 const config: Partial<SocketConfig> = {
   browser: Browsers.appropriate('Desktop'),
