@@ -40,8 +40,8 @@ describe('Database Sync Tests', () => {
     }
     db = await getConnection('default', DB_PATH, logger)
     mappingCtx.db = db
-    store = makeTextsBaileysStore(() => { }, mappingCtx)
-    store.bind({ ev, groupMetadata: async () => { throw new Error('not supported') } })
+    store = makeTextsBaileysStore(() => { }, () => { throw new Error('no') }, mappingCtx)
+    ev.process(events => store.process(events).then(() => { }))
   })
 
   beforeEach(async () => {

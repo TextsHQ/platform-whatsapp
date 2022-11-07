@@ -14,136 +14,141 @@ import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
 
-type StoreBindContext = Pick<WASocket, 'ev' | 'groupMetadata'>
-
 const DEFAULT_CHUNK_SIZE = 250
 
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
+  getGroupMetadata: WASocket['groupMetadata'],
   mappingCtx: MappingContextWithDB,
 ) => {
   registerDBSubscribers(publishEvent, mappingCtx)
 
-  let lastSyncMsgRecv: Date | undefined
   const excludeEvent = false
 
-  function bind({ ev, groupMetadata }: StoreBindContext) {
-    // reset values
-    lastSyncMsgRecv = undefined
+  async function processEvents(
+    events: Partial<BaileysEventMap>,
+    ctx: MappingContextWithDB,
+  ) {
+    let didSyncHistory = false
+    mappingCtx.logger.trace({ events }, 'recv event')
 
-    async function processEvents(
-      events: Partial<BaileysEventMap>,
-      ctx: MappingContextWithDB,
-    ) {
-      mappingCtx.logger.trace({ events }, 'recv event')
-
-      if (events['creds.update']) {
-        const { me } = events['creds.update']
-        if (me) {
-          await saveMeUser(me, ctx)
-        }
-      }
-
-      if (events['messaging-history.set']) {
-        const {
-          messages,
-          chats,
-          contacts,
-          isLatest,
-        } = events['messaging-history.set']
-        await handleChatsSync({ chats, isLatest }, ctx)
-        await handleContactsSync({ contacts, isLatest }, ctx)
-        await handleMessagesSync({ messages, isLatest }, ctx)
-
-        if (chats.length) {
-          lastSyncMsgRecv = new Date()
-        }
-      }
-
-      const updatedChats = [
-        ...(events['chats.upsert'] || []),
-        ...(events['chats.update'] || []),
-      ]
-
-      if (events['messages.upsert']) {
-        await handleMessagesUpsert(
-          events['messages.upsert'],
-          updatedChats,
-          excludeEvent,
-          ctx,
-        )
-      }
-
-      if (updatedChats.length) {
-        await handleChatsUpsert(updatedChats, excludeEvent, groupMetadata, ctx)
-      }
-
-      if (events['contacts.upsert'] || events['contacts.update']) {
-        const updated = [
-          ...(events['contacts.upsert'] || []),
-          ...(events['contacts.update'] || []),
-        ]
-
-        await handleContactsUpsert(updated, excludeEvent, ctx)
-      }
-
-      if (events['chats.delete']) {
-        await handleChatsDelete(events['chats.delete'], excludeEvent, ctx)
-      }
-
-      if (events['group-participants.update']) {
-        await handleGroupParticipantsUpdate(events['group-participants.update'], excludeEvent, ctx)
-      }
-
-      if (events['presence.update'] && !excludeEvent) {
-        const { id, presences } = events['presence.update']
-        const presenceEvents = mapPresenceUpdate(id, presences)
-        for (const event of presenceEvents) {
-          publishEvent(event)
-        }
-      }
-
-      if (events['messages.update']) {
-        await updateMessages(
-          events['messages.update'],
-          excludeEvent,
-          (msg, { update }) => msg.update(update, ctx),
-          ctx,
-        )
-      }
-
-      if (events['message-receipt.update']) {
-        await updateMessages(
-          events['message-receipt.update'],
-          excludeEvent,
-          (msg, { receipt }) => msg.updateFromReceipt(receipt, ctx),
-          ctx,
-        )
-      }
-
-      if (events['messages.reaction']) {
-        await updateMessages(
-          events['messages.reaction'],
-          excludeEvent,
-          (msg, update) => msg.updateWithReaction(update.reaction, ctx),
-          ctx,
-        )
-      }
-
-      if (events['messages.delete']) {
-        await handleMessagesDelete(events['messages.delete'], excludeEvent, ctx)
-      }
-
-      if (events['groups.update']) {
-        await handleGroupsUpdate(events['groups.update'], excludeEvent, groupMetadata, ctx)
+    if (events['creds.update']) {
+      const { me } = events['creds.update']
+      if (me) {
+        await saveMeUser(me, ctx)
       }
     }
 
-    ev.process(async events => {
+    if (events['messaging-history.set']) {
+      const {
+        messages,
+        chats,
+        contacts,
+        isLatest,
+      } = events['messaging-history.set']
+
+      ctx.logger.info({
+        msgs: messages.length,
+        chats: chats.length,
+        contacts: contacts.length,
+      }, 'recv msg history')
+
+      await handleChatsSync({ chats }, ctx)
+      await handleContactsSync({ contacts, isLatest }, ctx)
+      await handleMessagesSync({ messages }, ctx)
+
+      if (chats.length) {
+        didSyncHistory = true
+      }
+    }
+
+    const updatedChats = [
+      ...(events['chats.upsert'] || []),
+      ...(events['chats.update'] || []),
+    ]
+
+    if (events['messages.upsert']) {
+      await handleMessagesUpsert(
+        events['messages.upsert'],
+        updatedChats,
+        excludeEvent,
+        ctx,
+      )
+    }
+
+    if (updatedChats.length) {
+      await handleChatsUpsert(updatedChats, excludeEvent, getGroupMetadata, ctx)
+    }
+
+    if (events['contacts.upsert'] || events['contacts.update']) {
+      const updated = [
+        ...(events['contacts.upsert'] || []),
+        ...(events['contacts.update'] || []),
+      ]
+
+      await handleContactsUpsert(updated, excludeEvent, ctx)
+    }
+
+    if (events['chats.delete']) {
+      await handleChatsDelete(events['chats.delete'], excludeEvent, ctx)
+    }
+
+    if (events['group-participants.update']) {
+      await handleGroupParticipantsUpdate(events['group-participants.update'], excludeEvent, ctx)
+    }
+
+    if (events['presence.update'] && !excludeEvent) {
+      const { id, presences } = events['presence.update']
+      const presenceEvents = mapPresenceUpdate(id, presences)
+      for (const event of presenceEvents) {
+        publishEvent(event)
+      }
+    }
+
+    if (events['messages.update']) {
+      await updateMessages(
+        events['messages.update'],
+        excludeEvent,
+        (msg, { update }) => msg.update(update, ctx),
+        ctx,
+      )
+    }
+
+    if (events['message-receipt.update']) {
+      await updateMessages(
+        events['message-receipt.update'],
+        excludeEvent,
+        (msg, { receipt }) => msg.updateFromReceipt(receipt, ctx),
+        ctx,
+      )
+    }
+
+    if (events['messages.reaction']) {
+      await updateMessages(
+        events['messages.reaction'],
+        excludeEvent,
+        (msg, update) => msg.updateWithReaction(update.reaction, ctx),
+        ctx,
+      )
+    }
+
+    if (events['messages.delete']) {
+      await handleMessagesDelete(events['messages.delete'], excludeEvent, ctx)
+    }
+
+    if (events['groups.update']) {
+      await handleGroupsUpdate(events['groups.update'], excludeEvent, getGroupMetadata, ctx)
+    }
+
+    return { didSyncHistory }
+  }
+
+  return {
+    async process(events: Partial<BaileysEventMap>) {
       if (hasDBEvent(events)) {
-        await mappingCtx.db.transaction(
-          async db => {
-            await processEvents(
+        const result = await mappingCtx.db.transaction(
+          db => (
+            processEvents(
               events,
               {
                 db,
@@ -152,7 +157,7 @@ const makeTextsBaileysStore = (
                 accountID: mappingCtx.accountID,
               },
             )
-          },
+          ),
         )
           .catch(
             err => {
@@ -172,13 +177,11 @@ const makeTextsBaileysStore = (
               })
             },
           )
+        return result
       }
-    })
-  }
 
-  return {
-    syncState: () => ({ lastSyncMsgRecv }),
-    bind,
+      return undefined
+    },
   }
 }
 
@@ -419,24 +422,10 @@ async function handleMessagesDelete(
 }
 
 async function handleChatsSync(
-  { chats, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'chats' | 'isLatest'>,
+  { chats }: Pick<BaileysEventMap['messaging-history.set'], 'chats'>,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
-  logger.info({ length: chats.length }, 'syncing chats')
-
-  if (isLatest) {
-    // remove everything as we've got a new latest set of chats
-    const chatDeleteResult = await db.getRepository(DBThread).delete({})
-    const participantDeleteResult = await db.getRepository(DBParticipant).delete({})
-    logger.info(
-      { chats: chatDeleteResult.affected, participants: participantDeleteResult.affected },
-      'cleared existing chats',
-    )
-  }
-
-  const totalParticipantList: DBParticipant[] = []
-  const addedParticipants = new Set<string>()
 
   const items = chats.map(chat => {
     const mapped = new DBThread()
@@ -444,33 +433,17 @@ async function handleChatsSync(
     mapped.shouldFireEvent = false
     mapped.mapFromOriginal(ctx)
 
-    if (mapped.participantsList) {
-      for (const item of mapped.participantsList!) {
-        const id = `${item.threadID},${item.id}`
-        if (!addedParticipants.has(id)) {
-          // when a participant is inserted alongside a thread,
-          // no need to fire the event for it
-          item.shouldFireEvent = false
-          totalParticipantList.push(item)
-          addedParticipants.add(id)
-        } else {
-          logger.info({ threadID: chat.id, id }, 'duplicate participant')
-        }
-      }
-    }
-
     return mapped
   })
 
-  await Promise.all([
-    chunkedWrite(db.getRepository(DBThread), items, DEFAULT_CHUNK_SIZE),
-    chunkedWrite(db.getRepository(DBParticipant), totalParticipantList, DEFAULT_CHUNK_SIZE),
-  ])
+  await chunkedWrite(db.getRepository(DBThread), items, DEFAULT_CHUNK_SIZE)
 
-  return {
-    chats,
-    participants: totalParticipantList,
-  }
+  logger.info(
+    { chats: items.length },
+    'synced chats',
+  )
+
+  return { chats }
 }
 
 async function updateMessages<T extends { key: WAMessageKey }>(
@@ -537,15 +510,6 @@ async function handleContactsSync(
   { contacts, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'contacts' | 'isLatest'>,
   ctx: MappingContextWithDB,
 ) {
-  const { db, logger } = ctx
-
-  logger.info({ length: contacts.length, isLatest }, 'syncing contacts')
-
-  if (isLatest) {
-    // remove everything as we've got a new latest set of contacts
-    const contactDeleteResult = await db.getRepository(DBUser).delete({})
-    logger.info({ contacts: contactDeleteResult.affected }, 'cleared existing contacts')
-  }
   // no need to fire events if it's the latest piece of history we're getting
   // otherwise, we'd need to update the names loaded on Texts
   const excludeEvent = isLatest
@@ -553,20 +517,12 @@ async function handleContactsSync(
 }
 
 async function handleMessagesSync(
-  { messages, isLatest }: Pick<BaileysEventMap['messaging-history.set'], 'messages' | 'isLatest'>,
+  { messages }: Pick<BaileysEventMap['messaging-history.set'], 'messages'>,
   ctx: MappingContextWithDB,
 ) {
   const { db, logger } = ctx
-  logger.info({ length: messages.length, isLatest }, 'got messages history')
 
-  let key = 0
-  if (isLatest) {
-    // remove everything
-    const messageDeleteResult = await db.getRepository(DBMessage).delete({})
-    logger.info({ messages: messageDeleteResult.affected }, 'cleared existing messages')
-  } else {
-    key = await dbGetEarliestMsgOrderKey(db) || 0
-  }
+  let key = await dbGetEarliestMsgOrderKey(db) || 0
 
   const dbMessages = messages.map(m => {
     const mappedMsg = new DBMessage()

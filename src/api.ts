@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { BaileysEventEmitter, Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage } from '@adiwajshing/baileys'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage } from '@adiwajshing/baileys'
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -8,7 +8,7 @@ import type { Connection } from 'typeorm'
 import { PassThrough } from 'stream'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, decodeSerializedSession, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -145,7 +145,17 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.db = await getConnection(this.accountID, dbPath, this.logger)
 
-    this.dataStore = makeTextsBaileysStore(this.publishEvent, this)
+    this.dataStore = makeTextsBaileysStore(
+      this.publishEvent,
+      gid => {
+        if (!this.client) {
+          throw new Error('client not initialized')
+        }
+
+        return this.client!.groupMetadata(gid)
+      },
+      this,
+    )
 
     const existingData = await hasSomeCachedData(this.db)
     this.canServeThreads = existingData.hasChats
@@ -179,14 +189,19 @@ export default class WhatsAppAPI implements PlatformAPI {
       // nothing
     }
 
+    while (!this.canServeThreads) {
+      await delay(50)
+    }
+
     process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
 
-    await this.db?.close()
     if (this.client) {
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
     }
+
+    await this.db?.close()
 
     this.logger?.info('disposed')
   }
@@ -232,7 +247,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.logger.info({ msSinceConnect, trace: error.stack }, 'connect failed')
 
       // ensure cleanup
-      this.client!.end(undefined)
+      this.client?.end(undefined)
 
       const statusCode: number = error.output?.statusCode
       if (UNAUTHORIZED_CODES.includes(statusCode)) {
@@ -283,7 +298,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       },
     })
 
-    this.registerCallbacks(this.client!.ev)
+    this.registerCallbacks()
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
@@ -349,6 +364,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.logger.warn('no client found, using session in memory')
       auth = this.session
     }
+
     return auth
   }
 
@@ -396,32 +412,28 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private async allowDataFetch() {
-    if (!this.canServeThreads) {
-      while (!this.dataStore.syncState().lastSyncMsgRecv) {
-        await delay(100)
-      }
-    }
-
     this.canServeThreads = true
     this.canServeMessages = true
   }
 
-  private registerCallbacks = (ev: BaileysEventEmitter) => {
-    this.dataStore.bind(this.client!)
+  private registerCallbacks = () => {
+    const { ev } = this.client!
+    ev.process(async events => {
+      const result = await this.dataStore.process(events)
+      if (result?.didSyncHistory) {
+        this.allowDataFetch()
+      }
+    })
 
     ev.on('connection.update', update => {
       Object.assign(this.connState, update)
 
       this.logger.info({ update }, 'connection updated')
-      const { lastDisconnect, qr, receivedPendingNotifications } = update
+      const { lastDisconnect, qr } = update
       let { connection } = update
 
       if (qr && this.loginCallback) {
         this.loginCallback({ qr, isOpen: false })
-      }
-
-      if (receivedPendingNotifications && !this.isNewLogin) {
-        this.allowDataFetch()
       }
 
       if (connection) {
@@ -518,7 +530,6 @@ export default class WhatsAppAPI implements PlatformAPI {
                 // it'll be incomplete
               }
             }
-
 
             const objectName = isJidGroup(id) ? 'thread' : 'participant'
             this.publishEvent({
