@@ -627,6 +627,7 @@ async function handleChatsDelete(
   { db, logger }: MappingContextWithDB,
 ) {
   const repo = db.getRepository(DBThread)
+  const msgRepo = db.getRepository(DBMessage)
   const chats = await repo.find({ id: In(ids) })
   if (excludeEvent) {
     for (const chat of chats) {
@@ -635,6 +636,7 @@ async function handleChatsDelete(
   }
 
   await repo.remove(chats, { chunk: 500 })
+  await msgRepo.delete({ threadID: In(ids) })
 
   logger.info({ ids }, 'deleted chats')
 }
