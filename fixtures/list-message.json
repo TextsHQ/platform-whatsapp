@@ -1,0 +1,56 @@
+{
+  "message": {
+    "key": {
+      "remoteJid": "41438162211@s.whatsapp.net",
+      "fromMe": false,
+      "id": "A4900F70388B7D66D3"
+    },
+    "message": {
+      "messageContextInfo": {
+        "deviceListMetadata": {
+          "recipientKeyHash": "0CnorCTgIcqwDQ==",
+          "recipientTimestamp": "1667947636"
+        },
+        "deviceListMetadataVersion": 2
+      },
+      "listMessage": {
+        "title": "",
+        "description": "You're now receiving live updates on flight LX146!",
+        "buttonText": "Select one option",
+        "listType": "SINGLE_SELECT",
+        "sections": [
+          {
+            "title": "",
+            "rows": [
+              {
+                "title": "Stop updating me",
+                "description": "",
+                "rowId": "{\"intent\":\"FLIGHTS.SUBSCRIPTIONS.UNSUBSCRIBE\",\"toFlight\":{\"aggregatedId\":\"DEPARTURELX14610-11-2022\"}}"
+              },
+              {
+                "title": "Check queuing times",
+                "description": "",
+                "rowId": "{\"intent\":\"SECURITY_TIME\"}"
+              },
+              {
+                "title": "Show gate location",
+                "description": "",
+                "rowId": "{\"intent\":\"SHOW_CONTENT\",\"url\":\"https://www.flughafen-zuerich.ch/en/passengers/practical/guidance/interactive-map?scenario=onePOI&we_id=297b0964-6866-4807-b9e6-1a3792ea8240\"}"
+              },
+              {
+                "title": "Main menu",
+                "description": "",
+                "rowId": "{\"intent\":\"SHOW_MENU\"}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "messageTimestamp": "1668075447",
+    "pushName": "41438162211",
+    "verifiedBizName": "Zurich Airport"
+  },
+  "lastMappedVersion": 5,
+  "seenByMe": false
+}
