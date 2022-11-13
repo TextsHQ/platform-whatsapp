@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage } from '@adiwajshing/baileys'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidBroadcast, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent } from '@adiwajshing/baileys'
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -735,20 +735,41 @@ export default class WhatsAppAPI implements PlatformAPI {
         fromMe: params.get('fromMe') === 'true',
         id: params.get('id'),
       }
-      const buttonReply: ButtonReplyInfo = {
-        id: params.get('buttonId')!,
-        displayText: params.get('buttonDisplayText')!,
-        index: +params.get('buttonIndex')!,
-      }
+
       const threadID = key.remoteJid!
       const quoted = await this.loadWAMessageFromDBWithKey(key)
       if (!quoted) {
         throw new Error('Cannot reply to message not in database')
       }
 
-      const compose = {
-        buttonReply,
-        type,
+      let compose: AnyRegularMessageContent
+      switch (type) {
+        case 'plain':
+        case 'template':
+          const buttonReply: ButtonReplyInfo = {
+            id: params.get('buttonId')!,
+            displayText: params.get('buttonDisplayText')!,
+            index: +params.get('buttonIndex')!,
+          }
+
+          compose = {
+            buttonReply,
+            type,
+          }
+          break
+        case 'list':
+          compose = {
+            listReply: {
+              title: params.get('buttonDisplayText')!,
+              listType: WAProto.Message.ListResponseMessage.ListType.SINGLE_SELECT,
+              singleSelectReply: {
+                selectedRowId: params.get('buttonId')!,
+              },
+            },
+          }
+          break
+        default:
+          throw new Error('Unknown button type')
       }
 
       await this.client!.sendMessage(key.remoteJid!, compose, {

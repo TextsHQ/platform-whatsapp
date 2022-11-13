@@ -1,5 +1,6 @@
 import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
+import type { ButtonCallbackType } from '../types'
 import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
@@ -339,6 +340,10 @@ export function messageFooter(message: WAMessage) {
     if (isExpiredInvite(content.groupInviteMessage)) {
       footer = 'Invite expired'
     }
+  } else if (content?.listMessage) {
+    footer = content?.listMessage?.buttonText || undefined
+  } else if (content?.listResponseMessage) {
+    footer = content?.listResponseMessage?.description || undefined
   } else if (message.status === WAMessageStatus.PLAYED) {
     footer = 'Played'
   } else if (template) {
@@ -373,6 +378,7 @@ export function* messageHeading(message: WAMessage) {
     if (m.locationMessage) yield '📍 Location'
     if (m.liveLocationMessage) yield '📍 Live Location'
     if (m.productMessage?.product) yield '📦 Product'
+    if (m.listMessage) yield `${m.listMessage!.title}`
   }
 }
 
@@ -381,7 +387,7 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `${MENTION_START_TOKEN}${jid}${MENTION_END_TOKEN}`), text)
 }
 
-const generateDeepLink = (type: 'template' | 'plain', key: WAMessageKey, button: ButtonReplyInfo) => {
+const generateDeepLink = (type: ButtonCallbackType, key: WAMessageKey, button: ButtonReplyInfo) => {
   const searchParams = new URLSearchParams({
     type,
     buttonId: button.id,
@@ -445,6 +451,23 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
         linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
       })
     }
+  } else if (message?.listMessage?.sections?.length) {
+    let idx = 0
+    for (const section of message.listMessage.sections) {
+      if (section.rows?.length) {
+        for (const row of section.rows) {
+          buttons.push({
+            label: row.title || '',
+            linkURL: generateDeepLink('list', key, {
+              index: idx,
+              id: row.rowId!,
+              displayText: row.title!,
+            }),
+          })
+          idx += 1
+        }
+      }
+    }
   }
 
   return buttons
@@ -501,6 +524,14 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
     const msgSender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
     const reactionSender = key.fromMe ? 'You' : '{{sender}}'
     return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
+  }
+
+  if (message?.listMessage) {
+    return message.listMessage.description
+  }
+
+  if (message?.listResponseMessage) {
+    return message.listResponseMessage?.title
   }
 
   const type = getContentType(message!)!

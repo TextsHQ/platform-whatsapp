@@ -39,4 +39,4 @@ export type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, er
 
 export type Receivable = 'messages' | 'contacts' | 'chats'
 
-export type ButtonCallbackType = 'plain' | 'template'
+export type ButtonCallbackType = 'plain' | 'template' | 'list'

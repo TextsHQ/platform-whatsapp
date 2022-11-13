@@ -1,6 +1,6 @@
 import type { Repository } from 'typeorm'
 import type DBMessage from '../entities/DBMessage'
-import { CURRENT_MAPPING_VERSION } from '../config.json'
+import { CURRENT_MAPPING_VERSION, FORCE_REMAP } from '../config.json'
 import type { MappingContext } from '../types'
 import { shouldMapMessage } from './generics'
 
@@ -15,6 +15,7 @@ export async function remapMessagesAndSave(
       msg.original
       && (
         (msg.original.lastMappedVersion || 0) < CURRENT_MAPPING_VERSION
+        || FORCE_REMAP
         || shouldMapMessage(msg)
       )
     ) {
