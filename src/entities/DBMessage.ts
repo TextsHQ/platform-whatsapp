@@ -107,6 +107,9 @@ export default class DBMessage implements Message {
   @Column({ type: 'varchar', length: 64, nullable: true })
     linkedMessageID?: string
 
+  @Column({ type: 'text', nullable: true })
+    textFooter?: string
+
   cursor?: string
 
   // derived from orderKey
@@ -115,8 +118,6 @@ export default class DBMessage implements Message {
   _original?: string
 
   textAttributes?: TextAttributes
-
-  textFooter?: string
 
   shouldFireEvent?: boolean
 
