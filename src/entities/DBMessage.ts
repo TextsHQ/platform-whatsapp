@@ -110,6 +110,9 @@ export default class DBMessage implements Message {
   @Column({ type: 'text', nullable: true })
     textFooter?: string
 
+  @Column({ type: 'boolean', default: false, nullable: false })
+    isDelivered?: boolean
+
   cursor?: string
 
   // derived from orderKey
