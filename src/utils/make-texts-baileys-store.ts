@@ -14,7 +14,7 @@ import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
 
-const DEFAULT_CHUNK_SIZE = 250
+const DEFAULT_CHUNK_SIZE = 100
 
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
