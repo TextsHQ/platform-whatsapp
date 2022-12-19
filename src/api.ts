@@ -925,7 +925,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       case 'profile-picture': {
         await this.waitForConnectionOpen()
 
-        const url = await this.client!.profilePictureUrl(jid)
+        const url = await this.client!.profilePictureUrl(jid, 'image')
           .catch(() => '')
           .then(pp => pp || '')
         return url
