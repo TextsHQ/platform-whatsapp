@@ -254,12 +254,14 @@ export default class DBMessage implements Message {
     )
     const msgText = messageText({ message: normalizedMessageContent, key: message.key })
       || stubBasedMessage
+      || null
 
     const mapped: Message = {
       _original: safeJSONStringify(message),
       id,
       threadID,
       textHeading: [...messageHeading(message)].join('\n'),
+      // @ts-expect-error
       text: isDeleted
         ? 'This message has been deleted.'
         : msgText,
