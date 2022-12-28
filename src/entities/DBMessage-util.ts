@@ -254,23 +254,14 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
 }
 
 export function getNotificationType(message: WAMessage, currentUserId: string) {
-  if (message.key.fromMe) { // no flag for fromMe messages
-    return null
-  }
+  // no flag for fromMe messages
+  if (message.key.fromMe) return null
 
   const incrementReadCounter = shouldIncrementChatUnread(message)
   const isRealMsg = isRealMessage(message, currentUserId)
-  if (!isRealMsg) {
-    return MessageBehavior.SILENT
-  }
-
-  if (!incrementReadCounter) {
-    return MessageBehavior.KEEP_READ
-  }
-
-  if (message.broadcast) {
-    return MessageBehavior.DONT_NOTIFY
-  }
+  if (!isRealMsg) return MessageBehavior.SILENT
+  if (!incrementReadCounter) return MessageBehavior.KEEP_READ
+  if (message.broadcast) return MessageBehavior.DONT_NOTIFY
 
   return null
 }

@@ -170,6 +170,12 @@ export const shouldExcludeMessage = (msg: WAMessage) => {
   return content?.protocolMessage?.type === WAProto.Message.ProtocolMessage.Type.REVOKE
 }
 
+const HIDDEN_PROTOCOL_MESSAGE_TYPES = [
+  WAProto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION,
+  WAProto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_SHARE,
+  WAProto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_REQUEST,
+]
+
 /** Is the message supposed to be hidden */
 export const isHiddenMessage = (msg: WAMessage) => {
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
@@ -179,6 +185,7 @@ export const isHiddenMessage = (msg: WAMessage) => {
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
     || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
+    || (content?.protocolMessage?.type ? HIDDEN_PROTOCOL_MESSAGE_TYPES.includes(content.protocolMessage.type) : false)
 }
 
 export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { chat, metadata, lastMetadataFetchDate } }: DBThread) => {
