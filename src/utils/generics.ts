@@ -163,9 +163,7 @@ export async function updateItems<
 }
 
 export const shouldExcludeMessage = (msg: WAMessage) => {
-  if (isJidBroadcast(msg.key.remoteJid || '')) {
-    return true
-  }
+  if (isJidBroadcast(msg.key.remoteJid || '')) return true
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
   return content?.protocolMessage?.type === WAProto.Message.ProtocolMessage.Type.REVOKE
 }
@@ -176,16 +174,18 @@ const HIDDEN_PROTOCOL_MESSAGE_TYPES = [
   WAProto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_REQUEST,
 ]
 
+export const isHiddenProtocolMessage = (normalizedMessageContent: WAProto.IMessage | null | undefined) =>
+  (normalizedMessageContent?.protocolMessage?.type ? HIDDEN_PROTOCOL_MESSAGE_TYPES.includes(normalizedMessageContent.protocolMessage.type) : false)
+
 /** Is the message supposed to be hidden */
-export const isHiddenMessage = (msg: WAMessage) => {
-  const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
-  const contentType = content ? getContentType(content) : undefined
+export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined) => {
+  const contentType = normalizedMessageContent ? getContentType(normalizedMessageContent) : undefined
   // reaction messages should be hidden
   return contentType === 'reactionMessage'
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
     || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
-    || (content?.protocolMessage?.type ? HIDDEN_PROTOCOL_MESSAGE_TYPES.includes(content.protocolMessage.type) : false)
+    || isHiddenProtocolMessage(normalizedMessageContent)
 }
 
 export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { chat, metadata, lastMetadataFetchDate } }: DBThread) => {

@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { Message, MessageAction, MessageAttachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
+import { Message, MessageAction, Attachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
@@ -57,7 +57,7 @@ export default class DBMessage implements Message {
     textHeading?: string
 
   @Column({ ...BufferJSONEncodedColumn, nullable: false, default: '[]' })
-    attachments: MessageAttachment[]
+    attachments: Attachment[]
 
   @Column({ type: 'simple-json', nullable: false, default: '[]' })
     links: MessageLink[]
@@ -239,8 +239,8 @@ export default class DBMessage implements Message {
     const timestamp = toNumber(message.messageTimestamp!) * 1000
 
     const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
-    const link = messageLink(message)
-    const action = messageAction(message)
+    const link = messageLink(message, normalizedMessageContent)
+    const action = messageAction(message, normalizedMessageContent)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE
 
     const protocolMessageType = (message?.message?.ephemeralMessage?.message || message?.message)?.protocolMessage?.type
@@ -260,19 +260,19 @@ export default class DBMessage implements Message {
       _original: safeJSONStringify(message),
       id,
       threadID,
-      textHeading: [...messageHeading(message)].join('\n'),
+      textHeading: [...messageHeading(message, normalizedMessageContent)].join('\n'),
       // @ts-expect-error
       text: isDeleted
         ? 'This message has been deleted.'
         : msgText,
-      textFooter: messageFooter(message),
+      textFooter: messageFooter(message, normalizedMessageContent),
       timestamp: new Date(timestamp),
       forwardedCount: contextInfo?.forwardingScore || undefined,
       senderID,
       isSender: !!message.key.fromMe,
       isDeleted,
       attachments,
-      buttons: message.message ? messageButtons(normalizeMessageContent(message.message)!, message.key) : [],
+      buttons: message.message ? messageButtons(normalizedMessageContent!, message.key) : [],
       isDelivered: message.key.fromMe ? messageStatus(message.status!) >= WAMessageStatus.SERVER_ACK : true,
       // @ts-expect-error
       linkedMessage: linked || null,
@@ -285,11 +285,11 @@ export default class DBMessage implements Message {
       // @ts-expect-error
       behavior: seenByMe
         ? MessageBehavior.KEEP_READ
-        : getNotificationType(message, currentUserID),
+        : getNotificationType(message, normalizedMessageContent, currentUserID),
       expiresInSeconds: contextInfo?.expiration || undefined,
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
-      isHidden: isHiddenMessage(message),
+      isHidden: isHiddenMessage(message, normalizedMessageContent),
     }
 
     if (STORIES_JID !== linked?.threadID) {

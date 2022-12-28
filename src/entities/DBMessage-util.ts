@@ -1,7 +1,7 @@
 import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import type { ButtonCallbackType } from '../types'
-import { attachmentUrl, getDataURIFromBuffer, mapMessageID } from '../utils/generics'
+import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
@@ -219,11 +219,10 @@ export function messageStatus(status: number | string) {
   return status
 }
 
-export function messageAction(message: WAMessage): MessageAction | undefined {
-  const content = message.message ? normalizeMessageContent(message.message) : undefined
-  if (content?.reactionMessage) {
+export function messageAction(message: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined): MessageAction | undefined {
+  if (normalizedMessageContent?.reactionMessage) {
     return {
-      type: content.reactionMessage?.text ? MessageActionType.MESSAGE_REACTION_CREATED : MessageActionType.MESSAGE_REACTION_DELETED,
+      type: normalizedMessageContent.reactionMessage?.text ? MessageActionType.MESSAGE_REACTION_CREATED : MessageActionType.MESSAGE_REACTION_DELETED,
     }
   }
 
@@ -253,7 +252,8 @@ export function messageAction(message: WAMessage): MessageAction | undefined {
   }
 }
 
-export function getNotificationType(message: WAMessage, currentUserId: string) {
+export function getNotificationType(message: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined, currentUserId: string): MessageBehavior | null {
+  if (isHiddenProtocolMessage(normalizedMessageContent)) return MessageBehavior.SILENT
   // no flag for fromMe messages
   if (message.key.fromMe) return null
 
@@ -323,9 +323,8 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
   return response
 }
 
-export function messageFooter(message: WAMessage) {
+export function messageFooter(message: WAMessage, content: WAProto.IMessage | undefined) {
   let footer: string | undefined
-  const content = message.message ? normalizeMessageContent(message.message) : undefined
   const template = content?.templateMessage?.hydratedTemplate
   if (content?.groupInviteMessage) {
     if (isExpiredInvite(content.groupInviteMessage)) {
@@ -344,32 +343,31 @@ export function messageFooter(message: WAMessage) {
   return footer
 }
 
-export function* messageHeading(message: WAMessage) {
+export function* messageHeading(message: WAMessage, content: WAProto.IMessage | undefined) {
   if (message.broadcast) yield 'Broadcast'
-  const m = message.message ? normalizeMessageContent(message.message) : undefined
-  if (m) {
+  if (content) {
     const { paymentInfo } = message
-    if (isPaymentMessage(m) && paymentInfo) {
+    if (isPaymentMessage(content) && paymentInfo) {
       const amount = `${paymentInfo.currency} ${numberToBigInt(paymentInfo.amount1000!) / BigInt(1000)}`
       const status = PAYMENT_STATUS_MAP[paymentInfo.status!]
-      if (m.sendPaymentMessage) {
+      if (content.sendPaymentMessage) {
         yield `💵 Payment to {{${paymentInfo.receiverJid}}} | ${amount} | ${status}`
       }
-      if (m.requestPaymentMessage) {
-        yield `💵 Payment requested from {{${m.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
+      if (content.requestPaymentMessage) {
+        yield `💵 Payment requested from {{${content.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
       }
-      if (m.declinePaymentRequestMessage) {
-        yield `💵 Payment requested from {{${m.requestPaymentMessage!.requestFrom}}} declined ${amount} | ${status}`
+      if (content.declinePaymentRequestMessage) {
+        yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} declined ${amount} | ${status}`
       }
-      if (m.cancelPaymentRequestMessage) {
-        yield `💵 Payment requested from {{${m.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
+      if (content.cancelPaymentRequestMessage) {
+        yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
       }
     }
-    if (m.groupInviteMessage) yield `${m.groupInviteMessage.groupName} | WhatsApp Group Invite`
-    if (m.locationMessage) yield '📍 Location'
-    if (m.liveLocationMessage) yield '📍 Live Location'
-    if (m.productMessage?.product) yield '📦 Product'
-    if (m.listMessage) yield `${m.listMessage!.title}`
+    if (content.groupInviteMessage) yield `${content.groupInviteMessage.groupName} | WhatsApp Group Invite`
+    if (content.locationMessage) yield '📍 Location'
+    if (content.liveLocationMessage) yield '📍 Live Location'
+    if (content.productMessage?.product) yield '📦 Product'
+    if (content.listMessage) yield `${content.listMessage!.title}`
   }
 }
 
@@ -550,8 +548,8 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
   return message?.conversation
 }
 
-export function messageLink({ key, message }: Pick<WAMessage, 'message' | 'key'>): MessageLink | undefined {
-  const mess = normalizeMessageContent(message)?.extendedTextMessage
+export function messageLink({ key, message }: Pick<WAMessage, 'message' | 'key'>, normalizedMessageContent: WAProto.IMessage | undefined): MessageLink | undefined {
+  const mess = normalizedMessageContent?.extendedTextMessage
   if (mess?.matchedText) {
     let imgUrl: string
     if (mess.thumbnailDirectPath) {
