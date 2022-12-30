@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#371330e6b91adffa4540728701433ed5030267a4",
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#a42fae668979080be60dd8fad5a43c0c810734b1",
     "better-sqlite3": "^7.4.5",
     "jimp": "^0.16.2",
     "link-preview-js": "2.1.15",
@@ -28,15 +28,15 @@
   },
   "devDependencies": {
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main",
-    "@types/eslint": "^8.4.6",
+    "@types/eslint": "^8.4.10",
     "@types/jest": "^29.0.0",
     "@types/match-sorter": "^4.0.0",
     "@types/pino": "^7.0.5",
     "@types/react": "17.0.21",
-    "eslint": "^8.24.0",
+    "eslint": "^8.30.0",
     "jest": "^29.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^4.8.4"
+    "typescript": "^4.9.4"
   },
-  "packageManager": "yarn@3.2.4"
+  "packageManager": "yarn@3.3.1"
 }
