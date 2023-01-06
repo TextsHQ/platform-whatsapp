@@ -101,8 +101,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   logger: Logger
 
-  accountID: string
-
   db: Connection
 
   get meID(): string | undefined {
@@ -111,12 +109,13 @@ export default class WhatsAppAPI implements PlatformAPI {
     return id ? jidNormalizedUser(id) : undefined
   }
 
-  init = async (session: string | undefined, { accountID, dataDirPath, country }: AccountInfo) => {
+  constructor(readonly accountID: string) {}
+
+  init = async (session: string | undefined, { dataDirPath, country }: AccountInfo) => {
     this.dataDirPath = dataDirPath
-    this.accountID = accountID
     this.country = country ?? 'US'
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log'))
-      .child({ stream: 'pw-' + accountID })
+      .child({ stream: 'pw-' + this.accountID })
     // if session was there, use that -- otherwise init default credentials
     this.session = session ? decodeSerializedSession(session, this.logger) : this.getDefaultSession()
 
