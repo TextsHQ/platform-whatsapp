@@ -1,4 +1,4 @@
-import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast } from '@adiwajshing/baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -232,7 +232,8 @@ async function handleMessagesUpsert(
   const { db, logger } = ctx
 
   logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
-  messages = messages.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
+  messages = messages
+    .filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
   if (!messages.length) {
     return
   }
@@ -259,7 +260,8 @@ async function handleMessagesUpsert(
 
   const mapped: DBMessage[] = []
   for (const msg of messages) {
-    const uqId = `${msg.key.remoteJid},${mapMessageID(msg.key)}`
+    const threadId = getChatId(msg.key)
+    const uqId = `${threadId},${mapMessageID(msg.key)}`
     const mappedMsg = existingMessageMap[uqId] || new DBMessage()
 
     // not a new message
@@ -464,7 +466,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   const map: { [id: string]: T } = {}
   for (const update of updates) {
     const msgId = mapMessageID(update.key)
-    const threadId = jidNormalizedUser(update.key.remoteJid || '')
+    const threadId = jidNormalizedUser(getChatId(update.key) || '')
     const id = `${threadId},${msgId}`
     map[id] = update
   }
@@ -553,7 +555,7 @@ const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WA
       brackets => {
         for (const { key } of keys) {
           const msgId = mapMessageID(key)
-          const threadId = jidNormalizedUser(key.remoteJid || '')
+          const threadId = jidNormalizedUser(getChatId(key) || '')
           brackets = brackets.orWhere(`(thread_id='${threadId}' AND id='${msgId}')`)
         }
         return brackets

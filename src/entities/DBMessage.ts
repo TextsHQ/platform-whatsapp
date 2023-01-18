@@ -1,4 +1,4 @@
-import { areJidsSameUser, extractMessageContent, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { areJidsSameUser, extractMessageContent, getChatId, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { Message, MessageAction, Attachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
@@ -207,7 +207,7 @@ export default class DBMessage implements Message {
   mapFromOriginal(ctx: MappingContext) {
     const { message, seenByMe } = this.original
 
-    const threadID = message.key.remoteJid || ''
+    const threadID = getChatId(message.key) || ''
     if (!threadID) {
       ctx.logger.warn({ key: message.key }, 'got msg with no thread')
     }
@@ -235,10 +235,11 @@ export default class DBMessage implements Message {
     senderID = senderID ? jidNormalizedUser(senderID) : senderID
 
     const stubBasedMessage = messageStubText(message)
-    const { attachments } = messageAttachments(messageContent!, message.key.remoteJid!, id)
+    const threadId = getChatId(message.key)
+    const { attachments } = messageAttachments(messageContent!, threadId, id)
     const timestamp = toNumber(message.messageTimestamp!) * 1000
 
-    const linked = mapMessageQuoted(messageInner, message.key.remoteJid!, currentUserID)
+    const linked = mapMessageQuoted(messageInner, threadId, currentUserID)
     const link = messageLink(message, normalizedMessageContent)
     const action = messageAction(message, normalizedMessageContent)
     const isDeleted = message.messageStubType === WAMessageStubType.REVOKE

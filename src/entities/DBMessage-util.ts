@@ -1,4 +1,4 @@
-import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage } from '@adiwajshing/baileys'
+import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage, getChatId } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
 import type { ButtonCallbackType } from '../types'
 import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
@@ -164,7 +164,7 @@ export const mapMessageSeen = (message: WAMessage): MessageSeen => {
     return true
   }
 
-  if (isJidGroup(message.key.remoteJid || '')) {
+  if (isJidGroup(getChatId(message.key) || '')) {
     const seenMap: MessageSeen = {}
     for (const { userJid, readTimestamp } of message.userReceipt || []) {
       const readUnixStamp = toNumber(readTimestamp || 0)
@@ -185,7 +185,7 @@ export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserI
     if (quoted) {
       // in case quoted is ephemeral
       quoted = normalizeMessageContent(quoted)
-      chatId = contextInfo.remoteJid! || chatId
+      chatId = getChatId(contextInfo) || chatId
       const key = { id: contextInfo.stanzaId!, fromMe: areJidsSameUser(contextInfo.participant!, currentUserId) }
       const preview: MessagePreview = {
         id: mapMessageID(key),
@@ -437,7 +437,7 @@ export function messageButtons(message: WAMessageContent, key: WAMessageKey) {
     if (!isExpiredInvite(message.groupInviteMessage) && !key.fromMe) {
       buttons.push({
         label: 'Join Group',
-        linkURL: generateDeepLinkForGroupJoin(key.remoteJid!, message.groupInviteMessage),
+        linkURL: generateDeepLinkForGroupJoin(getChatId(key), message.groupInviteMessage),
       })
     }
   } else if (message?.listMessage?.sections?.length) {
@@ -553,7 +553,7 @@ export function messageLink({ key, message }: Pick<WAMessage, 'message' | 'key'>
   if (mess?.matchedText) {
     let imgUrl: string
     if (mess.thumbnailDirectPath) {
-      imgUrl = attachmentUrl(undefined, key.remoteJid!, mapMessageID(key), 'thumb')
+      imgUrl = attachmentUrl(undefined, getChatId(key), mapMessageID(key), 'thumb')
     } else if (mess.jpegThumbnail?.length) {
       const jpgThumb = Buffer.from(mess.jpegThumbnail)
       imgUrl = getDataURIFromBuffer(jpgThumb, 'image/jpeg')

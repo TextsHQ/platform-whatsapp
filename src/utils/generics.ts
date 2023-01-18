@@ -163,7 +163,10 @@ export async function updateItems<
 }
 
 export const shouldExcludeMessage = (msg: WAMessage) => {
-  if (isJidBroadcast(msg.key.remoteJid || '')) return true
+  if (
+    isJidBroadcast(msg.key.remoteJid || '')
+    && msg.key.fromMe
+  ) return true
   const content = msg.message ? normalizeMessageContent(msg.message) : msg.message
   return content?.protocolMessage?.type === WAProto.Message.ProtocolMessage.Type.REVOKE
 }
