@@ -200,6 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       this.client.end(undefined as any)
     }
 
+    await this.dataStore.wait()
     await this.db?.close()
 
     this.logger?.info('disposed')

@@ -9,7 +9,7 @@ import type { MappingContextWithDB } from '../types'
 import chunkedWrite from './chunked-write'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
 import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
-import { shouldExcludeMessage, mapMessageID, profilePictureUrl } from './generics'
+import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
@@ -22,6 +22,9 @@ const makeTextsBaileysStore = (
   mappingCtx: MappingContextWithDB,
 ) => {
   registerDBSubscribers(publishEvent, mappingCtx)
+
+  const taskSetMutex = makeMutex()
+  let currentProcessingTask: Promise<any> | undefined
 
   const excludeEvent = false
 
@@ -143,44 +146,55 @@ const makeTextsBaileysStore = (
     return { didSyncHistory }
   }
 
-  return {
-    async process(events: Partial<BaileysEventMap>) {
-      if (hasDBEvent(events)) {
-        const result = await mappingCtx.db.transaction(
-          db => (
-            processEvents(
-              events,
-              {
-                db,
-                meID: mappingCtx.meID,
-                logger: mappingCtx.logger,
-                accountID: mappingCtx.accountID,
-              },
-            )
-          ),
-        )
-          .catch(
-            err => {
-              mappingCtx.logger.error(
-                { trace: err.stack, events },
-                'error in processing events',
-              )
-              texts.Sentry.captureException(err)
-              texts.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
-
-              publishEvent({
-                type: ServerEventType.TOAST,
-                toast: {
-                  text: `Dropped WhatsApp Events due to error: "${err.message}"`,
-                  timeoutMs: -1,
-                },
-              })
+  async function process(events: Partial<BaileysEventMap>) {
+    if (hasDBEvent(events)) {
+      const result = await mappingCtx.db.transaction(
+        db => (
+          processEvents(
+            events,
+            {
+              db,
+              meID: mappingCtx.meID,
+              logger: mappingCtx.logger,
+              accountID: mappingCtx.accountID,
             },
           )
-        return result
-      }
+        ),
+      )
+        .catch(
+          err => {
+            mappingCtx.logger.error(
+              { trace: err.stack, events },
+              'error in processing events',
+            )
+            texts.Sentry.captureException(err)
+            texts.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
 
-      return undefined
+            publishEvent({
+              type: ServerEventType.TOAST,
+              toast: {
+                text: `Dropped WhatsApp Events due to error: "${err.message}"`,
+                timeoutMs: -1,
+              },
+            })
+          },
+        )
+
+      return result
+    }
+
+    return undefined
+  }
+
+  return {
+    process(events: Partial<BaileysEventMap>) {
+      currentProcessingTask = taskSetMutex.mutex(() => process(events))
+      return currentProcessingTask
+    },
+    async wait() {
+      if (currentProcessingTask) {
+        await currentProcessingTask
+      }
     },
   }
 }
