@@ -182,7 +182,7 @@ export default class DBThread implements Thread {
     if (chat.id === STORIES_JID) {
       texts?.Sentry.captureException(new Error('stories thread being mapped'))
     }
-    const type = threadType(threadID) || ''
+    const type = threadType(threadID) || 'single'
 
     let participants: DBParticipant[]
     // we only store participants for groups
