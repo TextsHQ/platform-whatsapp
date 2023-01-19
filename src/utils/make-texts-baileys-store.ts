@@ -191,10 +191,8 @@ const makeTextsBaileysStore = (
       currentProcessingTask = taskSetMutex.mutex(() => process(events))
       return currentProcessingTask
     },
-    async wait() {
-      if (currentProcessingTask) {
-        await currentProcessingTask
-      }
+    wait() {
+      return currentProcessingTask
     },
   }
 }
