@@ -317,7 +317,6 @@ export default class WhatsAppAPI implements PlatformAPI {
     return {
       ...user,
       imgURL: profilePictureUrl(this.accountID, user.id),
-      displayText: user.phoneNumber!,
     }
   }
 
