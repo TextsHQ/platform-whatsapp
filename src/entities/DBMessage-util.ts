@@ -515,6 +515,19 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
     return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
   }
 
+  if (message?.pollCreationMessage) {
+    const { name, options } = message.pollCreationMessage
+    const optionText = options?.map(option => option.optionName).join('\n -')
+    return `Poll: ${name} \n${optionText}`
+  }
+
+  if (message?.pollUpdateMessage) {
+    const { pollCreationMessageKey } = message.pollUpdateMessage
+    const msgSender = pollCreationMessageKey?.fromMe ? 'your' : `{{${pollCreationMessageKey?.participant || pollCreationMessageKey!.remoteJid}}}'s`
+    const reactionSender = key.fromMe ? 'You' : '{{sender}}'
+    return `${reactionSender} voted to ${msgSender} poll`
+  }
+
   if (message?.listMessage) {
     return message.listMessage.description
   }
