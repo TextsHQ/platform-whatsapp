@@ -368,6 +368,7 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
     if (content.liveLocationMessage) yield '📍 Live Location'
     if (content.productMessage?.product) yield '📦 Product'
     if (content.listMessage) yield `${content.listMessage!.title}`
+    if (content.pollCreationMessage) yield `📊 Poll: ${content.pollCreationMessage!.name}`
   }
 }
 
@@ -515,17 +516,15 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
     return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
   }
 
-  if (message?.pollCreationMessage) {
-    const { name, options } = message.pollCreationMessage
-    const optionText = `- ${options?.map(option => option.optionName).join('\n- ')}`
-    return `Poll: ${name}\n${optionText}`
+  if (message?.pollCreationMessage && message.pollCreationMessage.options) {
+    return `- ${message.pollCreationMessage.options.map(option => option.optionName).join('\n- ')}`
   }
 
   if (message?.pollUpdateMessage) {
     const { pollCreationMessageKey } = message.pollUpdateMessage
     const pollCreator = pollCreationMessageKey?.fromMe ? 'your' : `{{${pollCreationMessageKey?.participant || pollCreationMessageKey!.remoteJid}}}'s`
     const voteSender = key.fromMe ? 'You' : '{{sender}}'
-    return `${voteSender} voted to ${pollCreator} poll`
+    return `${voteSender} voted on ${pollCreator} poll`
   }
 
   if (message?.listMessage) {
