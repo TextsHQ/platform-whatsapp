@@ -368,6 +368,7 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
     if (content.liveLocationMessage) yield '📍 Live Location'
     if (content.productMessage?.product) yield '📦 Product'
     if (content.listMessage) yield `${content.listMessage!.title}`
+    if (content.pollCreationMessage) yield `📊 Poll: ${content.pollCreationMessage!.name}\n- ${content.pollCreationMessage?.options?.map(option => option.optionName).join('\n- ')}`
   }
 }
 
@@ -513,6 +514,13 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
     const msgSender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
     const reactionSender = key.fromMe ? 'You' : '{{sender}}'
     return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
+  }
+
+  if (message?.pollUpdateMessage) {
+    const { pollCreationMessageKey } = message.pollUpdateMessage
+    const pollCreator = pollCreationMessageKey?.fromMe ? 'your' : `{{${pollCreationMessageKey?.participant || pollCreationMessageKey!.remoteJid}}}'s`
+    const voteSender = key.fromMe ? 'You' : '{{sender}}'
+    return `${voteSender} voted on ${pollCreator} poll`
   }
 
   if (message?.listMessage) {

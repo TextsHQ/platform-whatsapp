@@ -246,12 +246,14 @@ export default class DBMessage implements Message {
 
     const protocolMessageType = (message?.message?.ephemeralMessage?.message || message?.message)?.protocolMessage?.type
     const isHistoryMessage = protocolMessageType === WAProto.Message.ProtocolMessage.Type.HISTORY_SYNC_NOTIFICATION
+    const isPollUpdateMessage = !!message?.message?.pollUpdateMessage
     const isAction = !!(
       (
         stubBasedMessage
         && ![WAMessageStubType.REVOKE, WAMessageStubType.CIPHERTEXT].includes(message.messageStubType!)
       )
       || typeof protocolMessageType !== 'undefined'
+      || isPollUpdateMessage
     )
     const msgText = messageText({ message: normalizedMessageContent, key: message.key })
       || stubBasedMessage
