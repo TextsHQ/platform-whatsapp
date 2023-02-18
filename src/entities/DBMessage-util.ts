@@ -523,9 +523,9 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
 
   if (message?.pollUpdateMessage) {
     const { pollCreationMessageKey } = message.pollUpdateMessage
-    const msgSender = pollCreationMessageKey?.fromMe ? 'your' : `{{${pollCreationMessageKey?.participant || pollCreationMessageKey!.remoteJid}}}'s`
-    const reactionSender = key.fromMe ? 'You' : '{{sender}}'
-    return `${reactionSender} voted to ${msgSender} poll`
+    const pollCreator = pollCreationMessageKey?.fromMe ? 'your' : `{{${pollCreationMessageKey?.participant || pollCreationMessageKey!.remoteJid}}}'s`
+    const voteSender = key.fromMe ? 'You' : '{{sender}}'
+    return `${voteSender} voted to ${pollCreator} poll`
   }
 
   if (message?.listMessage) {
