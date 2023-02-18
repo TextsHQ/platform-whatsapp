@@ -517,8 +517,8 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
 
   if (message?.pollCreationMessage) {
     const { name, options } = message.pollCreationMessage
-    const optionText = options?.map(option => option.optionName).join('\n -')
-    return `Poll: ${name} \n${optionText}`
+    const optionText = `- ${options?.map(option => option.optionName).join('\n- ')}`
+    return `Poll: ${name}\n${optionText}`
   }
 
   if (message?.pollUpdateMessage) {
