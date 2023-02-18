@@ -300,6 +300,10 @@ export default class DBMessage implements Message {
       mapped.linkedMessageThreadID = linked?.threadID
     }
 
+    if (messageContent?.pollUpdateMessage?.pollCreationMessageKey) {
+      mapped.linkedMessageID = mapMessageID(messageContent.pollUpdateMessage.pollCreationMessageKey)
+    }
+
     Object.assign(this, mapped)
     this.original.lastMappedVersion = CURRENT_MAPPING_VERSION
     this.isHistoryMessage = isHistoryMessage
