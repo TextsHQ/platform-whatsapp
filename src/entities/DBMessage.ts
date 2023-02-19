@@ -1,5 +1,5 @@
 import { areJidsSameUser, extractMessageContent, getChatId, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
-import { Message, MessageAction, Attachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
+import { Message, MessageAction, Attachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessagePollVote, TextAttributes } from '@textshq/platform-sdk'
 import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { FullBaileysMessage, MappingContext } from '../types'
@@ -82,6 +82,9 @@ export default class DBMessage implements Message {
 
   @Column({ type: 'simple-json', nullable: true })
     reactions?: MessageReaction[]
+
+  @Column({ type: 'simple-json', nullable: true })
+    votes?: MessagePollVote[]
 
   @Column({ type: 'boolean', nullable: false, default: false })
     isAction: boolean
@@ -200,6 +203,12 @@ export default class DBMessage implements Message {
 
   updateWithReaction(reaction: WAProto.IReaction, ctx: MappingContext) {
     updateMessageWithReaction(this.original.message, reaction)
+
+    this.mapFromOriginal(ctx)
+  }
+
+  updateWithVote(pollUpdate: WAProto.IPollUpdate, ctx: MappingContext) {
+    updateMessageWithReaction(this.original.message, pollUpdate.vote?.selectedOptions)
 
     this.mapFromOriginal(ctx)
   }

@@ -13,6 +13,7 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
+import { getPollUpdateMessage } from './decyrpt-poll'
 
 const DEFAULT_CHUNK_SIZE = 100
 
@@ -246,9 +247,9 @@ async function handleMessagesUpsert(
   const { db, logger } = ctx
 
   logger.info({ messages: messages.map(m => m.key) }, 'messages recv')
-  messages = messages
+  const filteredMessages = messages
     .filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
-  if (!messages.length) {
+  if (!filteredMessages.length) {
     return
   }
 
@@ -267,13 +268,13 @@ async function handleMessagesUpsert(
     chatUpdateMap[update.id!] = update
   }
 
-  const msgs = await fetchMessagesInDB(db, messages)
+  const msgs = await fetchMessagesInDB(db, filteredMessages)
   for (const msg of msgs) {
     existingMessageMap[`${msg.threadID},${msg.id}`] = msg
   }
 
   const mapped: DBMessage[] = []
-  for (const msg of messages) {
+  for (const msg of filteredMessages) {
     const threadId = getChatId(msg.key)
     const uqId = `${threadId},${mapMessageID(msg.key)}`
     const mappedMsg = existingMessageMap[uqId] || new DBMessage()
@@ -324,6 +325,22 @@ async function handleMessagesUpsert(
       mappedMsg.original = {
         message: msg,
         lastMappedVersion: CURRENT_MAPPING_VERSION,
+      }
+    }
+
+    if (msg.message?.pollUpdateMessage?.vote && msg.message?.pollUpdateMessage?.pollCreationMessageKey) {
+      const pollCreationMsg = await msgRepo.findOne({
+        where: { id: mapMessageID(msg.message.pollUpdateMessage!.pollCreationMessageKey!), threadID: threadId },
+      })
+
+      if (pollCreationMsg) {
+        mappedMsg.linkedMessageID = pollCreationMsg.id
+        const pollUpdateMessage = await getPollUpdateMessage(msg, {
+          encKey: pollCreationMsg.original!.message!.message!.messageContextInfo!.messageSecret!,
+          sender: pollCreationMsg.original!.message!.key!.remoteJid!,
+          options: pollCreationMsg.original!.message!.message!.pollCreationMessage!.options!.map(o => o.optionName!),
+        }, true)
+        console.log('whatsapp poll', pollUpdateMessage)
       }
     }
 
