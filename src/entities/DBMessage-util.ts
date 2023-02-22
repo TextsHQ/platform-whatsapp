@@ -160,22 +160,19 @@ export const mapMessageReactions = (reactions: WAProto.IReaction[], meID: string
   })
 
 export const mapMessageSeen = (message: WAMessage): MessageSeen => {
-  if (message.status! >= WAMessageStatus.READ) {
-    return true
-  }
-
-  if (isJidGroup(getChatId(message.key) || '')) {
-    const seenMap: MessageSeen = {}
-    for (const { userJid, readTimestamp } of message.userReceipt || []) {
-      const readUnixStamp = toNumber(readTimestamp || 0)
-      if (readUnixStamp) {
-        seenMap[userJid] = new Date(readUnixStamp * 1000)
-      }
+  const seenMap: MessageSeen = {}
+  for (const { userJid, readTimestamp } of message.userReceipt || []) {
+    const readUnixStamp = toNumber(readTimestamp || 0)
+    if (readUnixStamp) {
+      seenMap[userJid] = new Date(readUnixStamp * 1000)
     }
-    return seenMap
   }
 
-  return false
+  if (isJidGroup(getChatId(message.key) || '')) return seenMap
+
+  const seenJids = Object.keys(seenMap)
+  if (seenJids.length > 0) return seenMap[seenJids[0]]
+  return message.status! >= WAMessageStatus.READ
 }
 
 export const mapMessageQuoted = (messageInner: any, chatId: string, currentUserId: string): MessagePreview | undefined => {
