@@ -67,6 +67,7 @@ const info: PlatformInfo = {
     },
   },
   extra: {
+    e2ee: 'full',
     mentionsSupported: true,
     getUnknownParticipant(participantID: string): Participant | undefined {
       if (participantID && participantID.endsWith('s.whatsapp.net')) {
