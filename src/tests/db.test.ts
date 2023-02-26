@@ -202,4 +202,42 @@ describe('Database Sync Tests', () => {
 
     expect(threads).toHaveLength(chats.length)
   })
+
+  it('should not drop a message', async () => {
+    const jid = '1234@s.whatsapp.net'
+    const msgs = [...Array(3)].map(() =>
+      WAProto.WebMessageInfo.fromObject({
+        key: {
+          remoteJid: jid,
+          fromMe: false,
+          id: generateMessageID(),
+        },
+        message: {
+          conversation: 'hello g',
+        },
+        messageTimestamp: unixTimestampSeconds(),
+      }))
+
+    await store.process({
+      'messaging-history.set': {
+        messages: [msgs[0]],
+        chats: [],
+        contacts: [],
+        isLatest: true,
+      },
+    })
+
+    await store.process({
+      'messaging-history.set': {
+        messages: msgs.slice(1),
+        chats: [],
+        contacts: [],
+        isLatest: false,
+      },
+    })
+
+    const repo = db.getRepository(DBMessage)
+    const messages = await repo.find({ threadID: jid })
+    expect(messages).toHaveLength(3)
+  })
 })

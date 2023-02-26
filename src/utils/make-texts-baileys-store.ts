@@ -257,7 +257,7 @@ async function handleMessagesUpsert(
 
   const existingMessageMap: { [id: string]: DBMessage } = { }
   // we use this map to avoid incorrectly updating conversation timestamps
-  const chatUpdateMap: { [id: string]: Partial<Chat> } = { }
+  const chatUpdateMap: { [id: string]: Partial<Chat> | undefined } = { }
   const chatsRequiringTimestampCorrection: string[] = []
   const missingThreadMap: { [id: string]: { timestamp: number } } = { }
 
@@ -283,8 +283,7 @@ async function handleMessagesUpsert(
       // and we received a new copy of the message
       const chat = chatUpdateMap[mappedMsg.threadID]
       if (
-        chat
-        && chat.unreadCount
+        chat?.unreadCount
         && mappedMsg.original.message.messageStubType !== WAMessageStubType.CIPHERTEXT
       ) {
         chat.unreadCount -= 1
@@ -546,9 +545,9 @@ async function handleMessagesSync(
     }
     mappedMsg.mapFromOriginal(ctx)
     mappedMsg.shouldFireEvent = false
-    mappedMsg.orderKey = key
 
     key -= 1
+    mappedMsg.orderKey = key
 
     return mappedMsg
   })
