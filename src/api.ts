@@ -8,7 +8,7 @@ import type { Connection } from 'typeorm'
 import { PassThrough } from 'stream'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -198,6 +198,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     if (this.client) {
       this.client.ev.removeAllListeners('connection.update')
       this.client.end(undefined as any)
+      await waitForAllEventsToBeHandled(this.client.ev, this.logger)
     }
 
     await this.dataStore.wait()
@@ -418,11 +419,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private registerCallbacks = () => {
     const { ev } = this.client!
-    ev.process(async events => {
-      const result = await this.dataStore.process(events)
-      if (result?.didSyncHistory) {
-        this.allowDataFetch()
-      }
+    ev.process(events => {
+      this.dataStore
+        .process(events)
+        .then(res => {
+          if (res?.didSyncHistory) {
+            this.allowDataFetch()
+          }
+        })
     })
 
     ev.on('connection.update', update => {

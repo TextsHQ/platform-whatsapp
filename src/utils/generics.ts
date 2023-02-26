@@ -1,8 +1,10 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
-import { DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType } from '@adiwajshing/baileys'
+import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from '@adiwajshing/baileys'
 import { In, Repository } from 'typeorm'
+import type { Logger } from 'pino'
 import type { MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
+import { MAX_EVENT_BUFFER_WAIT } from '../config.json'
 
 export const LOGGED_OUT_CODES = [
   DisconnectReason.loggedOut,
@@ -217,4 +219,30 @@ export function sortKeyToString(num: number) {
 
 export function stringToSortKey(str: string) {
   return parseInt(str, 16)
+}
+
+export async function waitForAllEventsToBeHandled(
+  ev: ReturnType<typeof makeEventBuffer>,
+  logger: Logger,
+) {
+  const start = Date.now()
+  if (ev.isBuffering()) {
+    logger.debug('waiting for event buffer to flush...')
+  }
+
+  while (ev.isBuffering() && !didTimeout()) {
+    await delay(100)
+  }
+
+  if (didTimeout()) {
+    logger.warn('timed out while releasing buffer')
+    // flush any events that can be flushed
+    ev.flush(true)
+  }
+
+  logger.debug('event buffer flushed')
+
+  function didTimeout() {
+    return Date.now() - start > MAX_EVENT_BUFFER_WAIT
+  }
 }

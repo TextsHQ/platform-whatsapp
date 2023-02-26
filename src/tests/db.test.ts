@@ -203,7 +203,7 @@ describe('Database Sync Tests', () => {
     expect(threads).toHaveLength(chats.length)
   })
 
-  it('should not drop a message', async () => {
+  it('should not drop a message on sync', async () => {
     const jid = '1234@s.whatsapp.net'
     const msgs = [...Array(3)].map(() =>
       WAProto.WebMessageInfo.fromObject({
@@ -239,5 +239,41 @@ describe('Database Sync Tests', () => {
     const repo = db.getRepository(DBMessage)
     const messages = await repo.find({ threadID: jid })
     expect(messages).toHaveLength(3)
+  })
+  it('should flush all pending mutations before closing', async () => {
+    const jid = '24566@s.whatsapp.net'
+    const msgs = [...Array(3)].map(() => (
+      WAProto.WebMessageInfo.fromObject({
+        key: {
+          remoteJid: jid,
+          fromMe: false,
+          id: generateMessageID(),
+        },
+        message: {
+          conversation: 'hello g',
+        },
+        messageTimestamp: unixTimestampSeconds(),
+      })
+    ))
+    const tasks = Promise.all(
+      msgs.map(msg => (
+        store.process({
+          'messages.upsert': {
+            messages: [msg],
+            type: 'append',
+          },
+        })
+      )),
+    )
+
+    await store.wait()
+    await db.close()
+    await tasks
+
+    await db.connect()
+
+    const repo = db.getRepository(DBMessage)
+    const dbMessages = await repo.find({ threadID: jid })
+    expect(dbMessages).toHaveLength(3)
   })
 })

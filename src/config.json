@@ -1,4 +1,5 @@
 {
   "CURRENT_MAPPING_VERSION": 11,
-  "FORCE_REMAP": false
+  "FORCE_REMAP": false,
+  "MAX_EVENT_BUFFER_WAIT": 5000
 }
