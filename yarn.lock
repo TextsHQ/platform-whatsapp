@@ -6282,7 +6282,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: 9adc2f2a1476140f650ac25270b98850499e8eb8968171fb53ce1a256d6d931d5a5719f2d9c0d7706f2ef332a1ba149598bd7035000ddb74cc9408dd45800f39
+  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
   languageName: node
   linkType: hard
 
