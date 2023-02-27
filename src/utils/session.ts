@@ -3,8 +3,8 @@
  * because during the initial sync, Texts calls dispose in the middle of sync
  * causing the session to be lost or incorrectly saved
  */
-import { AuthenticationCreds, BufferJSON } from "@adiwajshing/baileys"
-import type { Logger } from "pino"
+import { AuthenticationCreds, BufferJSON } from '@adiwajshing/baileys'
+import type { Logger } from 'pino'
 
 const SESSION_CREDS_CACHE: { [id: string]: AuthenticationCreds } = { }
 

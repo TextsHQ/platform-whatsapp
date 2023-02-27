@@ -10,6 +10,7 @@
     "prepack": "yarn tsc",
     "build": "yarn tsc",
     "lint": "yarn eslint src --ext ts,tsx,js,jsx --cache",
+    "lint:fix": "yarn lint --fix",
     "test": "jest"
   },
   "dependencies": {
