@@ -38,7 +38,11 @@ const addLastMessageToThreads = async (
       }
     } else {
       chat.messages = {
-        hasMore: false,
+        // in case we're syncing
+        // and more messages arrive in the meantime
+        // hasMore will allow Texts to load them
+        // when the thread is opened
+        hasMore: true,
         items: [],
       }
     }
