@@ -80,10 +80,5 @@ export const makeDBKeyStore = (db: Connection, logger: Logger) => {
   return makeCacheableSignalKeyStore(
     store,
     logger,
-    {
-      deleteOnExpire: true,
-      stdTTL: 60 * 60, // 1 hour
-      checkperiod: 60 * 60, // check every hour
-    },
   )
 }

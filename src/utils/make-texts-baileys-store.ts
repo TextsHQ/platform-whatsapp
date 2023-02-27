@@ -167,8 +167,8 @@ const makeTextsBaileysStore = (
               { trace: err.stack, events },
               'error in processing events',
             )
-            texts.Sentry.captureException(err)
-            texts.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
+            texts?.Sentry.captureException(err)
+            texts?.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
 
             publishEvent({
               type: ServerEventType.TOAST,
@@ -557,21 +557,17 @@ async function handleMessagesSync(
   logger.info({ messages: dbMessages.length }, 'saved message history')
 }
 
-const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WAMessageKey }[]) => {
+export const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WAMessageKey }[]) => {
   const repo = db.getRepository(DBMessage)
+  const uqIds = keys.map(({ key }) => {
+    const msgId = mapMessageID(key)
+    const threadId = jidNormalizedUser(getChatId(key) || '')
+    return `('${threadId}','${msgId}')`
+  })
   // find all the messages to be updated
   const qb = repo
     .createQueryBuilder()
-    .where(new Brackets(
-      brackets => {
-        for (const { key } of keys) {
-          const msgId = mapMessageID(key)
-          const threadId = jidNormalizedUser(getChatId(key) || '')
-          brackets = brackets.orWhere(`(thread_id='${threadId}' AND id='${msgId}')`)
-        }
-        return brackets
-      },
-    ))
+    .where(`(thread_id, id) IN (VALUES ${uqIds.join(',')})`)
   const dbItems = await qb.getMany()
   return dbItems
 }

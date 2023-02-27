@@ -9,7 +9,7 @@ import DBThread from '../entities/DBThread'
 import type { MappingContextWithDB } from '../types'
 import { mapMessageID } from '../utils/generics'
 import getLogger from '../utils/get-logger'
-import makeTextsBaileysStore from '../utils/make-texts-baileys-store'
+import makeTextsBaileysStore, { fetchMessagesInDB } from '../utils/make-texts-baileys-store'
 import fetchThreads from '../utils/fetch-threads'
 
 const TEST_DATA_PATH = './test-data'
@@ -240,6 +240,22 @@ describe('Database Sync Tests', () => {
     const messages = await repo.find({ threadID: jid })
     expect(messages).toHaveLength(3)
   })
+
+  it('should not error at expression tree', async () => {
+    await fetchMessagesInDB(
+      db,
+      [...Array(2000)].map(
+        () => ({
+          key: {
+            remoteJid: '1234@s.whatsapp.net',
+            id: generateMessageID(),
+            fromMe: Math.random() < 0.5,
+          },
+        }),
+      ),
+    )
+  })
+
   it('should flush all pending mutations before closing', async () => {
     const jid = '24566@s.whatsapp.net'
     const msgs = [...Array(3)].map(() => (
