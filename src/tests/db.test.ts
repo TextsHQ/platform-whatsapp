@@ -254,6 +254,29 @@ describe('Database Sync Tests', () => {
         }),
       ),
     )
+
+    await store.process(
+      {
+        'messages.upsert': {
+          messages: [...Array(2000)].map(
+            () => (
+              WAProto.WebMessageInfo.fromObject({
+                key: {
+                  remoteJid: Math.random().toString().replace('.', '') + '@s.whatsapp.net',
+                  fromMe: false,
+                  id: generateMessageID(),
+                },
+                message: {
+                  conversation: 'hello g',
+                },
+                messageTimestamp: unixTimestampSeconds(),
+              })
+            ),
+          ),
+          type: 'notify',
+        },
+      },
+    )
   })
 
   it('should flush all pending mutations before closing', async () => {
