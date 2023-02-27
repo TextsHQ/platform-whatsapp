@@ -1,6 +1,8 @@
 import { areJidsSameUser, ButtonReplyInfo, extractMessageContent, getContentType, isJidGroup, jidDecode, jidNormalizedUser, MessageType, normalizeMessageContent, toNumber, unixTimestampSeconds, WAContextInfo, WAGenericMediaMessage, WAMessage, WAMessageContent, WAMessageKey, WAMessageStatus, WAMessageStubType, WAProto, shouldIncrementChatUnread, isRealMessage, getChatId } from '@adiwajshing/baileys'
 import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, MessageSeen } from '@textshq/platform-sdk'
-import type { ButtonCallbackType } from '../types'
+import type { ValueTransformer } from 'typeorm'
+import { serialize, deserialize } from 'v8'
+import type { ButtonCallbackType, FullBaileysMessage } from '../types'
 import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
@@ -108,8 +110,6 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.BLOCK_CONTACT]: message =>
     (message.messageStubParameters![0] ? 'You blocked this contact' : 'You unblocked this contact'),
 }
-
-const NOTIFYING_STUB_TYPES = new Set([WAMessageStubType.GROUP_PARTICIPANT_ADD])
 
 const ATTACHMENT_MAP = {
   audioMessage: AttachmentType.AUDIO,
@@ -596,4 +596,21 @@ export function messageStubText(message: WAMessage) {
     })
   }
   return txt
+}
+
+export const MessageTransformer: ValueTransformer = {
+  from: (buff: Buffer | null) => {
+    const result = buff ? deserialize(buff) : undefined
+    if (result) {
+      result.message = WAProto.WebMessageInfo.decode(result.message)
+    }
+
+    return result
+  },
+  to: (item: FullBaileysMessage | null) => {
+    if (item) {
+      return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
+    }
+    return null
+  },
 }

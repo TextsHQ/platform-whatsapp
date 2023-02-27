@@ -1,30 +1,12 @@
 import { areJidsSameUser, extractMessageContent, getChatId, getContentType, jidNormalizedUser, MessageUserReceipt, normalizeMessageContent, STORIES_JID, toNumber, updateMessageWithReaction, updateMessageWithReceipt, WAMessage, WAMessageStatus, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
 import { Message, MessageAction, Attachment, MessageBehavior, MessageButton, MessageLink, MessagePreview, MessageReaction, TextAttributes } from '@textshq/platform-sdk'
-import { Column, Entity, Index, PrimaryColumn, ValueTransformer } from 'typeorm'
-import { serialize, deserialize } from 'v8'
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm'
 import type { FullBaileysMessage, MappingContext } from '../types'
 import { isHiddenMessage, mapMessageID, sortKeyToString, safeJSONStringify } from '../utils/generics'
 import { mapTextAttributes } from '../utils/text-attributes'
 import BufferJSONEncodedColumn from './BufferJSONEncodedColumn'
-import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter } from './DBMessage-util'
+import { isPaymentMessage, getNotificationType, mapMessageQuoted, messageAction, messageAttachments, messageButtons, messageHeading, messageLink, messageStatus, messageStubText, messageText, mapMessageSeen, mapMessageReactions, messageFooter, MessageTransformer } from './DBMessage-util'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
-
-const MessageTransformer: ValueTransformer = {
-  from: (buff: Buffer | null) => {
-    const result = buff ? deserialize(buff) : undefined
-    if (result) {
-      result.message = WAProto.WebMessageInfo.decode(result.message)
-    }
-
-    return result
-  },
-  to: (item: FullBaileysMessage | null) => {
-    if (item) {
-      return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
-    }
-    return null
-  },
-}
 
 @Entity()
 @Index('fetch_idx', ['threadID', 'orderKey'])
@@ -89,7 +71,8 @@ export default class DBMessage implements Message {
   @Column({ type: 'blob', transformer: MessageTransformer })
     original: FullBaileysMessage
 
-  @Column({ type: 'int', nullable: false, unique: true })
+  // never update the orderKey to avoid funky constraint errors
+  @Column({ type: 'int', nullable: false, unique: true, update: false })
     orderKey: number
 
   @Column({ type: 'varchar', length: 64, nullable: true, default: null })
@@ -207,18 +190,22 @@ export default class DBMessage implements Message {
   mapFromOriginal(ctx: MappingContext) {
     const { message, seenByMe } = this.original
 
-    const threadID = getChatId(message.key) || ''
+    let threadID = getChatId(message.key) || ''
+    let id = mapMessageID(message.key)
+    // ensure we don't overwrite the ID & threadID ever
+    if (id !== this.id && this.id) {
+      id = this.id
+    }
+
+    if (threadID !== this.threadID && this.threadID) {
+      threadID = this.threadID
+    }
+
     if (!threadID) {
       ctx.logger.warn({ key: message.key }, 'got msg with no thread')
     }
 
     const currentUserID = ctx.meID || ''
-    let id = mapMessageID(message.key)
-    // ensure we don't overwrite the ID ever
-    if (id !== this.id && !!this.id) {
-      id = this.id
-    }
-
     const normalizedMessageContent = normalizeMessageContent(message.message)
 
     let messageContent = extractMessageContent(message.message)
