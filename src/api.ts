@@ -188,10 +188,6 @@ export default class WhatsAppAPI implements PlatformAPI {
       // nothing
     }
 
-    while (!this.canServeThreads) {
-      await delay(50)
-    }
-
     process.off('unhandledRejection', this.logUnhandledException)
     clearInterval(this.logoutAllInterval)
 
