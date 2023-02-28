@@ -200,7 +200,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       await waitForAllEventsToBeHandled(this.client.ev, this.logger)
     }
 
-    await this.dataStore.wait()
+    await this.dataStore?.wait()
     await this.db?.close()
 
     this.logger?.info('disposed')
