@@ -8,7 +8,7 @@ import type { Connection } from 'typeorm'
 import { PassThrough } from 'stream'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
-import { canReconnect, CONNECTION_STATE_MAP, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
+import { canReconnect, CONNECTION_STATE_MAP, generateInstanceId, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
 import DBMessage from './entities/DBMessage'
 import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
@@ -115,7 +115,10 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.dataDirPath = dataDirPath
     this.country = country ?? 'US'
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log'))
-      .child({ stream: 'pw-' + this.accountID })
+      .child({
+        stream: 'pw-' + this.accountID,
+        instance: generateInstanceId(),
+      })
     // if session was there, use that -- otherwise init default credentials
     this.session = session ? decodeSerializedSession(session, this.logger) : this.getDefaultSession()
 

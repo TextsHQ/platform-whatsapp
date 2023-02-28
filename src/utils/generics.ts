@@ -1,5 +1,6 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
 import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from '@adiwajshing/baileys'
+import { randomBytes } from 'crypto'
 import { In, Repository } from 'typeorm'
 import type { Logger } from 'pino'
 import type { MappingContext } from '../types'
@@ -245,4 +246,8 @@ export async function waitForAllEventsToBeHandled(
   function didTimeout() {
     return Date.now() - start > MAX_EVENT_BUFFER_WAIT
   }
+}
+
+export function generateInstanceId() {
+  return randomBytes(2).toString('hex')
 }
