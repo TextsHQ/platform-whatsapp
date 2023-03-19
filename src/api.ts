@@ -561,17 +561,17 @@ export default class WhatsAppAPI implements PlatformAPI {
     return users
   }
 
-  createThread = async (userIDs: string[], name: string) => {
+  createThread = async (userIDs: string[], name?: string) => {
     let chat: WAChat
     let metadata: GroupMetadata | undefined
-    if (userIDs.length > 1) {
+    if (name) {
       metadata = await this.client!.groupCreate(name, userIDs)
       chat = {
         id: metadata.id,
         conversationTimestamp: unixTimestampSeconds(),
         unreadCount: 0,
       }
-    } else if (userIDs.length === 1) {
+    } else if (userIDs.length) {
       // return the chat if it already exists
       const thread = await this.getThread(userIDs[0])
       if (thread) {
