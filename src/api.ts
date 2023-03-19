@@ -580,7 +580,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
       const id = jidNormalizedUser(userIDs[0])
       chat = {
-        name,
         id,
         conversationTimestamp: null,
         unreadCount: 0,
