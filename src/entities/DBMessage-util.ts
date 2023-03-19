@@ -516,7 +516,10 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
     const reactedKey = message.reactionMessage.key
     const msgSender = reactedKey?.fromMe ? 'your' : `{{${reactedKey?.participant || reactedKey!.remoteJid}}}'s`
     const reactionSender = key.fromMe ? 'You' : '{{sender}}'
-    return `${reactionSender} reacted ${message.reactionMessage!.text!} to ${msgSender} message`
+    const reactionText = message.reactionMessage!.text!
+    return reactionText
+      ? `${reactionSender} reacted ${reactionText} to ${msgSender} message`
+      : `${reactionSender} unreacted to ${msgSender} message`
   }
 
   if (message?.pollUpdateMessage) {
