@@ -671,7 +671,7 @@ async function handleChatsUpsert(
       // if chat is marked newer
       // do not update the stamp
       const stamp = unixTimestampSeconds(dbChat.timestamp)
-      if (stamp > chat.conversationTimestamp) {
+      if (stamp > Number(chat.conversationTimestamp)) {
         chat.conversationTimestamp = stamp
       }
     }
