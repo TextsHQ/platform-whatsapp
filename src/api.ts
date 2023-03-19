@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, BufferJSON, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from '@adiwajshing/baileys'
-import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName } from '@textshq/platform-sdk'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from '@adiwajshing/baileys'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, AccountInfo, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -53,6 +53,8 @@ const config: Partial<SocketConfig> = {
 }
 
 const SUCCESS_LOGIN = async (): Promise<LoginResult> => ({ type: 'success' })
+
+type AssetCategory = 'profile-picture' | 'attachment' | 'sticker'
 
 export default class WhatsAppAPI implements PlatformAPI {
   private client?: WASocket
@@ -662,22 +664,22 @@ export default class WhatsAppAPI implements PlatformAPI {
     return result
   }
 
-  getUser = async ({ phoneNumber }: { phoneNumber: PhoneNumber }): Promise<User | undefined> => {
-    if (phoneNumber) {
-      const jid = phoneNumber.replace(/[^0-9]/g, '') + '@c.us'
-      const result = await this.client!.onWhatsApp(jid)
+  getUser = async (ids: { userID: UserID } | { username: string } | { phoneNumber: PhoneNumber } | { email: string }): Promise<User | undefined> => {
+    if (!('phoneNumber' in ids)) return
+    const { phoneNumber } = ids
+    const jid = phoneNumber.replace(/[^0-9]/g, '') + '@c.us'
+    const result = await this.client!.onWhatsApp(jid)
 
-      let fetchedJid: string | undefined
-      const [item] = result
-      if (item?.exists) {
-        fetchedJid = item.jid
-      }
+    let fetchedJid: string | undefined
+    const [item] = result
+    if (item?.exists) {
+      fetchedJid = item.jid
+    }
 
-      if (fetchedJid) {
-        return {
-          id: fetchedJid,
-          phoneNumber: numberFromJid(fetchedJid),
-        }
+    if (fetchedJid) {
+      return {
+        id: fetchedJid,
+        phoneNumber: numberFromJid(fetchedJid),
       }
     }
   }
@@ -821,7 +823,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }, { })
   }
 
-  forwardMessage = async (threadID: string, messageID: string, threadIDs: string[]) => {
+  forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[]) => {
     await this.waitForConnectionOpen()
     const { original: { message } } = await this.db.getRepository(DBMessage).findOneOrFail({
       id: messageID,
@@ -840,7 +842,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     )
   }
 
-  deleteMessage = async (threadID: string, messageID: string, forEveryone: boolean) => {
+  deleteMessage = async (threadID: string, messageID: string, forEveryone?: boolean) => {
     const msg = await this.loadWAMessageFromDB(threadID, messageID)
     if (!msg) {
       throw new Error('Message not found')
@@ -916,12 +918,13 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private getAssetFromSource = async (
-    opts: GetAssetOptions,
-    category: 'profile-picture' | 'attachment' | 'sticker',
+    opts: GetAssetOptions | undefined,
+    _category: string,
     _jid: string,
     _msgID: string,
   ) => {
     const jid = decodeURIComponent(_jid)
+    const category = _category as AssetCategory
     switch (category) {
       case 'profile-picture': {
         await this.waitForConnectionOpen()
@@ -935,9 +938,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         await this.waitForConnectionOpen()
 
         const msgID = _msgID ? decodeURIComponent(_msgID) : _msgID
-        const endByte = opts.range?.end ? opts.range!.end + 1 : opts.range?.end
+        const endByte = opts?.range?.end ? opts.range.end + 1 : opts?.range?.end
         const downloadOpts: MediaDownloadOptions = {
-          startByte: opts.range?.start,
+          startByte: opts?.range?.start,
           endByte,
           options: config.options,
         }
@@ -962,7 +965,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getAssetInfo = async (_: GetAssetOptions, category: 'profile-picture' | 'attachment', _jid: string, _msgID: string): Promise<AssetInfo> => {
+  getAssetInfo = async (_: GetAssetOptions | undefined, _category: string, _jid: string, _msgID: string): Promise<AssetInfo> => {
+    const category = _category as AssetCategory
     switch (category) {
       case 'attachment': {
         const jid = decodeURIComponent(_jid)

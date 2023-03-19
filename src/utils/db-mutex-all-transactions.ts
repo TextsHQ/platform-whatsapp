@@ -15,7 +15,7 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
   const { mutex } = makeMutex()
   const { transaction, close } = db
 
-  db.transaction = (...args) => {
+  db.transaction = (...args: any) => {
     if (logger.level === 'trace') logger.trace('called transaction')
     return mutex(async () => {
       try {
