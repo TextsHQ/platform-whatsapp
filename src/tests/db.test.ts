@@ -241,6 +241,41 @@ describe('Database Sync Tests', () => {
     expect(messages).toHaveLength(3)
   })
 
+  it('should not error on threadID change', async () => {
+    const jid = '123456@s.whatsapp.net'
+    const jid2 = ''
+    const msg = WAProto.WebMessageInfo.fromObject({
+      key: {
+        remoteJid: jid,
+        fromMe: false,
+        id: generateMessageID(),
+      },
+      messageTimestamp: unixTimestampSeconds(),
+      messageStubType: WAMessageStubType.CIPHERTEXT,
+    })
+    const msg2 = WAProto.WebMessageInfo.fromObject({
+      ...msg.toJSON(),
+    })
+    msg2.key.remoteJid = jid2
+
+    await store.process({
+      'messages.upsert': {
+        messages: [msg, msg2],
+        type: 'append',
+      },
+    })
+
+    msg.key.remoteJid = jid2
+    msg.message = { conversation: 'test' }
+
+    await store.process({
+      'messages.upsert': {
+        messages: [msg],
+        type: 'append',
+      },
+    })
+  })
+
   it('should not error at expression tree', async () => {
     await fetchMessagesInDB(
       db,
