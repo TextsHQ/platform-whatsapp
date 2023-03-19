@@ -586,7 +586,9 @@ export default class WhatsAppAPI implements PlatformAPI {
         conversationTimestamp: null,
         unreadCount: 0,
       }
-    } else throw new Error('no users provided')
+    } else {
+      throw new Error('invalid number of users provided with no title')
+    }
 
     const thread = new DBThread()
     thread.original = { chat, metadata }
