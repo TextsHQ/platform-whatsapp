@@ -1,6 +1,6 @@
 import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId } from '@adiwajshing/baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
-import { Brackets, Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
+import { Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -671,7 +671,7 @@ async function handleChatsUpsert(
       // if chat is marked newer
       // do not update the stamp
       const stamp = unixTimestampSeconds(dbChat.timestamp)
-      if (stamp > Number(chat.conversationTimestamp)) {
+      if (stamp > toNumber(chat.conversationTimestamp)) {
         chat.conversationTimestamp = stamp
       }
     }
