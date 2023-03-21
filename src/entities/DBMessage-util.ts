@@ -7,9 +7,9 @@ import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessag
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
-(message.participant
-  ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
-  : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
+  (message.participant
+    ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
+    : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
 
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
