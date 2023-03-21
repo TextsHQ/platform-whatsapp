@@ -362,7 +362,7 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
     } else if (isPaymentMessage(content)) {
       if ('contextInfo' in (content.sendPaymentMessage?.noteMessage?.extendedTextMessage || {})) {
         if (content.sendPaymentMessage?.noteMessage?.extendedTextMessage?.contextInfo) {
-          yield 'Payment message. Amount unavailable.'
+          yield 'Payment message · Details unavailable'
         }
       }
     }
