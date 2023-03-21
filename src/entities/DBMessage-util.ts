@@ -7,9 +7,9 @@ import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessag
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
-  (message.participant
-    ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
-    : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
+(message.participant
+  ? `{{${jidNormalizedUser(message.participant)}}} added ${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} to this group`
+  : `${message.messageStubParameters!.map(p => `{{${jidNormalizedUser(p)}}}`).join(', ')} was added to this group`)
 
 const numberToBigInt = (number: number | Long) => BigInt(number.toString())
 
@@ -359,7 +359,14 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
       if (content.cancelPaymentRequestMessage) {
         yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
       }
+    } else if (isPaymentMessage(content)) {
+      if ('contextInfo' in (content.sendPaymentMessage?.noteMessage?.extendedTextMessage || {})) {
+        if (content.sendPaymentMessage?.noteMessage?.extendedTextMessage?.contextInfo) {
+          yield 'Payment message. Amount unavailable.'
+        }
+      }
     }
+
     if (content.groupInviteMessage) yield `${content.groupInviteMessage.groupName} | WhatsApp Group Invite`
     if (content.locationMessage) yield '📍 Location'
     if (content.liveLocationMessage) yield '📍 Live Location'
@@ -486,6 +493,7 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
       const etm = paymentMessage?.noteMessage?.extendedTextMessage
       const note = etm?.text
       const jids = etm?.contextInfo?.mentionedJid
+
       if (note) return replaceJids(jids!, note)
     }
   }
