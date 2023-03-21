@@ -359,7 +359,14 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
       if (content.cancelPaymentRequestMessage) {
         yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
       }
+    } else if (isPaymentMessage(content)) {
+      if ('contextInfo' in (content.sendPaymentMessage?.noteMessage?.extendedTextMessage || {})) {
+        if (content.sendPaymentMessage?.noteMessage?.extendedTextMessage?.contextInfo) {
+          yield 'Payment message · Details unavailable'
+        }
+      }
     }
+
     if (content.groupInviteMessage) yield `${content.groupInviteMessage.groupName} | WhatsApp Group Invite`
     if (content.locationMessage) yield '📍 Location'
     if (content.liveLocationMessage) yield '📍 Live Location'
@@ -486,6 +493,7 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
       const etm = paymentMessage?.noteMessage?.extendedTextMessage
       const note = etm?.text
       const jids = etm?.contextInfo?.mentionedJid
+
       if (note) return replaceJids(jids!, note)
     }
   }
