@@ -344,26 +344,24 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
   if (message.broadcast) yield 'Broadcast'
   if (content) {
     const { paymentInfo } = message
-    if (isPaymentMessage(content) && paymentInfo) {
-      const amount = `${paymentInfo.currency} ${numberToBigInt(paymentInfo.amount1000!) / BigInt(1000)}`
-      const status = PAYMENT_STATUS_MAP[paymentInfo.status!]
-      if (content.sendPaymentMessage) {
-        yield `💵 Payment to {{${paymentInfo.receiverJid}}} | ${amount} | ${status}`
-      }
-      if (content.requestPaymentMessage) {
-        yield `💵 Payment requested from {{${content.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
-      }
-      if (content.declinePaymentRequestMessage) {
-        yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} declined ${amount} | ${status}`
-      }
-      if (content.cancelPaymentRequestMessage) {
-        yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
-      }
-    } else if (isPaymentMessage(content)) {
-      if ('contextInfo' in (content.sendPaymentMessage?.noteMessage?.extendedTextMessage || {})) {
-        if (content.sendPaymentMessage?.noteMessage?.extendedTextMessage?.contextInfo) {
-          yield 'Payment message · Details unavailable'
+    if (isPaymentMessage(content)) {
+      if (paymentInfo) {
+        const amount = `${paymentInfo.currency} ${numberToBigInt(paymentInfo.amount1000!) / BigInt(1000)}`
+        const status = PAYMENT_STATUS_MAP[paymentInfo.status!]
+        if (content.sendPaymentMessage) {
+          yield `💵 Payment to {{${paymentInfo.receiverJid}}} | ${amount} | ${status}`
         }
+        if (content.requestPaymentMessage) {
+          yield `💵 Payment requested from {{${content.requestPaymentMessage.requestFrom}}} | ${amount} | ${status}`
+        }
+        if (content.declinePaymentRequestMessage) {
+          yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} declined ${amount} | ${status}`
+        }
+        if (content.cancelPaymentRequestMessage) {
+          yield `💵 Payment requested from {{${content.requestPaymentMessage!.requestFrom}}} canceled ${amount} | ${status}`
+        }
+      } else {
+        yield 'Payment message · Details unavailable'
       }
     }
 
