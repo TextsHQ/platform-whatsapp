@@ -1,3 +1,4 @@
+import type { Logger } from 'pino'
 import type { EntityMetadata, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm'
 
 const getValue = (obj: any, path: string[]) => (
@@ -22,6 +23,7 @@ type EventMap<T> = {
 }
 
 export type DBEventListener<T> = {
+  logger: Logger
   publish<E extends keyof EventMap<T>>(event: E, data: EventMap<T>[E]): void
 }
 
@@ -33,9 +35,12 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
 
   eventPublish: DBEventListener<T>['publish']
 
-  constructor(entity: new () => T, { publish }: DBEventListener<T>) {
+  logger: DBEventListener<T>['logger']
+
+  constructor(entity: new () => T, { publish, logger }: DBEventListener<T>) {
     this.entity = entity
     this.eventPublish = publish
+    this.logger = logger
   }
 
   listenTo() {
@@ -57,7 +62,9 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
   }
 
   afterInsert(event: InsertEvent<T>) {
-    this.shouldPublish(event.entity) && this.eventPublish('insert', event.entity)
+    if (this.shouldPublish(event.entity)) {
+      this._eventPublish('insert', event.entity)
+    }
   }
 
   afterUpdate(event: UpdateEvent<T>) {
@@ -69,7 +76,7 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
       const name = column.propertyName
       update[name] = event.entity[name]
     }
-    this.eventPublish('update', { key, update })
+    this._eventPublish('update', { key, update })
   }
 
   afterRemove(event: RemoveEvent<T>) {
@@ -78,7 +85,12 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
     const entity = event.databaseEntity || event.entity
     if (this.shouldPublish(entity)) {
       const deleteItem = this.getId(entity, event.metadata)
-      this.eventPublish('delete', deleteItem)
+      this._eventPublish('delete', deleteItem)
     }
+  }
+
+  _eventPublish: DBEventListener<T>['publish'] = (event, data) => {
+    this.logger.debug({ name: this.entity.name, event, data }, 'publishing event')
+    this.eventPublish(event, data)
   }
 }

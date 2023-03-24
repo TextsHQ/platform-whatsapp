@@ -16,8 +16,10 @@ const registerDBSubscribers = (
   ctx: MappingContextWithDB,
 ) => {
   const db = ctx.db as Connection
+  const logger = ctx.logger
   db.subscribers.push(
     new DBEventsPublisher(DBThread, {
+      logger,
       publish: (event, item) => {
         switch (event) {
           case 'delete':
@@ -72,6 +74,7 @@ const registerDBSubscribers = (
       },
     }),
     new DBEventsPublisher(DBUser, {
+      logger,
       publish(event, item) {
         switch (event) {
           case 'insert':
@@ -100,6 +103,7 @@ const registerDBSubscribers = (
       },
     }),
     new DBEventsPublisher(DBParticipant, {
+      logger,
       publish: (event, item) => {
         switch (event) {
           case 'delete':
@@ -138,6 +142,7 @@ const registerDBSubscribers = (
       },
     }),
     new DBEventsPublisher(DBMessage, {
+      logger,
       publish: (event, item) => {
         switch (event) {
           case 'delete':
