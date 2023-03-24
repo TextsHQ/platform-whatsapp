@@ -251,3 +251,23 @@ export async function waitForAllEventsToBeHandled(
 export function generateInstanceId() {
   return randomBytes(2).toString('hex')
 }
+
+/**
+ * recursively removes all undefined values from an object
+ * @param obj obj to remove from
+ */
+export function clearUndefineds<T>(obj: T) {
+  if (!obj) {
+    return
+  }
+
+  if (typeof obj === 'object') {
+    for (const key in obj) {
+      if (obj[key] === undefined) {
+        delete obj[key]
+      } else {
+        clearUndefineds(obj[key])
+      }
+    }
+  }
+}

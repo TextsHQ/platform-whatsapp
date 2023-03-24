@@ -1,5 +1,6 @@
 import type { Logger } from 'pino'
 import type { EntityMetadata, EntitySubscriberInterface, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm'
+import { clearUndefineds } from './generics'
 
 const getValue = (obj: any, path: string[]) => (
   path.reduce((a, b) => (typeof a === 'object' ? a[b] : undefined), obj)
@@ -91,6 +92,10 @@ export class DBEventsPublisher<T extends { shouldFireEvent?: boolean }> implemen
 
   _eventPublish: DBEventListener<T>['publish'] = (event, data) => {
     this.logger.debug({ name: this.entity.name, event, data }, 'publishing event')
+    // remove any undefined values from the data
+    // this is because we don't expect undefined values
+    // to be used, but the client still sees them & could use
+    clearUndefineds(data)
     this.eventPublish(event, data)
   }
 }
