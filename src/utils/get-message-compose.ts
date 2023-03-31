@@ -1,3 +1,4 @@
+import fsp from 'fs/promises'
 import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
@@ -30,7 +31,7 @@ const getMessageCompose = async (
 
   if (buffer) {
     if (mimeType?.endsWith('/x-vcard') || mimeType?.endsWith('/vcf')) {
-      const vcardStr = (buffer as Buffer).toString('utf-8')
+      const vcardStr = Buffer.isBuffer(buffer) ? buffer.toString('utf-8') : await fsp.readFile(buffer.url, 'utf-8')
       const parsed = parseVCard(vcardStr)
       let displayName = parsed.fn?.[0]?.value
       displayName = typeof displayName === 'string' ? displayName : displayName?.[0]
