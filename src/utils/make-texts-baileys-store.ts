@@ -143,6 +143,18 @@ const makeTextsBaileysStore = (
       await handleGroupsUpdate(events['groups.update'], excludeEvent, getGroupMetadata, ctx)
     }
 
+    if (events.call) {
+      events.call.forEach(call => {
+        texts.log(call)
+        if (call.status !== 'offer') return
+        const text = `You have an incoming ${call.isVideo ? 'video' : 'voice'} call from ${call.from}`
+        publishEvent({
+          type: ServerEventType.TOAST,
+          toast: { text },
+        })
+      })
+    }
+
     return { didSyncHistory }
   }
 
