@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master",
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#60f117cfd188d663246f4a48708576fefa6fdb43",
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#5f7697e14ee63a6311beddf850c3463d12fa357b",
     "better-sqlite3": "^7.4.5",
     "jimp": "^0.16.2",
     "link-preview-js": "2.1.15",
