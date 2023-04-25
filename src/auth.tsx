@@ -1,6 +1,6 @@
 import React from 'react'
 import QRCode from '@textshq/platform-sdk/dist/QRCode'
-import type { AuthProps } from '@textshq/platform-sdk'
+import { AuthProps, texts } from '@textshq/platform-sdk'
 
 const WALogo = (
   <svg width="64" height="64" viewBox="0 0 64 64">
@@ -43,17 +43,29 @@ const renderQR = (qrValue: string | undefined) => (
 )
 
 export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?: string, error?: string }> {
+  private timeout: ReturnType<typeof setTimeout>
+
   constructor(props: AuthProps) {
     super(props)
+    const initTime = Date.now()
     this.state = {}
     const { api, login } = this.props
+    this.timeout = setTimeout(() => {
+      if (!this.state.qrValue) texts.error('qr not rendered in >10s')
+    }, 10_000)
     api!.onLoginEvent!(({ qr: qrValue, isOpen, error }) => {
+      const ms = Date.now() - initTime
+      texts.log('qr rendered in', ms, 'ms')
       this.setState(prevState => ({ qrValue, error: error || prevState?.error }))
       if (isOpen) {
         login!()
         api!.onLoginEvent!(() => { })
       }
     })
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.timeout)
   }
 
   render() {

@@ -2544,13 +2544,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#60f117cfd188d663246f4a48708576fefa6fdb43":
+"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#1ba6c9270b285cbfefee5f074aea0423790e0b5f":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=60f117cfd188d663246f4a48708576fefa6fdb43"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=1ba6c9270b285cbfefee5f074aea0423790e0b5f"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: d70d957836ce128270b6fd58e486ad4021375094155850208ef9eb7e1e6f7b00180b65617865cca1c8367752f056e1b2c4241b3f31c0eaaa479b726cdb0e4d6a
+  checksum: a18e3e137265d8186c481ebd4b58246a481187fae4dcb63d3b71e792d8b4cbc59fcb534439df40db2457dc26fc5443408db3fe98cafd8774268fa21f6d51643e
   languageName: node
   linkType: hard
 
@@ -2560,7 +2560,7 @@ __metadata:
   dependencies:
     "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master"
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#60f117cfd188d663246f4a48708576fefa6fdb43"
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#1ba6c9270b285cbfefee5f074aea0423790e0b5f"
     "@types/eslint": ^8.4.10
     "@types/jest": ^29.0.0
     "@types/match-sorter": ^4.0.0
@@ -6381,7 +6381,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 9adc2f2a1476140f650ac25270b98850499e8eb8968171fb53ce1a256d6d931d5a5719f2d9c0d7706f2ef332a1ba149598bd7035000ddb74cc9408dd45800f39
   languageName: node
   linkType: hard
 
