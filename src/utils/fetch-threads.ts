@@ -82,7 +82,11 @@ const fetchThreads = async (
                   delete item.user
 
                   itemsToSave.push(item)
-                  participantsToSave.push(...item.participantsList!)
+
+                  for (const participant of item.participantsList!) {
+                    participant.shouldFireEvent = false
+                    participantsToSave.push(participant)
+                  }
                 } catch (error) {
                   mappingCtx.logger.error({ trace: error.stack, id: item.id }, 'error in fetching group meta')
                 }
