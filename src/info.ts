@@ -43,6 +43,7 @@ const info: PlatformInfo = {
     Attribute.SUBSCRIBE_TO_ONLINE_OFFLINE_ACTIVITY,
     Attribute.SUPPORTS_MESSAGE_EXPIRY,
     Attribute.CAN_FETCH_LINK_PREVIEW,
+    Attribute.SUPPORTS_EDIT_MESSAGE,
     // Attribute.SUPPORTS_SEARCH,
     // Attribute.SUPPORTS_PUSH_NOTIFICATIONS,
   ]),

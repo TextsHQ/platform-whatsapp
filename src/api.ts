@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from '@adiwajshing/baileys'
-import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID } from '@textshq/platform-sdk'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, Message } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -842,6 +842,25 @@ export default class WhatsAppAPI implements PlatformAPI {
         ),
       ),
     )
+  }
+
+  editMessage = async (threadID: string, messageID: string, content: MessageContent, options?: MessageSendOptions | undefined) => {
+    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+    if (!msg) {
+      throw new Error('Message not found')
+    }
+
+    const [{ compose }] = await getMessageCompose(this.db, threadID, content, undefined, options)
+
+    await this.client!.sendMessage(
+      threadID,
+      {
+        edit: msg.key,
+        newContent: compose as AnyRegularMessageContent,
+      },
+    )
+
+    return true
   }
 
   deleteMessage = async (threadID: string, messageID: string, forEveryone?: boolean) => {
