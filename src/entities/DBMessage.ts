@@ -224,7 +224,9 @@ export default class DBMessage implements Message {
     const stubBasedMessage = messageStubText(message)
     const threadId = getChatId(message.key)
     const { attachments } = messageAttachments(messageContent!, threadId, id)
-    const timestamp = toNumber(message.messageTimestamp!) * 1000
+    // do not update timestamp
+    const timestamp = this.timestamp?.getTime()
+      || toNumber(message.messageTimestamp!) * 1000
 
     const linked = mapMessageQuoted(messageInner, threadId, currentUserID)
     const link = messageLink(message, normalizedMessageContent)
@@ -280,6 +282,10 @@ export default class DBMessage implements Message {
       seen: message.key.fromMe ? mapMessageSeen(message) : {},
       reactions: message.reactions ? mapMessageReactions(message.reactions, ctx.meID!) : undefined,
       isHidden: isHiddenMessage(message, normalizedMessageContent),
+      // if edited, then the timestamp is the edited timestamp
+      editedTimestamp: message.message?.editedMessage
+        ? new Date(toNumber(message.messageTimestamp) * 1000)
+        : undefined,
     }
 
     if (STORIES_JID !== linked?.threadID) {
