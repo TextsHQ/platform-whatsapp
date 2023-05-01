@@ -284,7 +284,7 @@ export default class DBMessage implements Message {
       isHidden: isHiddenMessage(message, normalizedMessageContent),
       // if edited, then the timestamp is the edited timestamp
       editedTimestamp: message.message?.editedMessage
-        ? new Date(toNumber(message.messageTimestamp) * 1000)
+        ? new Date(toNumber(message.messageTimestamp))
         : undefined,
     }
 
