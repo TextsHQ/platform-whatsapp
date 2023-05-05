@@ -96,6 +96,9 @@ export default class DBMessage implements Message {
   @Column({ type: 'boolean', default: false, nullable: false })
     isDelivered?: boolean
 
+  @Column({ type: 'datetime', nullable: false })
+    editedTimestamp?: Date
+
   cursor?: string
 
   // derived from orderKey
