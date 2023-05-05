@@ -39,6 +39,9 @@ const RECONNECT_DELAY_MS = 2500
 
 const MAX_RECONNECT_TRIES = 5000
 
+const MAX_DELETE_MSG_INTERVAL_S = 60 * 60 * 24 * 2 // 2 days
+const MAX_EDIT_MSG_INTERVAL_S = 60 * 20 // 20 minutes
+
 const config: Partial<SocketConfig> = {
   browser: Browsers.appropriate('Desktop'),
   syncFullHistory: true,
@@ -850,6 +853,12 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw new Error('Message not found')
     }
 
+    if (
+      unixTimestampSeconds() - toNumber(msg.messageTimestamp!) > MAX_EDIT_MSG_INTERVAL_S
+    ) {
+      throw new Error('Message can only be edited within 20 minutes of being sent')
+    }
+
     const [{ compose }] = await getMessageCompose(this.db, threadID, content, undefined, options)
 
     await this.client!.sendMessage(
@@ -869,6 +878,11 @@ export default class WhatsAppAPI implements PlatformAPI {
       throw new Error('Message not found')
     }
     if (forEveryone) {
+      if (
+        unixTimestampSeconds() - toNumber(msg.messageTimestamp!) > MAX_DELETE_MSG_INTERVAL_S
+      ) {
+        throw new Error('Message is too old to be deleted for everyone')
+      }
       await this.client!.sendMessage(threadID, { delete: msg.key })
     } else {
       await this.client!.chatModify({
