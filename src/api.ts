@@ -1029,6 +1029,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private async modThread(threadID: string, value: boolean, key: 'pin' | 'mutedUntil' | 'isArchived' | 'isUnread') {
+    await this.waitForConnectionOpen()
     const thread = await this.getChat(threadID)
     if (!thread) throw new Error('modThread: thread not found')
 
