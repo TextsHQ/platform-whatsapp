@@ -104,6 +104,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private fileCache: FileCache
 
+  private nativeArchiveSync: boolean | undefined
+
   logger: Logger
 
   db: Connection
@@ -116,9 +118,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   constructor(readonly accountID: string) {}
 
-  init = async (session: string | undefined, { dataDirPath, country }: ClientContext) => {
+  init = async (session: string | undefined, { nativeArchiveSync, dataDirPath, country }: ClientContext) => {
     this.dataDirPath = dataDirPath
     this.country = country ?? 'US'
+    this.nativeArchiveSync = nativeArchiveSync
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log'))
       .child({
         stream: 'pw-' + this.accountID,
@@ -375,6 +378,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
     this.evCallback = onEvent
+    if (this.nativeArchiveSync && this.client && !this.client.authState.creds.accountSettings.unarchiveChats) {
+      onEvent([{
+        type: ServerEventType.TOAST,
+        toast: {
+          timeoutMs: -1,
+          text: '"Sync thread archive state with native platform" is enabled in Texts settings while "Keep Chats Archived" is enabled in WhatsApp settings. You may wanna turn that off to make sure new messages unarchive threads.',
+        },
+      }])
+    }
   }
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
