@@ -96,7 +96,7 @@ export default class DBMessage implements Message {
   @Column({ type: 'boolean', default: false, nullable: false })
     isDelivered?: boolean
 
-  @Column({ type: 'datetime', nullable: false })
+  @Column({ type: 'datetime', nullable: true })
     editedTimestamp?: Date
 
   cursor?: string
