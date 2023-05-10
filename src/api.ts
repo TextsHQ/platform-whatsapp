@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from '@adiwajshing/baileys'
-import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID } from '@textshq/platform-sdk'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, Message } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -38,6 +38,9 @@ import { decodeSerializedSession, encodeSerializedSession } from './utils/sessio
 const RECONNECT_DELAY_MS = 2500
 
 const MAX_RECONNECT_TRIES = 5000
+
+const MAX_DELETE_MSG_INTERVAL_S = 60 * 60 * 24 * 2 // 2 days
+const MAX_EDIT_MSG_INTERVAL_S = 60 * 20 // 20 minutes
 
 const config: Partial<SocketConfig> = {
   browser: Browsers.appropriate('Desktop'),
@@ -101,6 +104,8 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private fileCache: FileCache
 
+  private nativeArchiveSync: boolean | undefined
+
   logger: Logger
 
   db: Connection
@@ -113,9 +118,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   constructor(readonly accountID: string) {}
 
-  init = async (session: string | undefined, { dataDirPath, country }: ClientContext) => {
+  init = async (session: string | undefined, { nativeArchiveSync, dataDirPath, country }: ClientContext) => {
     this.dataDirPath = dataDirPath
     this.country = country ?? 'US'
+    this.nativeArchiveSync = nativeArchiveSync
     this.logger = getLogger(path.join(dataDirPath, 'platform-whatsapp.log'))
       .child({
         stream: 'pw-' + this.accountID,
@@ -372,6 +378,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
     this.evCallback = onEvent
+    if (this.nativeArchiveSync && this.client && !this.client.authState.creds.accountSettings.unarchiveChats) {
+      onEvent([{
+        type: ServerEventType.TOAST,
+        toast: {
+          timeoutMs: -1,
+          text: '"Sync thread archive state with native platform" is enabled in Texts settings while "Keep Chats Archived" is enabled in WhatsApp settings. You may wanna turn that off to make sure new messages unarchive threads.',
+        },
+      }])
+    }
   }
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {
@@ -844,12 +859,42 @@ export default class WhatsAppAPI implements PlatformAPI {
     )
   }
 
+  editMessage = async (threadID: string, messageID: string, content: MessageContent, options?: MessageSendOptions | undefined) => {
+    const msg = await this.loadWAMessageFromDB(threadID, messageID)
+    if (!msg) {
+      throw new Error('Message not found')
+    }
+
+    if (
+      unixTimestampSeconds() - toNumber(msg.messageTimestamp!) > MAX_EDIT_MSG_INTERVAL_S
+    ) {
+      throw new Error('Message can only be edited within 20 minutes of being sent')
+    }
+
+    const [{ compose }] = await getMessageCompose(this.db, threadID, content, undefined, options)
+
+    await this.client!.sendMessage(
+      threadID,
+      {
+        edit: msg.key,
+        newContent: compose as AnyRegularMessageContent,
+      },
+    )
+
+    return true
+  }
+
   deleteMessage = async (threadID: string, messageID: string, forEveryone?: boolean) => {
     const msg = await this.loadWAMessageFromDB(threadID, messageID)
     if (!msg) {
       throw new Error('Message not found')
     }
     if (forEveryone) {
+      if (
+        unixTimestampSeconds() - toNumber(msg.messageTimestamp!) > MAX_DELETE_MSG_INTERVAL_S
+      ) {
+        throw new Error('Message is too old to be deleted for everyone')
+      }
       await this.client!.sendMessage(threadID, { delete: msg.key })
     } else {
       await this.client!.chatModify({
@@ -996,6 +1041,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   private async modThread(threadID: string, value: boolean, key: 'pin' | 'mutedUntil' | 'isArchived' | 'isUnread') {
+    await this.waitForConnectionOpen()
     const thread = await this.getChat(threadID)
     if (!thread) throw new Error('modThread: thread not found')
 

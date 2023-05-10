@@ -481,6 +481,8 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
       return 'App State Key Requested'
     case ProtocolMessageType.INITIAL_SECURITY_NOTIFICATION_SETTING_SYNC:
       return '🔒 Messages you send to this chat and calls are secured with end-to-end encryption'
+    case ProtocolMessageType.MESSAGE_EDIT:
+      return 'Message Edited'
     default:
       break
   }
