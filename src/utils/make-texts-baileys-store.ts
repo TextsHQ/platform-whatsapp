@@ -9,7 +9,7 @@ import type { MappingContextWithDB } from '../types'
 import chunkedWrite from './chunked-write'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
 import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
-import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from './generics'
+import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex, getPhoneNumberFromId } from './generics'
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
@@ -144,15 +144,18 @@ const makeTextsBaileysStore = (
     }
 
     if (events.call) {
-      events.call.forEach(call => {
-        texts.log(call)
-        if (call.status !== 'offer') return
-        const text = `You have an incoming ${call.isVideo ? 'video' : 'voice'} call from ${call.from}`
+      for (const call of events.call) {
+        if (call.status !== 'offer') {
+          continue
+        }
+
+        const name = await fetchUserFullNameById(call.from, ctx) || 'Unknown'
+        const text = `You have an incoming ${call.isVideo ? 'video' : 'voice'} call from ${name}`
         publishEvent({
           type: ServerEventType.TOAST,
           toast: { text },
         })
-      })
+      }
     }
 
     return { didSyncHistory }
@@ -219,6 +222,16 @@ function hasDBEvent(map: Partial<BaileysEventMap>) {
   }
 
   return false
+}
+
+async function fetchUserFullNameById(
+  id: string,
+  { db }: MappingContextWithDB,
+) {
+  const user = await db
+    .getRepository(DBUser)
+    .findOne({ id: jidNormalizedUser(id) })
+  return user?.fullName || getPhoneNumberFromId(id)
 }
 
 async function handleGroupsUpdate(
