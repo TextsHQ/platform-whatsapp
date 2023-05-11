@@ -5,9 +5,9 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@adiwajshing/baileys@https://github.com/adiwajshing/baileys#master":
+"@adiwajshing/baileys@https://github.com/TextsHQ/baileys#master":
   version: 5.0.0
-  resolution: "@adiwajshing/baileys@https://github.com/adiwajshing/baileys.git#commit=a22e659680988c4fda126f9682d65cefe0416369"
+  resolution: "@adiwajshing/baileys@https://github.com/TextsHQ/baileys.git#commit=a22e659680988c4fda126f9682d65cefe0416369"
   dependencies:
     "@hapi/boom": ^9.1.3
     axios: ^1.3.3
@@ -2558,7 +2558,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@textshq/platform-whatsapp@workspace:."
   dependencies:
-    "@adiwajshing/baileys": "https://github.com/adiwajshing/baileys#master"
+    "@adiwajshing/baileys": "https://github.com/TextsHQ/baileys#master"
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#1ba6c9270b285cbfefee5f074aea0423790e0b5f"
     "@types/eslint": ^8.4.10
@@ -6381,7 +6381,7 @@ __metadata:
   dependencies:
     curve25519-js: ^0.0.4
     protobufjs: 6.8.8
-  checksum: dd5226bd50402f63252e769e441db6677b26a4be431bd1a124eb2911969983b2be71beeeebc9b831c969497ea13f9c8112260921a1db289cfd74b6373ac1ddb9
+  checksum: 9adc2f2a1476140f650ac25270b98850499e8eb8968171fb53ce1a256d6d931d5a5719f2d9c0d7706f2ef332a1ba149598bd7035000ddb74cc9408dd45800f39
   languageName: node
   linkType: hard
 
