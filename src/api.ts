@@ -378,15 +378,15 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   subscribeToEvents = (onEvent: OnServerEventCallback) => {
     this.evCallback = onEvent
-    if (this.nativeArchiveSync && this.client && !this.client.authState.creds.accountSettings.unarchiveChats) {
-      onEvent([{
-        type: ServerEventType.TOAST,
-        toast: {
-          timeoutMs: -1,
-          text: '"Sync thread archive state with native platform" is enabled in Texts settings while "Keep Chats Archived" is enabled in WhatsApp settings. You may wanna turn that off to make sure new messages unarchive threads.',
-        },
-      }])
-    }
+    // if (this.nativeArchiveSync && this.client && !this.client.authState.creds.accountSettings.unarchiveChats) {
+    //   onEvent([{
+    //     type: ServerEventType.TOAST,
+    //     toast: {
+    //       timeoutMs: -1,
+    //       text: '"Sync thread archive state with native platform" is enabled in Texts settings while "Keep Chats Archived" is enabled in WhatsApp settings. You may wanna turn that off to make sure new messages unarchive threads.',
+    //     },
+    //   }])
+    // }
   }
 
   onConnectionStateChange = (onEvent: OnConnStateChangeCallback) => {

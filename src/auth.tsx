@@ -51,11 +51,12 @@ export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?:
     this.state = {}
     const { api, login } = this.props
     this.timeout = setTimeout(() => {
-      if (!this.state.qrValue) texts.error('qr not rendered in >10s')
+      texts.error('qr not rendered in >10s')
     }, 10_000)
     api!.onLoginEvent!(({ qr: qrValue, isOpen, error }) => {
       const ms = Date.now() - initTime
       texts.log('qr rendered in', ms, 'ms')
+      clearTimeout(this.timeout)
       this.setState(prevState => ({ qrValue, error: error || prevState?.error }))
       if (isOpen) {
         login!()
