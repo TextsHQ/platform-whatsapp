@@ -69,6 +69,10 @@ const info: PlatformInfo = {
   },
   extra: {
     e2ee: 'full',
+    macOSAppBundleIDs: [
+      'WhatsApp', // electron
+      'net.whatsapp.WhatsApp', // catalyst
+    ],
     mentionsSupported: true,
     getUnknownParticipant(participantID: string): Participant | undefined {
       if (participantID && participantID.endsWith('s.whatsapp.net')) {
