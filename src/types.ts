@@ -33,7 +33,7 @@ export type MappingContext = {
 
 export type MappingContextWithDB = MappingContext & { db: Connection | EntityManager }
 
-export type Transaction = ReturnType<typeof texts.Sentry.startTransaction>
+export type Transaction = any
 
 export type LoginCallback = (data: { qr: string | undefined, isOpen: boolean, error?: string }) => void
 
