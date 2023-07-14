@@ -574,6 +574,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       .orderBy('full_name')
       .addOrderBy('id')
       .useTransaction(false)
+      .limit(100)
       .getMany()
     return users
   }
