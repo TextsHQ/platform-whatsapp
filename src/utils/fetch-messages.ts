@@ -14,23 +14,28 @@ const fetchMessages = async (
   pagination?: PaginationArg,
 ) => {
   const { db } = mappingCtx
+  const { direction = 'before', cursor } = pagination || {}
+  const directionIsBefore = direction === 'before'
 
   const repo = db.getRepository(DBMessage)
   let qb = await repo
     .createQueryBuilder()
     .where('thread_id = :threadID', { threadID })
-    .orderBy('order_key', 'DESC')
-    .limit(MESSAGE_PAGE_SIZE + (pagination?.cursor ? 1 : 0))
-  if (pagination?.cursor) {
-    const numCursor = stringToSortKey(pagination.cursor)
-    qb = qb.andWhere(`order_key <= '${numCursor}'`)
+    .orderBy('order_key', directionIsBefore ? 'DESC' : 'ASC')
+    .limit(MESSAGE_PAGE_SIZE + (cursor ? 1 : 0))
+  if (cursor) {
+    const numCursor = stringToSortKey(cursor)
+    qb = qb.andWhere(`order_key ${directionIsBefore ? '<=' : '>='} '${numCursor}'`)
   }
-  let items = (await qb.getMany()).reverse()
+  let items = await qb.getMany()
+  if (directionIsBefore) items.reverse()
 
   let hasMore = false
 
-  if (pagination?.cursor) {
-    items = items.slice(0, -1)
+  if (cursor) {
+    items = directionIsBefore
+      ? items.slice(0, -1)
+      : items.slice(1)
   }
 
   hasMore = hasMore || items.length >= MESSAGE_PAGE_SIZE
