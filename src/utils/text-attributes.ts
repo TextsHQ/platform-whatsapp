@@ -163,6 +163,7 @@ export function mapTextAttributes(src: string, contactUsername: (id: string) => 
             entity.mentionedUser = { id: content }
             break
           }
+          default:
         }
         entities.push(entity)
         // Set input to start from the char after the closing token.

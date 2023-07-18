@@ -110,7 +110,7 @@ export default class DBMessage implements Message {
 
   shouldFireEvent?: boolean
 
-  static prepareForSending<T extends Partial<DBMessage>>(item: T, accountID: string): T {
+  static prepareForSending<T extends Partial<DBMessage>>(item: T): T {
     item = { ...item }
     if (item.text) {
       const { text, textAttributes } = mapTextAttributes(

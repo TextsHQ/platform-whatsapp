@@ -16,13 +16,13 @@ const registerDBSubscribers = (
   ctx: MappingContextWithDB,
 ) => {
   const db = ctx.db as Connection
-  const logger = ctx.logger
+  const { logger } = ctx
   db.subscribers.push(
     new DBEventsPublisher(DBThread, {
       logger,
       publish: (event, item) => {
         switch (event) {
-          case 'delete':
+          case 'delete': {
             const { id } = item as DBThread
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -32,7 +32,8 @@ const registerDBSubscribers = (
               entries: [id],
             })
             break
-          case 'insert':
+          }
+          case 'insert': {
             const dbItem = DBThread.prepareForSending(item as DBThread, ctx.accountID)
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -42,7 +43,8 @@ const registerDBSubscribers = (
               entries: [dbItem],
             })
             break
-          case 'update':
+          }
+          case 'update': {
             const { key, update } = item as any
             const processedUpdate = DBThread.prepareForSending<Partial<DBThread>>(update, ctx.accountID)
 
@@ -70,6 +72,8 @@ const registerDBSubscribers = (
               })
             }
             break
+          }
+          default:
         }
       },
     }),
@@ -77,7 +81,7 @@ const registerDBSubscribers = (
       logger,
       publish(event, item) {
         switch (event) {
-          case 'insert':
+          case 'insert': {
             const participant = item as DBUser
             DBUser.prepareForSending(participant, ctx.accountID)
 
@@ -89,7 +93,8 @@ const registerDBSubscribers = (
               entries: [participant],
             })
             break
-          case 'update':
+          }
+          case 'update': {
             const { key, update } = item as any
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -99,6 +104,8 @@ const registerDBSubscribers = (
               entries: [{ ...update, ...key }],
             })
             break
+          }
+          default:
         }
       },
     }),
@@ -106,7 +113,7 @@ const registerDBSubscribers = (
       logger,
       publish: (event, item) => {
         switch (event) {
-          case 'delete':
+          case 'delete': {
             const { id } = item as DBParticipant
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -116,7 +123,8 @@ const registerDBSubscribers = (
               entries: [id],
             })
             break
-          case 'insert':
+          }
+          case 'insert': {
             const participant = (item as DBParticipant).toParticipant()
             DBUser.prepareForSending(participant, ctx.accountID)
 
@@ -128,7 +136,8 @@ const registerDBSubscribers = (
               entries: [participant],
             })
             break
-          case 'update':
+          }
+          case 'update': {
             const { key, update } = item as any
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -138,6 +147,8 @@ const registerDBSubscribers = (
               entries: [{ ...update, ...key }],
             })
             break
+          }
+          default:
         }
       },
     }),
@@ -145,7 +156,7 @@ const registerDBSubscribers = (
       logger,
       publish: (event, item) => {
         switch (event) {
-          case 'delete':
+          case 'delete': {
             const id = (item as Partial<DBMessage>)
             publishEvent({
               type: ServerEventType.STATE_SYNC,
@@ -155,7 +166,8 @@ const registerDBSubscribers = (
               entries: [id.id!],
             })
             break
-          case 'insert':
+          }
+          case 'insert': {
             const dbItem = DBMessage.prepareForSending(item as DBMessage, ctx.accountID)
 
             publishEvent({
@@ -166,7 +178,8 @@ const registerDBSubscribers = (
               entries: [dbItem],
             })
             break
-          case 'update':
+          }
+          case 'update': {
             const { key, update } = item as any
             const processedUpdate = DBMessage.prepareForSending(update as Partial<DBMessage>, ctx.accountID)
 
@@ -183,8 +196,9 @@ const registerDBSubscribers = (
                 entries: [{ ...key, ...processedUpdate }],
               })
             }
-
             break
+          }
+          default:
         }
       },
     }),

@@ -1,5 +1,4 @@
 import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from '@adiwajshing/baileys'
-import type { texts } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection, EntityManager } from 'typeorm'
 
