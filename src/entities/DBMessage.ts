@@ -110,7 +110,8 @@ export default class DBMessage implements Message {
 
   shouldFireEvent?: boolean
 
-  static prepareForSending<T extends Partial<DBMessage>>(item: T): T {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static prepareForSending<T extends Partial<DBMessage>>(item: T, accountID: string): T {
     item = { ...item }
     if (item.text) {
       const { text, textAttributes } = mapTextAttributes(
