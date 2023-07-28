@@ -116,6 +116,7 @@ const ATTACHMENT_MAP = {
   imageMessage: AttachmentType.IMG,
   stickerMessage: AttachmentType.IMG,
   videoMessage: AttachmentType.VIDEO,
+  ptvMessage: AttachmentType.VIDEO,
 } as { [T in MessageType]: AttachmentType }
 
 const MESSAGE_ACTION_MAP = {
@@ -277,9 +278,9 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
       data: Buffer.from(c!.vcard!, 'utf-8'),
       fileName: `${c!.displayName}.vcf`,
     }))
-  } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage) {
+  } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage || message.ptvMessage) {
     const messageType = getContentType(message)!
-    const jpegThumbnail = (message.videoMessage || message.imageMessage)?.jpegThumbnail
+    const jpegThumbnail = (message.videoMessage || message.imageMessage || message.ptvMessage)?.jpegThumbnail
     const fileName = message.documentMessage?.fileName
     const content = message[messageType] as WAGenericMediaMessage
 
@@ -293,7 +294,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
       id,
       size: (size.width && size.height) ? size : undefined,
       type: ATTACHMENT_MAP[messageType] || AttachmentType.UNKNOWN,
-      isGif: !!message.videoMessage?.gifPlayback,
+      isGif: !!(message.videoMessage || message.ptvMessage)?.gifPlayback,
       isSticker: message.stickerMessage ? true : undefined,
       mimeType: messageInner.mimetype,
       posterImg: jpegThumbnail ? `data:;base64,${Buffer.from(jpegThumbnail).toString('base64')}` : undefined,
