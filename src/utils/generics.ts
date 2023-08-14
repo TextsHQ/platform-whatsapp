@@ -189,6 +189,7 @@ export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProt
   const contentType = normalizedMessageContent ? getContentType(normalizedMessageContent) : undefined
   // reaction messages should be hidden
   return contentType === 'reactionMessage'
+    || contentType === 'keepInChatMessage'
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
     || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
