@@ -242,14 +242,18 @@ async function handleMessageReactionDelete(
   const { db } = context
   const messageRepo = db.getRepository(DBMessage)
 
+  const mapped: DBMessage[] = []
+
   for (const message of messages) {
     const reactionMessageKey = message.message?.reactionMessage?.key
     if (!reactionMessageKey) continue
 
     const [affectedMessage, reactionMessage] = await fetchMessagesInDB(db, [{ key: reactionMessageKey }, { key: message.key }])
     affectedMessage.reactions = affectedMessage.reactions?.filter(reaction => reaction.id !== reactionMessage.senderID)
-    messageRepo.save(messageRepo, { chunk: DEFAULT_CHUNK_SIZE })
+    mapped.push(affectedMessage)
   }
+
+  await messageRepo.save(mapped, { chunk: DEFAULT_CHUNK_SIZE })
 }
 
 async function handleMessagesUpsert(
