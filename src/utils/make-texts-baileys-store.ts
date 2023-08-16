@@ -235,6 +235,27 @@ async function handleGroupsUpdate(
   }
 }
 
+async function handleMessageReactionDelete(
+  { messages }: BaileysEventMap['messages.upsert'],
+  context: MappingContextWithDB,
+) {
+  const { db } = context
+  const messageRepo = db.getRepository(DBMessage)
+
+  const mapped: DBMessage[] = []
+
+  for (const message of messages) {
+    const reactionMessageKey = message.message?.reactionMessage?.key
+    if (!reactionMessageKey) continue
+
+    const [affectedMessage, reactionMessage] = await fetchMessagesInDB(db, [{ key: reactionMessageKey }, { key: message.key }])
+    affectedMessage.reactions = affectedMessage.reactions?.filter(reaction => reaction.id !== reactionMessage.senderID)
+    mapped.push(affectedMessage)
+  }
+
+  await messageRepo.save(mapped, { chunk: DEFAULT_CHUNK_SIZE })
+}
+
 async function handleMessagesUpsert(
   { messages, type }: BaileysEventMap['messages.upsert'],
   chatUpdates: Partial<Chat>[],
@@ -380,6 +401,7 @@ async function handleMessagesUpsert(
   }
 
   await msgRepo.save(mapped, { chunk: DEFAULT_CHUNK_SIZE })
+  await handleMessageReactionDelete({ messages, type }, ctx)
 
   const missingThreadIds = Object.keys(missingThreadMap)
 
