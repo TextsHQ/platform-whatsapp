@@ -13,6 +13,7 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
+import DBDroppedEvent from '../entities/DBDroppedEvent'
 
 const DEFAULT_CHUNK_SIZE = 100
 
@@ -146,7 +147,44 @@ const makeTextsBaileysStore = (
     return { didSyncHistory }
   }
 
+  async function saveDroppedEvents(events: Partial<BaileysEventMap>) {
+    const droppedEventRepository = mappingCtx.db.getRepository(DBDroppedEvent)
+    const eventsToSave: BaileysEvent[] = Object.keys(events) as BaileysEvent[]
+
+    for (const eventName of eventsToSave) {
+      const event = events[eventName]
+
+      if (!event) continue
+
+      const droppedEvent = new DBDroppedEvent()
+      droppedEvent.set(eventName, event)
+      await droppedEventRepository.save(droppedEvent, { chunk: DEFAULT_CHUNK_SIZE })
+    }
+  }
+
+  async function processDroppedEvents(ctx: MappingContextWithDB) {
+    const droppedEventRepository = mappingCtx.db.getRepository(DBDroppedEvent)
+    const eventsToProcess = await droppedEventRepository.find({
+      order: {
+        timestamp: 'DESC',
+      },
+    })
+
+    for (const event of eventsToProcess) {
+      await processEvents({ [event.eventName]: event.eventData }, ctx)
+        .then(() => droppedEventRepository.remove(event))
+        .catch(() => {
+          const { exceededMaxAttempts } = event.acknowledgeAttempt()
+          droppedEventRepository.save(event, { chunk: DEFAULT_CHUNK_SIZE })
+
+          if (exceededMaxAttempts) return droppedEventRepository.remove(event)
+        })
+    }
+  }
+
   async function process(events: Partial<BaileysEventMap>) {
+    await processDroppedEvents(mappingCtx)
+
     if (hasDBEvent(events)) {
       const result = await mappingCtx.db.transaction(
         db => (
@@ -177,6 +215,8 @@ const makeTextsBaileysStore = (
                 timeoutMs: -1,
               },
             })
+
+            saveDroppedEvents(events)
           },
         )
 

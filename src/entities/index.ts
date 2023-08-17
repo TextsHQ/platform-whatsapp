@@ -1,4 +1,5 @@
 import AccountKeyValue from './AccountKeyValue'
+import DBDroppedEvent from './DBDroppedEvent'
 import DBMessage from './DBMessage'
 import DBParticipant from './DBParticipant'
 import DBThread from './DBThread'
@@ -10,4 +11,5 @@ export default [
   DBUser,
   DBThread,
   AccountKeyValue,
+  DBDroppedEvent,
 ]
