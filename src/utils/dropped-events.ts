@@ -16,7 +16,7 @@ interface TrackedEventCluster {
 export interface DroppedEventHandlerOptions {
   onDroppedEvents?(events: Partial<BaileysEventMap>): void | Promise<void>
   getDroppedEvents?(): Promise<TrackedEventCluster[]>
-  acknowledgeRetryDroppedEvents?(events: TrackedEventCluster, success: boolean): void | Promise<void>
+  acknowledgeRetryDroppedEvents?(events: TrackedEventCluster, success: boolean): Promise<{ exceededMaximumAttempts: boolean }>
 }
 
 interface Options {
@@ -85,10 +85,14 @@ export const acknowledgeDroppedEventsRetry = async (
 
   deserialized.attempts++
 
-  if (deserialized.attempts >= MAXIMUM_ATTEMPTS || success) {
+  const exceededMaximumAttempts = deserialized.attempts >= MAXIMUM_ATTEMPTS
+
+  if (exceededMaximumAttempts || success) {
     await rm(filePath)
   } else {
     const reserialized = v8.serialize(deserialized)
     await writeFile(filePath, reserialized)
   }
+
+  return { exceededMaximumAttempts }
 }

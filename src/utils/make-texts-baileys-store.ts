@@ -157,7 +157,12 @@ const makeTextsBaileysStore = (
           .then(() => true)
           .catch(() => false)
 
-        await acknowledgeRetryDroppedEvents?.(droppedEventCluster, success)
+        const { exceededMaximumAttempts } = await acknowledgeRetryDroppedEvents?.(droppedEventCluster, success) ?? {}
+
+        if (exceededMaximumAttempts) {
+          const eventNames = Object.keys(droppedEventCluster.events).join(', ')
+          texts.Sentry.captureMessage(`Dropped WhatsApp Events, [${eventNames}] exceeded maximum retries.`)
+        }
       }
     }
 

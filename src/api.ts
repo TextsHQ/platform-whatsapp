@@ -171,9 +171,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       {
         getDroppedEvents: () => getDroppedEvents({ dataDirPath: this.dataDirPath }),
         onDroppedEvents: events => saveDroppedEvents(events, { dataDirPath: this.dataDirPath }),
-        acknowledgeRetryDroppedEvents: async (events, success) => {
-          await acknowledgeDroppedEventsRetry(events, success, { dataDirPath: this.dataDirPath })
-        },
+        acknowledgeRetryDroppedEvents: async (events, success) => acknowledgeDroppedEventsRetry(events, success, { dataDirPath: this.dataDirPath }),
       },
     )
 
