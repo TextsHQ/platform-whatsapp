@@ -55,10 +55,16 @@ export const getDroppedEvents = async ({ dataDirPath }: Options) => {
   const files = await readdir(droppedEventsRegistryFolder, { withFileTypes: true })
   const filteredFiles = files.filter(value => value.isFile() && value.name.startsWith('events-'))
 
+  const pendingSerializedMap: Promise<Buffer>[] = []
   for (const file of filteredFiles) {
     const filePath = join(droppedEventsRegistryFolder, file.name)
+    const serialized = readFile(filePath)
+    pendingSerializedMap.push(serialized)
+  }
 
-    const serialized = await readFile(filePath)
+  const serializedMap = await Promise.all(pendingSerializedMap)
+
+  for (const serialized of serializedMap) {
     const deserialized: TrackedEventCluster = v8.deserialize(serialized)
 
     if (
