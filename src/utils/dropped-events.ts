@@ -23,12 +23,13 @@ interface Options {
   dataDirPath: string
 }
 
-const getDroppedEventsRegistryFolder = (
+const getRegistryFolderPath = (
   dataDirPath: string,
-) => join(dataDirPath, DROPPED_EVENTS_REGISTRY_FOLDER_NAME)
+  ...internalPaths: string[]
+) => join(dataDirPath, DROPPED_EVENTS_REGISTRY_FOLDER_NAME, ...internalPaths)
 
 export const makeDroppedEventsRegistryFolder = async ({ dataDirPath }: Options) => {
-  const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
+  const droppedEventsRegistryFolder = getRegistryFolderPath(dataDirPath)
   await mkdir(droppedEventsRegistryFolder, { recursive: true })
 }
 
@@ -38,17 +39,16 @@ export const saveDroppedEvents = async (
 ) => {
   const timestamp = Date.now()
 
-  const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
-  const identifier = `events-${timestamp.toString()}`
+  const identifier = `events-${timestamp}-${crypto.randomUUID()}`
   const eventCluster: TrackedEventCluster = { identifier, events, attempts: 0, timestamp }
   const serializedEventCluster = v8.serialize(eventCluster)
+  const filePath = getRegistryFolderPath(dataDirPath, `${identifier}.bin`)
 
-  const filePath = join(droppedEventsRegistryFolder, `${identifier}.bin`)
-  writeFile(filePath, serializedEventCluster)
+  return writeFile(filePath, serializedEventCluster)
 }
 
 export const getDroppedEvents = async ({ dataDirPath }: Options) => {
-  const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
+  const droppedEventsRegistryFolder = getRegistryFolderPath(dataDirPath)
 
   const eventsToRetry: TrackedEventCluster[] = []
 
@@ -79,8 +79,7 @@ export const acknowledgeDroppedEventsRetry = async (
   success: boolean,
   { dataDirPath }: Options,
 ) => {
-  const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
-  const filePath = join(droppedEventsRegistryFolder, eventCluster.identifier + '.bin')
+  const filePath = getRegistryFolderPath(dataDirPath, eventCluster.identifier + '.bin')
   const serialized = await readFile(filePath)
   const deserialized: TrackedEventCluster = v8.deserialize(serialized)
 
