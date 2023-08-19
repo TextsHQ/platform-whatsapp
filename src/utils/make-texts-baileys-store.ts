@@ -13,6 +13,7 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
+import type { DroppedEventHandlerOptions } from './dropped-events'
 
 const DEFAULT_CHUNK_SIZE = 100
 
@@ -20,6 +21,7 @@ const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
   getGroupMetadata: WASocket['groupMetadata'],
   mappingCtx: MappingContextWithDB,
+  { onDroppedEvents, getDroppedEvents, acknowledgeRetryDroppedEvents }: DroppedEventHandlerOptions = {},
 ) => {
   registerDBSubscribers(publishEvent, mappingCtx)
 
@@ -147,6 +149,23 @@ const makeTextsBaileysStore = (
   }
 
   async function process(events: Partial<BaileysEventMap>) {
+    const droppedEventClusters = await getDroppedEvents?.() || []
+
+    if (droppedEventClusters.length > 0) {
+      for (const droppedEventCluster of droppedEventClusters) {
+        const success = await mappingCtx.db.transaction(db => processEvents(droppedEventCluster.events, { ...mappingCtx, db }))
+          .then(() => true)
+          .catch(() => false)
+
+        const { exceededMaximumAttempts } = await acknowledgeRetryDroppedEvents?.(droppedEventCluster, success) ?? {}
+
+        if (exceededMaximumAttempts) {
+          const eventNames = Object.keys(droppedEventCluster.events).join(', ')
+          texts.Sentry.captureMessage(`Dropped WhatsApp Events, [${eventNames}] exceeded maximum retries.`)
+        }
+      }
+    }
+
     if (hasDBEvent(events)) {
       const result = await mappingCtx.db.transaction(
         db => (
@@ -170,13 +189,7 @@ const makeTextsBaileysStore = (
             texts?.Sentry.captureException(err)
             texts?.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
 
-            publishEvent({
-              type: ServerEventType.TOAST,
-              toast: {
-                text: `Dropped WhatsApp Events due to error: "${err.message}"`,
-                timeoutMs: -1,
-              },
-            })
+            onDroppedEvents?.(events)
           },
         )
 
