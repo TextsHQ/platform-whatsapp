@@ -1,16 +1,22 @@
+import v8 from 'v8'
 import { BaileysEventMap } from '@adiwajshing/baileys'
 import { mkdir, readdir, writeFile, readFile, rm } from 'fs/promises'
-import { serialize, deserialize } from 'v8'
 import { join } from 'path'
 
 const MAXIMUM_ATTEMPTS = 3
 const DROPPED_EVENTS_REGISTRY_FOLDER_NAME = 'dropped_events'
 
-export interface TrackedEventCluster {
+interface TrackedEventCluster {
   identifier: string
   events: Partial<BaileysEventMap>
   attempts: number
   timestamp: number
+}
+
+export interface DroppedEventHandlerOptions {
+  onDroppedEvents?(events: Partial<BaileysEventMap>): void | Promise<void>
+  getDroppedEvents?(): Promise<TrackedEventCluster[]>
+  acknowledgeRetryDroppedEvents?(events: TrackedEventCluster, success: boolean): void | Promise<void>
 }
 
 interface Options {
@@ -35,7 +41,7 @@ export const saveDroppedEvents = async (
   const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
   const identifier = `events-${timestamp.toString()}`
   const eventCluster: TrackedEventCluster = { identifier, events, attempts: 0, timestamp }
-  const serializedEventCluster = serialize(eventCluster)
+  const serializedEventCluster = v8.serialize(eventCluster)
 
   const filePath = join(droppedEventsRegistryFolder, `${identifier}.bin`)
   writeFile(filePath, serializedEventCluster)
@@ -53,7 +59,7 @@ export const getDroppedEvents = async ({ dataDirPath }: Options) => {
     const filePath = join(droppedEventsRegistryFolder, file.name)
 
     const serialized = await readFile(filePath)
-    const deserialized = deserialize(serialized)
+    const deserialized: TrackedEventCluster = v8.deserialize(serialized)
 
     if (
       'events' in deserialized
@@ -76,14 +82,14 @@ export const acknowledgeDroppedEventsRetry = async (
   const droppedEventsRegistryFolder = getDroppedEventsRegistryFolder(dataDirPath)
   const filePath = join(droppedEventsRegistryFolder, eventCluster.identifier + '.bin')
   const serialized = await readFile(filePath)
-  const deserialized = deserialize(serialized)
+  const deserialized: TrackedEventCluster = v8.deserialize(serialized)
 
   deserialized.attempts++
 
   if (deserialized.attempts >= MAXIMUM_ATTEMPTS || success) {
     await rm(filePath)
   } else {
-    const reserialized = serialize(deserialized)
+    const reserialized = v8.serialize(deserialized)
     await writeFile(filePath, reserialized)
   }
 }

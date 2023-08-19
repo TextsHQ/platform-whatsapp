@@ -13,15 +13,9 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
-import { TrackedEventCluster } from './dropped-events'
+import type { DroppedEventHandlerOptions } from './dropped-events'
 
 const DEFAULT_CHUNK_SIZE = 100
-
-interface DroppedEventHandlerOptions {
-  onDroppedEvents?(events: Partial<BaileysEventMap>): void | Promise<void>
-  getDroppedEvents?(): Promise<TrackedEventCluster[]>
-  acknowledgeRetryDroppedEvents?(events: TrackedEventCluster, success: boolean): void | Promise<void>
-}
 
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
