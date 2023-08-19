@@ -185,14 +185,6 @@ const makeTextsBaileysStore = (
             texts?.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
 
             onDroppedEvents?.(events)
-
-            publishEvent({
-              type: ServerEventType.TOAST,
-              toast: {
-                text: `Dropped WhatsApp Events due to error: "${err.message}"`,
-                timeoutMs: -1,
-              },
-            })
           },
         )
 
