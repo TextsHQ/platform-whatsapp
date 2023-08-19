@@ -13,13 +13,21 @@ import { shouldExcludeMessage, mapMessageID, profilePictureUrl, makeMutex } from
 import mapPresenceUpdate from './map-presence-update'
 import registerDBSubscribers from './register-db-subscribers'
 import { CURRENT_MAPPING_VERSION } from '../config.json'
+import { TrackedEventCluster } from './dropped-events'
 
 const DEFAULT_CHUNK_SIZE = 100
+
+interface DroppedEventHandlerOptions {
+  onDroppedEvents?(events: Partial<BaileysEventMap>): void | Promise<void>
+  getDroppedEvents?(): Promise<TrackedEventCluster[]>
+  acknowledgeRetryDroppedEvents?(events: TrackedEventCluster, success: boolean): void | Promise<void>
+}
 
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
   getGroupMetadata: WASocket['groupMetadata'],
   mappingCtx: MappingContextWithDB,
+  { onDroppedEvents, getDroppedEvents, acknowledgeRetryDroppedEvents }: DroppedEventHandlerOptions = {},
 ) => {
   registerDBSubscribers(publishEvent, mappingCtx)
 
@@ -147,6 +155,18 @@ const makeTextsBaileysStore = (
   }
 
   async function process(events: Partial<BaileysEventMap>) {
+    const droppedEventClusters = await getDroppedEvents?.() || []
+
+    if (droppedEventClusters.length > 0) {
+      for (const droppedEventCluster of droppedEventClusters) {
+        const success = await mappingCtx.db.transaction(db => processEvents(droppedEventCluster.events, { ...mappingCtx, db }))
+          .then(() => true)
+          .catch(() => false)
+
+        await acknowledgeRetryDroppedEvents?.(droppedEventCluster, success)
+      }
+    }
+
     if (hasDBEvent(events)) {
       const result = await mappingCtx.db.transaction(
         db => (
@@ -169,6 +189,8 @@ const makeTextsBaileysStore = (
             )
             texts?.Sentry.captureException(err)
             texts?.Sentry.captureMessage(`Dropped WhatsApp Events: "${err.message}"`)
+
+            onDroppedEvents?.(events)
 
             publishEvent({
               type: ServerEventType.TOAST,

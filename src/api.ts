@@ -34,6 +34,7 @@ import { getStickerPacks, getStickersInPack } from './utils/stickers'
 import { FileCache, makeFileCache } from './utils/file-cache'
 import { dropDatabase } from './utils/drop-database'
 import { decodeSerializedSession, encodeSerializedSession } from './utils/session'
+import { acknowledgeDroppedEventsRetry, getDroppedEvents, makeDroppedEventsRegistryFolder, saveDroppedEvents } from './utils/dropped-events'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -139,6 +140,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async _init() {
     await fs.mkdir(this.dataDirPath, { recursive: true })
+    await makeDroppedEventsRegistryFolder({ dataDirPath: this.dataDirPath })
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
@@ -151,6 +153,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     const dbPath = path.join(this.dataDirPath, 'db.sqlite')
+
     this.logger.info({ dbPath, waVersion: this.latestWAVersion }, 'platform whatsapp init')
 
     this.db = await getConnection(this.accountID, dbPath, this.logger)
@@ -165,6 +168,13 @@ export default class WhatsAppAPI implements PlatformAPI {
         return this.client!.groupMetadata(gid)
       },
       this,
+      {
+        getDroppedEvents: () => getDroppedEvents({ dataDirPath: this.dataDirPath }),
+        onDroppedEvents: events => saveDroppedEvents(events, { dataDirPath: this.dataDirPath }),
+        acknowledgeRetryDroppedEvents: async (events, success) => {
+          await acknowledgeDroppedEventsRetry(events, success, { dataDirPath: this.dataDirPath })
+        },
+      },
     )
 
     const existingData = await hasSomeCachedData(this.db)
