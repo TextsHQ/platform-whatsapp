@@ -69,6 +69,7 @@ const getMessageCompose = async (
     content = {
       text: text!,
       mentions: msgContent.mentionedUserIDs,
+      linkPreview: msgContent.links?.some(l => !l.includePreview) ? null : undefined,
     }
   }
 
