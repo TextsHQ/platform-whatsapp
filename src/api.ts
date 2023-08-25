@@ -845,7 +845,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       react: {
         key: msg.key,
         text: reactionKey,
-        senderTimestampMs: unixTimestampSeconds(),
+        senderTimestampMs: unixTimestampSeconds() * 1000,
       },
     }, { })
   }
