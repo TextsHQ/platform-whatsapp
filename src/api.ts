@@ -144,9 +144,14 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
-    const update = await getLatestWAVersion(version.join('.'))
-    if (update.isExpired) {
-      this.logger.debug({ old: this.latestWAVersion, new: update.version }, 'version expired, updating')
+    const defaultVersion = version.join('.')
+    const update = await getLatestWAVersion(defaultVersion)
+      .catch(err => {
+        texts.Sentry.captureException(err)
+        console.error(err)
+      })
+    if (update?.isExpired) {
+      this.logger.debug({ old: defaultVersion, new: update.version }, 'version expired, updating')
       this.latestWAVersion = update.version.split('.').map(v => +v) as WAVersion
     } else {
       this.latestWAVersion = version
