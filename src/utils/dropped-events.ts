@@ -54,8 +54,8 @@ export const getDroppedEvents = async ({ dataDirPath }: Options) => {
   const eventsToRetry: TrackedEventCluster[] = []
 
   const files = await readdir(droppedEventsRegistryFolder, { withFileTypes: true })
-    .catch(async () => {
-      await makeDroppedEventsRegistryFolder({ dataDirPath })
+    .catch(async (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') await makeDroppedEventsRegistryFolder({ dataDirPath })
       return readdir(droppedEventsRegistryFolder, { withFileTypes: true })
     })
 
