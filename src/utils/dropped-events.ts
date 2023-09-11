@@ -55,7 +55,7 @@ export const getDroppedEvents = async ({ dataDirPath }: Options) => {
 
   const files = await readdir(droppedEventsRegistryFolder, { withFileTypes: true })
     .catch(async (error: NodeJS.ErrnoException) => {
-      if (error.code !== 'ENOENT') throw Error('Unexpected issue from reading dropped events registry', error)
+      if (error.code !== 'ENOENT') throw error
       await makeDroppedEventsRegistryFolder({ dataDirPath })
       return readdir(droppedEventsRegistryFolder, { withFileTypes: true })
     })
