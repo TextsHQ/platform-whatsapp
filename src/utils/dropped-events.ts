@@ -54,6 +54,11 @@ export const getDroppedEvents = async ({ dataDirPath }: Options) => {
   const eventsToRetry: TrackedEventCluster[] = []
 
   const files = await readdir(droppedEventsRegistryFolder, { withFileTypes: true })
+    .catch(async () => {
+      await makeDroppedEventsRegistryFolder({ dataDirPath })
+      return readdir(droppedEventsRegistryFolder, { withFileTypes: true })
+    })
+
   const filteredFiles = files.filter(value => value.isFile() && value.name.startsWith('events-'))
 
   const pendingSerializedMap: Promise<Buffer>[] = []
