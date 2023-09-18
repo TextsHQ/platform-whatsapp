@@ -593,30 +593,29 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   createThread = async (userIDs: string[], name?: string) => {
+    const isGroup = userIDs.length > 1
+    const metadata: GroupMetadata = await this.client!.groupCreate(name as unknown as string, userIDs)
+
     let chat: WAChat
-    let metadata: GroupMetadata | undefined
-    if (name) {
-      metadata = await this.client!.groupCreate(name, userIDs)
+
+    if (isGroup) {
       chat = {
         id: metadata.id,
         conversationTimestamp: unixTimestampSeconds(),
         unreadCount: 0,
       }
-    } else if (userIDs.length) {
-      // return the chat if it already exists
-      const thread = await this.getThread(userIDs[0])
-      if (thread) {
-        return thread
-      }
+    } else {
+      const [recipientUserId] = userIDs
+      const thread = await this.getThread(recipientUserId)
+      if (thread) return thread
 
-      const id = jidNormalizedUser(userIDs[0])
+      const id = jidNormalizedUser(recipientUserId)
+
       chat = {
         id,
         conversationTimestamp: null,
         unreadCount: 0,
       }
-    } else {
-      throw new Error('invalid number of users provided with no title')
     }
 
     const thread = new DBThread()
