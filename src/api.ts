@@ -594,11 +594,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   createThread = async (userIDs: string[], name?: string) => {
     const isGroup = userIDs.length > 1
-    const metadata: GroupMetadata = await this.client!.groupCreate(name as unknown as string, userIDs)
 
+    let metadata: GroupMetadata | undefined
     let chat: WAChat
 
     if (isGroup) {
+      metadata = await this.client!.groupCreate(name as unknown as string, userIDs)
       chat = {
         id: metadata.id,
         conversationTimestamp: unixTimestampSeconds(),
