@@ -1,5 +1,5 @@
 import fsp from 'fs/promises'
-import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
+import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@whiskeysockets/baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'

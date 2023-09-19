@@ -1,4 +1,4 @@
-import { jidNormalizedUser } from '@adiwajshing/baileys'
+import { jidNormalizedUser } from '@whiskeysockets/baileys'
 import type { Participant } from '@textshq/platform-sdk'
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm'
 import type { FullChatParticipant } from '../types'

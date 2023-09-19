@@ -6,7 +6,7 @@ import { stat, rm, mkdir } from 'fs/promises'
 import { pathToFileURL } from 'url'
 import { join } from 'path'
 import sanitizeFilename from 'sanitize-filename'
-import { getHttpStream, toReadable } from '@adiwajshing/baileys'
+import { getHttpStream, toReadable } from '@whiskeysockets/baileys'
 
 type GetAssetFunction = Exclude<PlatformAPI['getAsset'], undefined>
 

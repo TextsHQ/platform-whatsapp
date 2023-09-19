@@ -1,5 +1,5 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
-import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from '@adiwajshing/baileys'
+import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from '@whiskeysockets/baileys'
 import { randomBytes } from 'crypto'
 import { In, Repository } from 'typeorm'
 import type { Logger } from 'pino'
