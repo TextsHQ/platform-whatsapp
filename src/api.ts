@@ -888,8 +888,6 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     const [{ compose }] = await getMessageCompose(this.db, threadID, content, undefined, options)
 
-    console.log({ compose })
-
     await this.client!.sendMessage(
       threadID,
       {
