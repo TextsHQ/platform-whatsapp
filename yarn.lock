@@ -2539,7 +2539,7 @@ __metadata:
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
     "@whiskeysockets/baileys": "github:WhiskeySockets/Baileys#v6.3.1"
-    better-sqlite3: ^7.4.5
+    better-sqlite3: ^8.6.0
     eslint: ^8.30.0
     jest: ^29.0.0
     jimp: ^0.16.2
@@ -3472,14 +3472,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"better-sqlite3@npm:^7.4.5":
-  version: 7.6.2
-  resolution: "better-sqlite3@npm:7.6.2"
+"better-sqlite3@npm:^8.6.0":
+  version: 8.6.0
+  resolution: "better-sqlite3@npm:8.6.0"
   dependencies:
     bindings: ^1.5.0
     node-gyp: latest
-    prebuild-install: ^7.1.0
-  checksum: 45159e535d2c4f81456f85adcfef82e8a49025ca3e70a79bb8c0a47c13e4d822633a51b457cc37b986c42f8912344152091c91cab485048a187900aab7e7d619
+    prebuild-install: ^7.1.1
+  checksum: 9ebdfd675352347cda1ba30d620a3c512d9db827a1eba66460fd48203a7ad8138b0195893bbf47d40f704bcdd598710041271d4ed69779979b6f784c0d3579a1
   languageName: node
   linkType: hard
 
@@ -7450,7 +7450,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prebuild-install@npm:^7.1.0":
+"prebuild-install@npm:^7.1.1":
   version: 7.1.1
   resolution: "prebuild-install@npm:7.1.1"
   dependencies:
