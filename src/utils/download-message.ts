@@ -1,4 +1,4 @@
-import { WASocket, downloadMediaMessage, MediaDownloadOptions } from '@adiwajshing/baileys'
+import { WASocket, downloadMediaMessage, MediaDownloadOptions } from '@whiskeysockets/baileys'
 import type { Asset } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
