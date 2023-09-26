@@ -77,7 +77,7 @@ const getMessageCompose = async (
   if (options?.quotedMessageID) {
     const msg = await db.getRepository(DBMessage).findOneOrFail({
       id: options!.quotedMessageID,
-      threadID: options!.quotedMessageThreadID,
+      threadID: options!.quotedMessageThreadID || threadID,
     })
     if (msg) {
       quotedMsg = msg.original.message
