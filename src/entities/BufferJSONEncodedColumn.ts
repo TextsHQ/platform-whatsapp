@@ -1,5 +1,5 @@
 import type { ColumnOptions } from 'typeorm'
-import { BufferJSON } from '@whiskeysockets/baileys'
+import { BufferJSON } from '@textshq/baileys'
 
 const BufferJSONEncodedColumn: ColumnOptions = {
   type: 'text',

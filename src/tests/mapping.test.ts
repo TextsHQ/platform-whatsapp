@@ -1,4 +1,4 @@
-import { WAProto } from '@whiskeysockets/baileys'
+import { WAProto } from '@textshq/baileys'
 import DBMessage from '../entities/DBMessage'
 import type { MappingContext } from '../types'
 import getLogger from '../utils/get-logger'
