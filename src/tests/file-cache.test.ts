@@ -1,6 +1,6 @@
 import { Readable } from 'stream'
 import { stat, readFile } from 'fs/promises'
-import { delay } from '@textshq/baileys'
+import { delay } from 'baileys'
 import { pathToFileURL } from 'url'
 import type { Asset } from '@textshq/platform-sdk'
 import { makeFileCache } from '../utils/file-cache'

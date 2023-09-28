@@ -1,4 +1,4 @@
-import { LastMessageList, toNumber } from '@textshq/baileys'
+import { LastMessageList, toNumber } from 'baileys'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 

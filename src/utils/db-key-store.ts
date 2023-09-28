@@ -1,6 +1,6 @@
 import type { Connection } from 'typeorm'
 import type { Logger } from 'pino'
-import { SignalKeyStore, SignalDataTypeMap, makeCacheableSignalKeyStore } from '@textshq/baileys'
+import { SignalKeyStore, SignalDataTypeMap, makeCacheableSignalKeyStore } from 'baileys'
 import AccountKeyValue from '../entities/AccountKeyValue'
 
 const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {

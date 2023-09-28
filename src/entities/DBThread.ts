@@ -1,4 +1,4 @@
-import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, STORIES_JID, toNumber, WAProto } from '@textshq/baileys'
+import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, STORIES_JID, toNumber, WAProto } from 'baileys'
 import { Message, Paginated, Participant, texts, Thread, ThreadType, User } from '@textshq/platform-sdk'
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'

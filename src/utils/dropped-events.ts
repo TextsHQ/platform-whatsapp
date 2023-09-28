@@ -1,6 +1,6 @@
 import v8 from 'v8'
 import crypto from 'crypto'
-import { BaileysEventMap } from '@textshq/baileys'
+import { BaileysEventMap } from 'baileys'
 import { mkdir, readdir, writeFile, readFile, rm } from 'fs/promises'
 import { join } from 'path'
 
