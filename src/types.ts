@@ -1,4 +1,4 @@
-import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from '@whiskeysockets/baileys'
+import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from '@textshq/baileys'
 import type { Logger } from 'pino'
 import type { Connection, EntityManager } from 'typeorm'
 

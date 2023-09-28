@@ -1,4 +1,4 @@
-import type { WASocket } from '@whiskeysockets/baileys'
+import type { WASocket } from '@textshq/baileys'
 import type { PaginationArg } from '@textshq/platform-sdk'
 
 import DBParticipant from '../entities/DBParticipant'
