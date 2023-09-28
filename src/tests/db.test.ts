@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/order
 import getConnection from '../utils/get-connection'
 
-import { Chat, delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from '@adiwajshing/baileys'
+import { Chat, delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from 'baileys'
 import { unlink, stat } from 'fs/promises'
 import type { Connection } from 'typeorm'
 import DBMessage from '../entities/DBMessage'

@@ -1,5 +1,5 @@
 import fsp from 'fs/promises'
-import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from '@adiwajshing/baileys'
+import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from 'baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
 import type { Connection, EntityManager } from 'typeorm'
@@ -51,7 +51,7 @@ const getMessageCompose = async (
       let media: AnyMediaMessageContent
       if (msgContent.stickerID && mimeType?.endsWith('/webp')) media = { sticker: buffer, ...(msgContent.size || {}) }
       else if (mimeType?.includes('video/mp4')) media = { video: buffer, caption: text, gifPlayback: msgContent.isGif, ...(msgContent.size || {}) }
-      else if (mimeType?.includes('image/') && mimeType !== 'image/gif' && mimeType !== 'image/heic') media = { image: buffer, caption: text, ...(msgContent.size || {}) }
+      else if (mimeType?.includes('image/') && !['image/gif', 'image/heic'].includes(mimeType) && !mimeType.includes('photoshop')) media = { image: buffer, caption: text, ...(msgContent.size || {}) }
       else if (mimeType?.includes('audio/')) media = { audio: buffer, ptt: mimeType === 'audio/ogg', seconds: msgContent.audioDurationSeconds }
       else media = { document: buffer, fileName: msgContent.fileName, mimetype: '' }
 
@@ -69,6 +69,7 @@ const getMessageCompose = async (
     content = {
       text: text!,
       mentions: msgContent.mentionedUserIDs,
+      linkPreview: msgContent.links?.some(l => !l.includePreview) ? null : undefined,
     }
   }
 
@@ -76,7 +77,7 @@ const getMessageCompose = async (
   if (options?.quotedMessageID) {
     const msg = await db.getRepository(DBMessage).findOneOrFail({
       id: options!.quotedMessageID,
-      threadID: options!.quotedMessageThreadID,
+      threadID: options!.quotedMessageThreadID || threadID,
     })
     if (msg) {
       quotedMsg = msg.original.message

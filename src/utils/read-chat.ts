@@ -1,4 +1,4 @@
-import type { WASocket } from '@adiwajshing/baileys'
+import type { WASocket } from 'baileys'
 import type { Connection, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'

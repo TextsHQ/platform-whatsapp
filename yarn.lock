@@ -5,37 +5,10 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@adiwajshing/baileys@https://github.com/TextsHQ/baileys#master":
-  version: 5.0.0
-  resolution: "@adiwajshing/baileys@https://github.com/TextsHQ/baileys.git#commit=a22e659680988c4fda126f9682d65cefe0416369"
-  dependencies:
-    "@hapi/boom": ^9.1.3
-    axios: ^1.3.3
-    futoin-hkdf: ^1.5.1
-    libsignal: "git+https://github.com/adiwajshing/libsignal-node"
-    music-metadata: ^7.12.3
-    node-cache: ^5.1.2
-    pino: ^7.0.0
-    protobufjs: ^6.11.3
-    ws: ^8.0.0
-  peerDependencies:
-    "@adiwajshing/keyed-db": ^0.2.4
-    jimp: ^0.16.1
-    link-preview-js: ^3.0.0
-    qrcode-terminal: ^0.12.0
-    sharp: ^0.30.5
-  peerDependenciesMeta:
-    "@adiwajshing/keyed-db":
-      optional: true
-    jimp:
-      optional: true
-    link-preview-js:
-      optional: true
-    qrcode-terminal:
-      optional: true
-    sharp:
-      optional: true
-  checksum: 1e356b4a6f13573dd9be9c50aadf03d5c50d0cf1894e6d43b962474fabc28de67baabbae338a137a999ccb5ef0438c4280e00196a0e7599869489cd2bfd19789
+"@adiwajshing/keyed-db@npm:^0.2.4":
+  version: 0.2.4
+  resolution: "@adiwajshing/keyed-db@npm:0.2.4"
+  checksum: f661329d6ee0b5641dcf55c27e192ef89a3aebfd2ebf6971329e33e05474e3a8b60dba4243d30997ba8b45789b281db3898373e01445c90ceb5af03c25e240a3
   languageName: node
   linkType: hard
 
@@ -2558,7 +2531,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@textshq/platform-whatsapp@workspace:."
   dependencies:
-    "@adiwajshing/baileys": "https://github.com/TextsHQ/baileys#master"
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#b52c4877a05fd92fe674f3dd775b3ad2147d3570"
     "@types/eslint": ^8.4.10
@@ -2566,7 +2538,8 @@ __metadata:
     "@types/match-sorter": ^4.0.0
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
-    better-sqlite3: ^7.4.5
+    baileys: "github:TextsHQ/Baileys#0b205f2554c099d61306cbe9dc3069a0d0096391"
+    better-sqlite3: ^8.6.0
     eslint: ^8.30.0
     jest: ^29.0.0
     jimp: ^0.16.2
@@ -3450,6 +3423,41 @@ __metadata:
   languageName: node
   linkType: hard
 
+"baileys@github:TextsHQ/Baileys#0b205f2554c099d61306cbe9dc3069a0d0096391":
+  version: 6.3.1
+  resolution: "baileys@https://github.com/TextsHQ/Baileys.git#commit=0b205f2554c099d61306cbe9dc3069a0d0096391"
+  dependencies:
+    "@adiwajshing/keyed-db": ^0.2.4
+    "@hapi/boom": ^9.1.3
+    axios: ^1.3.3
+    cache-manager: ^5.2.2
+    futoin-hkdf: ^1.5.1
+    libphonenumber-js: ^1.10.20
+    libsignal: "https://github.com/adiwajshing/libsignal-node.git"
+    music-metadata: ^7.12.3
+    node-cache: ^5.1.2
+    pino: ^7.0.0
+    protobufjs: ^6.11.3
+    uuid: ^9.0.0
+    ws: ^8.13.0
+  peerDependencies:
+    jimp: ^0.16.1
+    link-preview-js: ^3.0.0
+    qrcode-terminal: ^0.12.0
+    sharp: ^0.30.5
+  peerDependenciesMeta:
+    jimp:
+      optional: true
+    link-preview-js:
+      optional: true
+    qrcode-terminal:
+      optional: true
+    sharp:
+      optional: true
+  checksum: 9a16c014d0bcd5795a6f3a2755464b404b48b215940abf27134c2efaab1724ba3055bfa0aa797e113acb536c9034eebdfdc32b3d5116d12894f21f4151bc7611
+  languageName: node
+  linkType: hard
+
 "balanced-match@npm:^1.0.0":
   version: 1.0.2
   resolution: "balanced-match@npm:1.0.2"
@@ -3464,14 +3472,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"better-sqlite3@npm:^7.4.5":
-  version: 7.6.2
-  resolution: "better-sqlite3@npm:7.6.2"
+"better-sqlite3@npm:^8.6.0":
+  version: 8.6.0
+  resolution: "better-sqlite3@npm:8.6.0"
   dependencies:
     bindings: ^1.5.0
     node-gyp: latest
-    prebuild-install: ^7.1.0
-  checksum: 45159e535d2c4f81456f85adcfef82e8a49025ca3e70a79bb8c0a47c13e4d822633a51b457cc37b986c42f8912344152091c91cab485048a187900aab7e7d619
+    prebuild-install: ^7.1.1
+  checksum: 9ebdfd675352347cda1ba30d620a3c512d9db827a1eba66460fd48203a7ad8138b0195893bbf47d40f704bcdd598710041271d4ed69779979b6f784c0d3579a1
   languageName: node
   linkType: hard
 
@@ -3626,6 +3634,16 @@ __metadata:
     tar: ^6.1.11
     unique-filename: ^2.0.0
   checksum: d91409e6e57d7d9a3a25e5dcc589c84e75b178ae8ea7de05cbf6b783f77a5fae938f6e8fda6f5257ed70000be27a681e1e44829251bfffe4c10216002f8f14e6
+  languageName: node
+  linkType: hard
+
+"cache-manager@npm:^5.2.2":
+  version: 5.2.3
+  resolution: "cache-manager@npm:5.2.3"
+  dependencies:
+    lodash.clonedeep: ^4.5.0
+    lru-cache: ^9.1.2
+  checksum: 2bcd6a385e5575bf9577a209e02c9f5074cd476e6eb08a0f108e45d80c20f4e91fbff163493fe345f166f8ecb232687f20541bc4f42fb2167f8770f9f8b26c51
   languageName: node
   linkType: hard
 
@@ -6375,7 +6393,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libsignal@git+https://github.com/adiwajshing/libsignal-node":
+"libphonenumber-js@npm:^1.10.20":
+  version: 1.10.44
+  resolution: "libphonenumber-js@npm:1.10.44"
+  checksum: ada1bc135ce4b77eaa859a2c39d5b64cf142a76d203cb52f8f0e3097c30acba8a8faa4c6d975968333216d48448c589eb640b829ae5e95de706415684791cad9
+  languageName: node
+  linkType: hard
+
+"libsignal@https://github.com/adiwajshing/libsignal-node.git":
   version: 2.0.1
   resolution: "libsignal@https://github.com/adiwajshing/libsignal-node.git#commit=11dbd962ea108187c79a7c46fe4d6f790e23da97"
   dependencies:
@@ -6438,6 +6463,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lodash.clonedeep@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "lodash.clonedeep@npm:4.5.0"
+  checksum: 92c46f094b064e876a23c97f57f81fbffd5d760bf2d8a1c61d85db6d1e488c66b0384c943abee4f6af7debf5ad4e4282e74ff83177c9e63d8ff081a4837c3489
+  languageName: node
+  linkType: hard
+
 "lodash.debounce@npm:^4.0.8":
   version: 4.0.8
   resolution: "lodash.debounce@npm:4.0.8"
@@ -6497,6 +6529,13 @@ __metadata:
   version: 7.14.0
   resolution: "lru-cache@npm:7.14.0"
   checksum: efdd329f2c1bb790b71d497c6c59272e6bc2d7dd060ba55fc136becd3dd31fc8346edb446275504d94cb60d3c8385dbf5267b79b23789e409b2bdf302d13f0d7
+  languageName: node
+  linkType: hard
+
+"lru-cache@npm:^9.1.2":
+  version: 9.1.2
+  resolution: "lru-cache@npm:9.1.2"
+  checksum: d3415634be3908909081fc4c56371a8d562d9081eba70543d86871b978702fffd0e9e362b83921b27a29ae2b37b90f55675aad770a54ac83bb3e4de5049d4b15
   languageName: node
   linkType: hard
 
@@ -7411,7 +7450,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prebuild-install@npm:^7.1.0":
+"prebuild-install@npm:^7.1.1":
   version: 7.1.1
   resolution: "prebuild-install@npm:7.1.1"
   dependencies:
@@ -8869,6 +8908,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"uuid@npm:^9.0.0":
+  version: 9.0.1
+  resolution: "uuid@npm:9.0.1"
+  bin:
+    uuid: dist/bin/uuid
+  checksum: 39931f6da74e307f51c0fb463dc2462807531dc80760a9bff1e35af4316131b4fc3203d16da60ae33f07fdca5b56f3f1dd662da0c99fea9aaeab2004780cc5f4
+  languageName: node
+  linkType: hard
+
 "v8-compile-cache-lib@npm:^3.0.1":
   version: 3.0.1
   resolution: "v8-compile-cache-lib@npm:3.0.1"
@@ -8981,18 +9029,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.0.0":
-  version: 8.11.0
-  resolution: "ws@npm:8.11.0"
+"ws@npm:^8.13.0":
+  version: 8.14.1
+  resolution: "ws@npm:8.14.1"
   peerDependencies:
     bufferutil: ^4.0.1
-    utf-8-validate: ^5.0.2
+    utf-8-validate: ">=5.0.2"
   peerDependenciesMeta:
     bufferutil:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 316b33aba32f317cd217df66dbfc5b281a2f09ff36815de222bc859e3424d83766d9eb2bd4d667de658b6ab7be151f258318fb1da812416b30be13103e5b5c67
+  checksum: 9e310be2b0ff69e1f87d8c6d093ecd17a1ed4c37f281d17c35e8c30e2bd116401775b3d503249651374e6e0e1e9905db62fff096b694371c77561aee06bc3466
   languageName: node
   linkType: hard
 

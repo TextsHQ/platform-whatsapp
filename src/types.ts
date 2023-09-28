@@ -1,4 +1,4 @@
-import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from '@adiwajshing/baileys'
+import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from 'baileys'
 import type { Logger } from 'pino'
 import type { Connection, EntityManager } from 'typeorm'
 

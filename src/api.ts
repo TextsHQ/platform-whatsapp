@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from '@adiwajshing/baileys'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from 'baileys'
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -34,6 +34,7 @@ import { getStickerPacks, getStickersInPack } from './utils/stickers'
 import { FileCache, makeFileCache } from './utils/file-cache'
 import { dropDatabase } from './utils/drop-database'
 import { decodeSerializedSession, encodeSerializedSession } from './utils/session'
+import { acknowledgeDroppedEventsRetry, getDroppedEvents, makeDroppedEventsRegistryFolder, saveDroppedEvents } from './utils/dropped-events'
 
 const RECONNECT_DELAY_MS = 2500
 
@@ -139,18 +140,25 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async _init() {
     await fs.mkdir(this.dataDirPath, { recursive: true })
+    await makeDroppedEventsRegistryFolder({ dataDirPath: this.dataDirPath })
 
     const { version } = DEFAULT_CONNECTION_CONFIG
 
-    const update = await getLatestWAVersion(version.join('.'))
-    if (update.isExpired) {
-      this.logger.debug({ old: this.latestWAVersion, new: update.version }, 'version expired, updating')
+    const defaultVersion = version.join('.')
+    const update = await getLatestWAVersion(defaultVersion)
+      .catch(err => {
+        texts.Sentry.captureException(err)
+        console.error(err)
+      })
+    if (update?.isExpired) {
+      this.logger.debug({ old: defaultVersion, new: update.version }, 'version expired, updating')
       this.latestWAVersion = update.version.split('.').map(v => +v) as WAVersion
     } else {
       this.latestWAVersion = version
     }
 
     const dbPath = path.join(this.dataDirPath, 'db.sqlite')
+
     this.logger.info({ dbPath, waVersion: this.latestWAVersion }, 'platform whatsapp init')
 
     this.db = await getConnection(this.accountID, dbPath, this.logger)
@@ -165,6 +173,11 @@ export default class WhatsAppAPI implements PlatformAPI {
         return this.client!.groupMetadata(gid)
       },
       this,
+      {
+        getDroppedEvents: () => getDroppedEvents({ dataDirPath: this.dataDirPath }),
+        onDroppedEvents: events => saveDroppedEvents(events, { dataDirPath: this.dataDirPath }),
+        acknowledgeRetryDroppedEvents: (events, success) => acknowledgeDroppedEventsRetry(events, success, { dataDirPath: this.dataDirPath }),
+      },
     )
 
     const existingData = await hasSomeCachedData(this.db)
@@ -580,30 +593,30 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   createThread = async (userIDs: string[], name?: string) => {
-    let chat: WAChat
+    const isGroup = userIDs.length > 1
+
     let metadata: GroupMetadata | undefined
-    if (name) {
-      metadata = await this.client!.groupCreate(name, userIDs)
+    let chat: WAChat
+
+    if (isGroup) {
+      metadata = await this.client!.groupCreate(name as unknown as string, userIDs)
       chat = {
         id: metadata.id,
         conversationTimestamp: unixTimestampSeconds(),
         unreadCount: 0,
       }
-    } else if (userIDs.length) {
-      // return the chat if it already exists
-      const thread = await this.getThread(userIDs[0])
-      if (thread) {
-        return thread
-      }
+    } else {
+      const [recipientUserId] = userIDs
+      const thread = await this.getThread(recipientUserId)
+      if (thread) return thread
 
-      const id = jidNormalizedUser(userIDs[0])
+      const id = jidNormalizedUser(recipientUserId)
+
       chat = {
         id,
         conversationTimestamp: null,
         unreadCount: 0,
       }
-    } else {
-      throw new Error('invalid number of users provided with no title')
     }
 
     const thread = new DBThread()
@@ -837,7 +850,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       react: {
         key: msg.key,
         text: reactionKey,
-        senderTimestampMs: unixTimestampSeconds(),
+        senderTimestampMs: unixTimestampSeconds() * 1000,
       },
     }, { })
   }
@@ -879,7 +892,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       threadID,
       {
         edit: msg.key,
-        newContent: compose as AnyRegularMessageContent,
+        ...compose,
       },
     )
 

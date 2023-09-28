@@ -1,5 +1,5 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
-import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from '@adiwajshing/baileys'
+import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from 'baileys'
 import { randomBytes } from 'crypto'
 import { In, Repository } from 'typeorm'
 import type { Logger } from 'pino'
@@ -189,6 +189,7 @@ export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProt
   const contentType = normalizedMessageContent ? getContentType(normalizedMessageContent) : undefined
   // reaction messages should be hidden
   return contentType === 'reactionMessage'
+    || contentType === 'keepInChatMessage'
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
     || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
