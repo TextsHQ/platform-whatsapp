@@ -179,6 +179,7 @@ const HIDDEN_PROTOCOL_MESSAGE_TYPES = [
   WAProto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_SHARE,
   WAProto.Message.ProtocolMessage.Type.APP_STATE_SYNC_KEY_REQUEST,
   WAProto.Message.ProtocolMessage.Type.MESSAGE_EDIT,
+  WAProto.Message.ProtocolMessage.Type.EPHEMERAL_SYNC_RESPONSE,
 ]
 
 export const isHiddenProtocolMessage = (normalizedMessageContent: WAProto.IMessage | null | undefined) =>
