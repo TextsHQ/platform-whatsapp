@@ -15,7 +15,7 @@ const instructions = (
     <div><span>1</span>{`Open WhatsApp on ${globalThis.textsProps?.deviceType !== 'phone' ? 'your phone' : 'another device'}`}</div>
     <div><span>2</span>Go to Settings or Menu</div>
     <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
-    <div><span>4</span>{`Point ${globalThis.textsProps?.deviceType !== 'phone' ? 'your phone' : 'other device'} to this screen`}</div>
+    <div><span>4</span>{`Point your ${globalThis.textsProps?.deviceType !== 'phone' ? 'phone' : 'other device'} to this screen`}</div>
   </div>
 )
 
