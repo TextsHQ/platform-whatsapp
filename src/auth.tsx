@@ -2,7 +2,7 @@ import React from 'react'
 import QRCode from '@textshq/platform-sdk/dist/QRCode'
 import { texts, AuthProps } from '@textshq/platform-sdk'
 
-const isPhone = true // globalThis.textsProps?.deviceType === 'phone'
+const isPhone = globalThis.textsProps?.deviceType === 'phone'
 
 const WALogo = (
   <svg width="64" height="64" viewBox="0 0 64 64">
