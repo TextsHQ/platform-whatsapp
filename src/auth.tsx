@@ -14,9 +14,27 @@ const instructions = (
   <div className="list">
     <div><span>1</span>Open WhatsApp on your phone</div>
     <div><span>2</span>Go to Settings or Menu</div>
-    {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
     <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
     <div><span>4</span>Point your phone to this screen</div>
+  </div>
+)
+
+const phoneInstructions = (
+  <div>
+    <div>
+      <div style={{ borderTop: '1px solid' }}>
+        <p>
+          You can also import from the desktop app by going to
+          <br />Prefs → Accounts → WhatsApp account → Move to iOS
+          <br />Scan the QR code using the Camera app
+        </p>
+    </div>
+    <div className="list">
+      <div><span>1</span>Open WhatsApp on your phone</div>
+      <div><span>2</span>Go to Settings or Menu</div>
+      <div><span>3</span>Tap on "Linked Devices", then "Link a Device"</div>
+      <div><span>4</span>Point your phone to this screen</div></div>
+    </div>
   </div>
 )
 
@@ -74,7 +92,7 @@ export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?:
     if (error) return error
     return (
       <div className="auth whatsapp-auth">
-        {instructions}
+        {globalThis.textsProps?.deviceType !== 'phone' ? instructions : phoneInstructions}
         {renderQR(qrValue)}
       </div>
     )
