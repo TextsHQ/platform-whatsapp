@@ -12,10 +12,10 @@ const WALogo = (
 
 const instructions = (
   <div className="list">
-    <div><span>1</span>Open WhatsApp on your phone</div>
+    <div><span>1</span>{`Open WhatsApp on ${globalThis.textsProps?.deviceType !== 'phone' ? 'your phone' : 'another device'}`}</div>
     <div><span>2</span>Go to Settings or Menu</div>
     <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
-    <div><span>4</span>Point your phone to this screen</div>
+    <div><span>4</span>{`Point ${globalThis.textsProps?.deviceType !== 'phone' ? 'your phone' : 'other device'} to this screen`}</div>
   </div>
 )
 
@@ -29,12 +29,7 @@ const phoneInstructions = (
           <br />Scan the QR code using the Camera app
         </p>
     </div>
-    <div className="list">
-      <div><span>1</span>Open WhatsApp on your phone</div>
-      <div><span>2</span>Go to Settings or Menu</div>
-      <div><span>3</span>Tap on "Linked Devices", then "Link a Device"</div>
-      <div><span>4</span>Point your phone to this screen</div></div>
-    </div>
+    {instructions}
   </div>
 )
 
