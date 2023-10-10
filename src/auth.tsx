@@ -1,6 +1,8 @@
 import React from 'react'
 import QRCode from '@textshq/platform-sdk/dist/QRCode'
-import { AuthProps, texts } from '@textshq/platform-sdk'
+import { texts, AuthProps } from '@textshq/platform-sdk'
+
+const isPhone = globalThis.textsProps?.deviceType === 'phone'
 
 const WALogo = (
   <svg width="64" height="64" viewBox="0 0 64 64">
@@ -14,9 +16,17 @@ const instructions = (
   <div className="list">
     <div><span>1</span>Open WhatsApp on your phone</div>
     <div><span>2</span>Go to Settings or Menu</div>
-    {/* eslint-disable-next-line react/jsx-curly-brace-presence */}
     <div><span>3</span>{'Tap on "Linked Devices", then "Link a Device"'}</div>
     <div><span>4</span>Point your phone to this screen</div>
+  </div>
+)
+
+const phoneInstructions = (
+  <div className="list">
+    <div><span>1</span>Open Texts desktop app</div>
+    <div><span>2</span>Go to Prefs → Accounts → WhatsApp account</div>
+    <div><span>3</span>Click Move to iOS</div>
+    <div><span>4</span>Scan the QR code using your phone's Camera app</div>
   </div>
 )
 
@@ -74,8 +84,8 @@ export default class WhatsAppAuth extends React.Component<AuthProps, { qrValue?:
     if (error) return error
     return (
       <div className="auth whatsapp-auth">
-        {instructions}
-        {renderQR(qrValue)}
+        {isPhone ? phoneInstructions : instructions}
+        {!isPhone && renderQR(qrValue)}
       </div>
     )
   }
