@@ -297,6 +297,11 @@ export default class DBMessage implements Message {
       mapped.linkedMessageThreadID = linked?.threadID
     }
 
+    if (messageContent?.ptvMessage) {
+      mapped.extra ||= {}
+      mapped.extra = { ...mapped.extra, className: 'circular-video' }
+    }
+
     Object.assign(this, mapped)
     this.original.lastMappedVersion = CURRENT_MAPPING_VERSION
     this.isHistoryMessage = isHistoryMessage
