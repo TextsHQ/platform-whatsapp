@@ -366,7 +366,7 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
       }
     }
 
-    if (content.groupInviteMessage) yield `${content.groupInviteMessage.groupName} | WhatsApp Group Invite`
+    if (content.groupInviteMessage) yield [content.groupInviteMessage.groupName, 'WhatsApp Group Invite'].filter(Boolean).join(' | ')
     if (content.locationMessage) yield '📍 Location'
     if (content.liveLocationMessage) yield '📍 Live Location'
     if (content.productMessage?.product) yield '📦 Product'
