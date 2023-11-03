@@ -109,6 +109,14 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   },
   [WAMessageStubType.BLOCK_CONTACT]: message =>
     (message.messageStubParameters![0] ? 'You blocked this contact' : 'You unblocked this contact'),
+  [WAMessageStubType.COMMUNITY_CREATE]: message => `{{${message.participant}}} created the community "${message.messageStubParameters![1]}"`,
+  [WAMessageStubType.COMMUNITY_LINK_SIBLING_GROUP]: message => `{{${message.participant}}} added the group "${message.messageStubParameters![1]}"`,
+  [WAMessageStubType.COMMUNITY_UNLINK_SIBLING_GROUP]: message => `{{${message.participant}}} removed the group "${message.messageStubParameters![1]}"`,
+  [WAMessageStubType.COMMUNITY_PARTICIPANT_PROMOTE]: message => `{{${message.messageStubParameters![0]}}} is now a community admin`,
+  [WAMessageStubType.COMMUNITY_ALLOW_MEMBER_ADDED_GROUPS]: 'Everyone in this community can now add groups',
+  [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP]: 'This group was added to the community "{{1}}"',
+  [WAMessageStubType.SUB_GROUP_INVITE_RICH]: 'You joined a group via invite in the community: "{{1}}"',
+  [WAMessageStubType.COMMUNITY_INVITE_RICH]: 'Welcome to the community! Admins will send all important updates here.',
 }
 
 const ATTACHMENT_MAP = {
