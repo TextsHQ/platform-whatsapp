@@ -40,7 +40,7 @@ exports.getParticipantCount = function (e) {
   const n = (0, _.unproxy)(e);
   return ((t = n.groupMetadata) === null || t === undefined ? undefined : t.participants.length) || 1;
 };
-exports.isCommunityAnnouncementGroup = S;
+exports.isCommunityAnnouncementGroup = isCommunityAnnouncementGroup;
 exports.isCommunityGeneralGroup = function (e) {
   var t;
   const n = (0, _.unproxy)(e);
@@ -76,7 +76,7 @@ exports.isTerminatedGroupOrNotMember = function (e) {
   const n = (0, _.unproxy)(e);
   const r = E(n);
   const i = v(n) && !((t = n.groupMetadata) === null || t === undefined ? undefined : t.participants.iAmMember());
-  return (r || i) && !S(n);
+  return (r || i) && !isCommunityAnnouncementGroup(n);
 };
 exports.shouldBlockCall = function (e) {
   return v(e) || E(e);
@@ -140,7 +140,7 @@ function E(e) {
   const n = (0, _.unproxy)(e);
   return n.isGroup && !!((t = n.groupMetadata) === null || t === undefined ? undefined : t.terminated);
 }
-function S(e) {
+function isCommunityAnnouncementGroup(e) {
   var t;
   const n = (0, _.unproxy)(e);
   return (0, c.communitiesEnabled)() && n.isGroup && ((t = n.groupMetadata) === null || t === undefined ? undefined : t.groupType) === f.GroupType.LINKED_ANNOUNCEMENT_GROUP;

@@ -4,15 +4,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = function (e, t) {
   let n = "";
-  const r = e.get("type");
-  const U = e.get("subtype");
-  const x = e.displayName();
-  const B = e.get("author");
-  const F = e.get("body");
+  const type = e.get("type");
+  const subtype = e.get("subtype");
+  const displayName = e.displayName();
+  const author = e.get("author");
+  const body = e.get("body");
   let j;
   let Y;
-  const K = !!t;
-  if (r !== "gp2") {
+  const shouldFormatAsLastMsg = !!t;
+  if (type !== "gp2") {
     return n;
   }
   const W = e.recipients || [];
@@ -20,11 +20,11 @@ exports.default = function (e, t) {
   const H = W[0];
   const $ = H ? a.ContactCollection.get(H) : undefined;
   const z = $ ? (0, A.getFormattedName)($) : H ? (0, k.widToFormattedUser)(H) : "";
-  switch (U) {
+  switch (subtype) {
     case "add":
       n = (0, o.formatAddNotification)({
-        author: B,
-        authorClickable: x,
+        author: author,
+        authorClickable: displayName,
         subject: H,
         subjectClickable: z,
         participantsClickable: V
@@ -32,8 +32,8 @@ exports.default = function (e, t) {
       break;
     case "remove":
       n = (0, S.formatRemoveNotification)({
-        author: B,
-        authorClickable: x,
+        author: author,
+        authorClickable: displayName,
         subject: H,
         subjectClickable: z,
         participantsClickable: V
@@ -41,35 +41,35 @@ exports.default = function (e, t) {
       break;
     case "leave":
       n = (0, _.formatLeaveNotification)({
-        body: F,
+        body: body,
         subject: H,
         participantsClickable: V
       });
       break;
     case "picture":
       n = (0, y.formatPictureNotification)({
-        author: B,
-        authorClickable: x,
-        body: F
+        author: author,
+        authorClickable: displayName,
+        body: body
       });
       break;
     case "subject":
-      n = (0, M.formatSubjectNotification)((0, b.getChat)(e), B, x, F);
+      n = (0, M.formatSubjectNotification)((0, b.getChat)(e), author, displayName, body);
       break;
     case "modify":
-      j = (0, k.widToFormattedUser)(B);
+      j = (0, k.widToFormattedUser)(author);
       Y = (0, k.widToFormattedUser)(H);
-      n = j === x ? G.fbt._("{name} changed to {new_number}", [G.fbt._param("name", x), G.fbt._param("new_number", Y)], {
+      n = j === displayName ? G.fbt._("{name} changed to {new_number}", [G.fbt._param("name", displayName), G.fbt._param("new_number", Y)], {
         hk: "4gSeHO"
-      }) : G.fbt._("{name} changed their phone number to a new number.", [G.fbt._param("name", x)], {
+      }) : G.fbt._("{name} changed their phone number to a new number.", [G.fbt._param("name", displayName)], {
         hk: "2543Ma"
       });
       break;
     case "create":
       n = (0, c.formatCreateNotification)({
-        author: B,
-        authorClickable: x,
-        groupSubject: F,
+        author: author,
+        authorClickable: displayName,
+        groupSubject: body,
         groupSubjectAsString: true
       });
       break;
@@ -83,7 +83,7 @@ exports.default = function (e, t) {
     case "linked_group_promote":
     case "linked_group_demote":
       n = (0, E.formatPromoteDemoteNotification)({
-        subtype: U,
+        subtype: subtype,
         subject: H,
         subjectClickable: z,
         participantsClickable: V,
@@ -98,49 +98,49 @@ exports.default = function (e, t) {
       });
       break;
     case "revoke_invite":
-      n = (0, L.isMeAccount)(B) ? G.fbt._("You reset this group's invite link. Click to view the new invite link.", null, {
+      n = (0, L.isMeAccount)(author) ? G.fbt._("You reset this group's invite link. Click to view the new invite link.", null, {
         hk: "27k9Gu"
-      }) : G.fbt._("{name} reset this group's invite link. Click to view the new invite link.", [G.fbt._param("name", x)], {
+      }) : G.fbt._("{name} reset this group's invite link. Click to view the new invite link.", [G.fbt._param("name", displayName)], {
         hk: "ye1F8"
       });
       break;
     case "description":
       n = (0, p.formatDescriptionNotification)({
-        author: B,
-        authorClickable: x,
-        shouldFormatAsLastMsg: K
+        author: author,
+        authorClickable: displayName,
+        shouldFormatAsLastMsg: shouldFormatAsLastMsg
       });
       break;
     case "parent_group_description":
       n = (0, p.formatDescriptionNotification)({
-        author: B,
-        authorClickable: x,
+        author: author,
+        authorClickable: displayName,
         isParentGroup: true,
-        shouldFormatAsLastMsg: K
+        shouldFormatAsLastMsg: shouldFormatAsLastMsg
       });
       break;
     case "announce":
       n = (0, l.formatAnnounceNotification)({
-        author: B,
-        authorClickable: x,
-        body: F
+        author: author,
+        authorClickable: displayName,
+        body: body
       });
       break;
     case "restrict":
       n = (0, T.formatRestrictNotification)({
-        author: B,
-        authorClickable: x,
+        author: author,
+        authorClickable: displayName,
         templateParams: e.templateParams
       });
       break;
     case "no_frequently_forwarded":
-      n = F === "on" ? (0, L.isMeAccount)(B) ? G.fbt._("You changed this group's settings to not allow messages that have been forwarded many times.", null, {
+      n = body === "on" ? (0, L.isMeAccount)(author) ? G.fbt._("You changed this group's settings to not allow messages that have been forwarded many times.", null, {
         hk: "16hyEI"
-      }) : G.fbt._("{name} changed this group's settings to not allow messages that have been forwarded many times.", [G.fbt._param("name", x)], {
+      }) : G.fbt._("{name} changed this group's settings to not allow messages that have been forwarded many times.", [G.fbt._param("name", displayName)], {
         hk: "RnKuI"
-      }) : (0, L.isMeAccount)(B) ? G.fbt._("You changed this group's settings to allow messages that have been forwarded many times.", null, {
+      }) : (0, L.isMeAccount)(author) ? G.fbt._("You changed this group's settings to allow messages that have been forwarded many times.", null, {
         hk: "3Ib1Hu"
-      }) : G.fbt._("{name} changed this group's settings to allow messages that have been forwarded many times.", [G.fbt._param("name", x)], {
+      }) : G.fbt._("{name} changed this group's settings to allow messages that have been forwarded many times.", [G.fbt._param("name", displayName)], {
         hk: "4rcXNB"
       });
       break;
@@ -187,7 +187,7 @@ exports.default = function (e, t) {
     case "auto_add":
     case "default_sub_group_admin_add":
     case "invite_auto_add":
-      n = (0, g.formatLinkNotifAsFbt)(U, B, H, e.templateParams);
+      n = (0, g.formatLinkNotifAsFbt)(subtype, B, H, e.templateParams);
       break;
     case "community_participant_add_rich":
     case "community_invite_rich":
@@ -201,27 +201,27 @@ exports.default = function (e, t) {
       n = (0, N.communitySubgroupWelcomeTitle)({
         templateParams: e.templateParams,
         clickable: false,
-        author: B
+        author: author
       });
       break;
     case "community_link_parent_group_rich":
       n = (0, R.communityLinkGroupTitle)({
         templateParams: e.templateParams,
         clickable: false,
-        author: B
+        author: author
       });
       break;
     case "community_create":
       n = (0, i.communityRichSystemMessageEnabled)() ? (0, D.communityWelcomeAdminTitle)({
         templateParams: e.templateParams,
-        author: B,
+        author: author,
         chat: (0, b.getChat)(e)
-      }) : (0, g.formatLinkNotifAsFbt)(U, B, H, e.templateParams);
+      }) : (0, g.formatLinkNotifAsFbt)(subtype, B, H, e.templateParams);
       break;
     case "membership_approval_mode":
     case "membership_approval_request":
     case "created_membership_requests":
-      n = (0, m.default)(U, B, e.templateParams);
+      n = (0, m.default)(subtype, B, e.templateParams);
       break;
     case "ephemeral_keep_in_chat":
       n = G.fbt._("Disappearing messages now support keeping messages in the chat. Click to learn more.", null, {
@@ -259,7 +259,7 @@ exports.default = function (e, t) {
       n = (0, O.communityGeneralChatAutoAddDisabledNotification)((0, b.getChat)(e).formattedTitle);
       break;
     default:
-      __LOG__(2)`wa:formatGroupNotification:unknown message subtype: ${U}`;
+      __LOG__(2)`wa:formatGroupNotification:unknown message subtype: ${subtype}`;
   }
   if (C.default.isRTL()) {
     n = C.default.forceRTL(String(n));

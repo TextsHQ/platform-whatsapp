@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.formatLinkNotifAsFbt = function (e, t, n, r) {
-  return m(e, t, n, r, false);
+  return formatLinkNotification(e, t, n, r, false);
 };
-exports.formatLinkNotification = m;
+exports.formatLinkNotification = formatLinkNotification;
 var i = require("./287461.js");
 var a = require("./436355.js");
 var o = r(require("./667845.js"));
@@ -17,13 +17,13 @@ var d = r(require("./124928.js"));
 var p = require("../vendor/548360.js");
 var f = r(require("../vendor/667294.js"));
 const _ = e => e instanceof d.default && (0, c.isMeAccount)(e);
-function g(e) {
+function invertValue(e) {
   return !e;
 }
-function m(e, t, n, r, c) {
-  const d = t ? (0, a.getFormattedName)(t, !c, e) : null;
-  const m = n ? (0, a.getFormattedName)(n, !c) : null;
-  switch (e) {
+function formatLinkNotification(subtype, author, firstRecipient, templateParams, clickable) {
+  const authorName = author ? (0, a.getFormattedName)(author, !clickable, subtype) : null;
+  const firstRecipientName = firstRecipient ? (0, a.getFormattedName)(firstRecipient, !clickable) : null;
+  switch (subtype) {
     case "parent_group_link":
       return function (e, t, n, r) {
         const i = (0, a.getFormattedCommunityNameWithAlternative)({
@@ -31,27 +31,27 @@ function m(e, t, n, r, c) {
           asString: !t,
           alternativeStringName: e[1]
         });
-        if (!g(i) && _(n)) {
+        if (!invertValue(i) && _(n)) {
           return p.fbt._("You added this group and its participants to the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(i, !t))], {
             hk: "4nckix"
           });
         }
-        if (g(i) && _(n)) {
+        if (invertValue(i) && _(n)) {
           return p.fbt._("You added this group and its participants to a community", null, {
             hk: "2WbR5d"
           });
         }
-        if (!g(i) && n != null) {
+        if (!invertValue(i) && n != null) {
           return p.fbt._("{author} added this group and its participants to the community {community}", [p.fbt._param("author", r), p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(i, !t))], {
             hk: "3d0Fnn"
           });
         }
-        if (!g(i) && n == null) {
+        if (!invertValue(i) && n == null) {
           return p.fbt._("This group and its participants were added to the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(i, !t))], {
             hk: "2GnUkW"
           });
         }
-        if (g(i) && n != null) {
+        if (invertValue(i) && n != null) {
           return p.fbt._("{author} added this group and its participants to a community", [p.fbt._param("author", r)], {
             hk: "8zlZu"
           });
@@ -59,7 +59,7 @@ function m(e, t, n, r, c) {
         return p.fbt._("This group and its participants were added to a community", null, {
           hk: "3cwk3U"
         });
-      }(r, c, t, d);
+      }(templateParams, clickable, author, authorName);
     case "parent_group_link_membership_approval":
       return function (e, t) {
         var n;
@@ -70,10 +70,10 @@ function m(e, t, n, r, c) {
         });
         const s = e[0];
         const l = Boolean(s ? (n = o.default.get(s)) === null || n === undefined ? undefined : n.isParentGroupClosed : undefined);
-        const u = e[2] === "admin";
-        const c = e[3] === "true";
-        if ((0, i.getABPropConfigValue)("group_join_request_m2") && c) {
-          if (u) {
+        const isAdmin = e[2] === "admin";
+        const isCommunity = e[3] === "true";
+        if ((0, i.getABPropConfigValue)("group_join_request_m2") && isCommunity) {
+          if (isAdmin) {
             return p.fbt._("New participants need admin approval to join this group. Click to change.", null, {
               hk: "1d3CFC"
             });
@@ -84,7 +84,7 @@ function m(e, t, n, r, c) {
           }
         }
         if (!(0, i.getABPropConfigValue)("group_join_request_m2_setting") && l) {
-          if (g(r)) {
+          if (invertValue(r)) {
             return p.fbt._("Anyone in this community can request to join this group by messaging group admins.", null, {
               hk: "4sPAx1"
             });
@@ -95,8 +95,8 @@ function m(e, t, n, r, c) {
           }
         }
         if ((0, i.getABPropConfigValue)("group_join_request_m2_setting")) {
-          if (c) {
-            if (u) {
+          if (isCommunity) {
+            if (isAdmin) {
               return p.fbt._("New participants need admin approval to join this group. Click to change.", null, {
                 hk: "1d3CFC"
               });
@@ -106,8 +106,8 @@ function m(e, t, n, r, c) {
               });
             }
           }
-          if (u) {
-            if (g(r)) {
+          if (isAdmin) {
+            if (invertValue(r)) {
               return p.fbt._("Anyone in this community can join this group. Click to change.", null, {
                 hk: "1b1S29"
               });
@@ -118,7 +118,7 @@ function m(e, t, n, r, c) {
             }
           }
         }
-        if (!g(r)) {
+        if (!invertValue(r)) {
           return p.fbt._("Anyone in the community {community} can join this group.", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(r, !t))], {
             hk: "1ZW3he"
           });
@@ -126,7 +126,7 @@ function m(e, t, n, r, c) {
         return p.fbt._("Anyone in this community can join this group.", null, {
           hk: "1Vut2l"
         });
-      }(r, c);
+      }(templateParams, clickable);
     case "sibling_group_link":
       return function (e, t, n, r, i) {
         const [...o] = e;
@@ -188,46 +188,46 @@ function m(e, t, n, r, c) {
             formattedNames: c
           }
         });
-      }(r, c, t, d, e);
+      }(templateParams, clickable, author, authorName, subtype);
     case "sub_group_link":
       break;
     case "parent_group_unlink":
-      return function (e, t, n, r) {
-        const [...i] = e;
-        const o = (0, a.getFormattedCommunityNameWithAlternative)({
+      return function (templateParams, clickable, author, authorName) {
+        const [...i] = templateParams;
+        const communityName = (0, a.getFormattedCommunityNameWithAlternative)({
           jid: i[0],
-          asString: !t,
+          asString: !clickable,
           alternativeStringName: i[1]
         });
-        if (o != null && _(n)) {
-          return p.fbt._("You removed this group from the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(o, !t))], {
+        if (communityName != null && _(author)) {
+          return p.fbt._("You removed this group from the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(communityName, !clickable))], {
             hk: "2X88Ik"
           });
         }
-        if (o == null && _(n)) {
+        if (communityName == null && _(author)) {
           return p.fbt._("You removed this group from a community", null, {
             hk: "1mLYQR"
           });
         }
-        if (o != null && n != null) {
-          return p.fbt._("{author} removed this group from the community {community}", [p.fbt._param("author", r), p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(o, !t))], {
+        if (communityName != null && author != null) {
+          return p.fbt._("{author} removed this group from the community {community}", [p.fbt._param("author", authorName), p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(communityName, !clickable))], {
             hk: "2Pjtdd"
           });
         }
-        if (o != null && n == null) {
-          return p.fbt._("This group was removed from the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(o, !t))], {
+        if (communityName != null && author == null) {
+          return p.fbt._("This group was removed from the community {community}", [p.fbt._param("community", (0, a.getCommunityNameInQuotationMarks)(communityName, !clickable))], {
             hk: "2eO6Mn"
           });
         }
-        if (o == null && n != null) {
-          return p.fbt._("{author} removed this group from a community", [p.fbt._param("author", r)], {
+        if (communityName == null && author != null) {
+          return p.fbt._("{author} removed this group from a community", [p.fbt._param("author", authorName)], {
             hk: "1hLgAv"
           });
         }
         return p.fbt._("This group was removed from a community", null, {
           hk: "1UqTCc"
         });
-      }(r, c, t, d);
+      }(templateParams, clickable, author, authorName);
     case "integrity_parent_group_unlink":
       return function (e, t) {
         const n = (0, a.getClickableIntegrityDeactivateCommunityName)(e[0], e[1], t);
@@ -239,12 +239,12 @@ function m(e, t, n, r, c) {
         return p.fbt._("This group is no longer part of a community", null, {
           hk: "ke9K9"
         });
-      }(r, c);
+      }(templateParams, clickable);
     case "delete_parent_group_unlink":
     case "delete_parent_group":
       return function (e, t, n, r) {
         let i;
-        if (!(e[0] == null || typeof e[0] != "string" || g(e[0]))) {
+        if (!(e[0] == null || typeof e[0] != "string" || invertValue(e[0]))) {
           i = (0, a.getClickableDeactivatedCommunityName)(e[0], r);
         }
         if (i != null && t != null) {
@@ -271,7 +271,7 @@ function m(e, t, n, r, c) {
         return p.fbt._("A community was deactivated", null, {
           hk: "40jOZC"
         });
-      }(r, d, t, c);
+      }(templateParams, authorName, author, clickable);
     case "sibling_group_unlink":
       return function (e, t, n, r) {
         const [...i] = e;
@@ -333,7 +333,7 @@ function m(e, t, n, r, c) {
             formattedNames: o
           }
         });
-      }(r, c, t, d);
+      }(templateParams, clickable, author, authorName);
     case "sub_group_unlink":
       break;
     case "community_create":
@@ -343,7 +343,7 @@ function m(e, t, n, r, c) {
           asString: !t,
           alternativeStringName: e[1]
         });
-        if (g(i)) {
+        if (invertValue(i)) {
           if (r != null) {
             return function (e) {
               return p.fbt._("{author} created the community", [p.fbt._param("author", e)], {
@@ -379,7 +379,7 @@ function m(e, t, n, r, c) {
             hk: "41b5fU"
           });
         }(i);
-      }(r, c, t, d);
+      }(templateParams, clickable, author, authorName);
     case "linked_group_join":
       return function (e, t) {
         if (_(e)) {
@@ -390,7 +390,7 @@ function m(e, t, n, r, c) {
         return p.fbt._("{author} joined from the community", [p.fbt._param("author", t)], {
           hk: "XjW5z"
         });
-      }(n, m);
+      }(firstRecipient, firstRecipientName);
     case "auto_add":
     case "default_sub_group_admin_add":
       return function (e, t, n) {
@@ -400,7 +400,7 @@ function m(e, t, n, r, c) {
             asString: !t,
             alternativeStringName: e[1]
           });
-          if (g(r)) {
+          if (invertValue(r)) {
             return p.fbt._("{author} added you to this group and the community", [p.fbt._param("author", n)], {
               hk: "2hKjk"
             });
@@ -413,7 +413,7 @@ function m(e, t, n, r, c) {
         return p.fbt._("{author} added you", [p.fbt._param("author", n)], {
           hk: "43QqY3"
         });
-      }(r, c, d);
+      }(templateParams, clickable, authorName);
     case "invite_auto_add":
       return function (e, t, n, r) {
         let i;
@@ -429,7 +429,7 @@ function m(e, t, n, r, c) {
         }
         if (!o) {
           if (_(n)) {
-            if (g(i)) {
+            if (invertValue(i)) {
               return p.fbt._("You were added to this community", null, {
                 hk: "4e1yk2"
               });
@@ -445,7 +445,7 @@ function m(e, t, n, r, c) {
           }
         }
         if (_(n)) {
-          if (g(i)) {
+          if (invertValue(i)) {
             return p.fbt._("You were added", null, {
               hk: "2zV9JG"
             });
@@ -458,8 +458,8 @@ function m(e, t, n, r, c) {
         return p.fbt._("{user_name} joined", [p.fbt._param("user_name", r)], {
           hk: "nMrAo"
         });
-      }(r, c, n, m);
+      }(templateParams, clickable, firstRecipient, firstRecipientName);
     default:
-      __LOG__(2)`wa:formatLinkNotification:unknown message subtype: ${e}`;
+      __LOG__(2)`wa:formatLinkNotification:unknown message subtype: ${subtype}`;
   }
 }

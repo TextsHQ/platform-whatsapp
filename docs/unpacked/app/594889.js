@@ -30,7 +30,7 @@ exports.MessageCommunityLinkGroup = function (e) {
   return u.default.createElement(o.MessageCommunityCard, {
     communityId: s,
     subgroupId: i.id,
-    title: c({
+    title: communityLinkGroupTitle({
       templateParams: t,
       clickable: n,
       author: r
@@ -42,14 +42,14 @@ exports.MessageCommunityLinkGroup = function (e) {
     openNavigation: !p
   });
 };
-exports.communityLinkGroupTitle = c;
+exports.communityLinkGroupTitle = communityLinkGroupTitle;
 var i = require("./436355.js");
 var a = r(require("./667845.js"));
 var o = require("./210190.js");
 var s = require("./459857.js");
 var l = require("../vendor/548360.js");
 var u = r(require("../vendor/667294.js"));
-function c(e) {
+function communityLinkGroupTitle(e) {
   const {
     templateParams: t,
     clickable: n,

@@ -2,33 +2,33 @@ var r = require("../vendor/595318.js");
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.formatSubjectNotification = function (e, t, n, r) {
+exports.formatSubjectNotification = function (e, author, displayName, body) {
   if ((0, i.isCommunityAnnouncementGroup)(e)) {
-    if ((0, a.isMeAccount)(t)) {
-      return o.fbt._("You changed the community's name to \"{community_name}\"", [o.fbt._param("community_name", r)], {
+    if ((0, a.isMeAccount)(author)) {
+      return o.fbt._("You changed the community's name to \"{community_name}\"", [o.fbt._param("community_name", body)], {
         hk: "DG7ea"
       });
-    } else if (n != null) {
-      return o.fbt._("{user} changed the community's name to \"{community_name}\"", [o.fbt._param("user", n), o.fbt._param("community_name", r)], {
+    } else if (displayName != null) {
+      return o.fbt._("{user} changed the community's name to \"{community_name}\"", [o.fbt._param("user", displayName), o.fbt._param("community_name", body)], {
         hk: "1qK6P0"
       });
     } else {
-      return o.fbt._("A participant changed the community's name to \"{community_name}\"", [o.fbt._param("community_name", r)], {
+      return o.fbt._("A participant changed the community's name to \"{community_name}\"", [o.fbt._param("community_name", body)], {
         hk: "4hAl6C"
       });
     }
   }
-  if ((0, a.isMeAccount)(t)) {
-    return o.fbt._("You changed the subject to \"{group_name}\"", [o.fbt._param("group_name", r)], {
+  if ((0, a.isMeAccount)(author)) {
+    return o.fbt._("You changed the subject to \"{group_name}\"", [o.fbt._param("group_name", body)], {
       hk: "2mtky1"
     });
   }
-  if (n != null) {
-    return o.fbt._("{user} changed the subject to \"{group_name}\"", [o.fbt._param("user", n), o.fbt._param("group_name", r)], {
+  if (displayName != null) {
+    return o.fbt._("{user} changed the subject to \"{group_name}\"", [o.fbt._param("user", displayName), o.fbt._param("group_name", body)], {
       hk: "2g5nTQ"
     });
   } else {
-    return o.fbt._("A participant changed the subject to \"{group_name}\"", [o.fbt._param("group_name", r)], {
+    return o.fbt._("A participant changed the subject to \"{group_name}\"", [o.fbt._param("group_name", body)], {
       hk: "3ynTdM"
     });
   }

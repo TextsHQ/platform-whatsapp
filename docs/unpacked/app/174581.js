@@ -4,14 +4,14 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.formatDescriptionNotification = function (e) {
   let {
-    author: t,
-    authorClickable: n,
-    isParentGroup: r = false,
-    shouldFormatAsLastMsg: i = false
+    author: author,
+    authorClickable: authorClickable,
+    isParentGroup: isParentGroup = false,
+    shouldFormatAsLastMsg: shouldFormatAsLastMsg = false
   } = e;
-  if (i) {
-    if ((0, a.isMe)(t)) {
-      if (r) {
+  if (shouldFormatAsLastMsg) {
+    if ((0, a.isMe)(author)) {
+      if (isParentGroup) {
         return o.fbt._("You changed the community description", null, {
           hk: "17mic3"
         });
@@ -20,17 +20,17 @@ exports.formatDescriptionNotification = function (e) {
           hk: "1wezEo"
         });
       }
-    } else if (n != null) {
-      if (r) {
-        return o.fbt._("{user_name} changed the community description", [o.fbt._param("user_name", n)], {
+    } else if (authorClickable != null) {
+      if (isParentGroup) {
+        return o.fbt._("{user_name} changed the community description", [o.fbt._param("user_name", authorClickable)], {
           hk: "2tSLBs"
         });
       } else {
-        return o.fbt._("{user_name} changed the group description", [o.fbt._param("user_name", n)], {
+        return o.fbt._("{user_name} changed the group description", [o.fbt._param("user_name", authorClickable)], {
           hk: "4bc4fs"
         });
       }
-    } else if (r) {
+    } else if (isParentGroup) {
       return o.fbt._("A participant changed the community description", null, {
         hk: "2rtAey"
       });
@@ -40,9 +40,9 @@ exports.formatDescriptionNotification = function (e) {
       });
     }
   }
-  if ((0, a.isMe)(t)) {
-    if (r) {
-      if (s) {
+  if ((0, a.isMe)(author)) {
+    if (isParentGroup) {
+      if (systemMessageActionTextStylingEnabled) {
         return o.fbt._("You changed the community description", null, {
           hk: "2ZR72p"
         });
@@ -51,7 +51,7 @@ exports.formatDescriptionNotification = function (e) {
           hk: "4lpFuM"
         });
       }
-    } else if (s) {
+    } else if (systemMessageActionTextStylingEnabled) {
       return o.fbt._("You changed the group description", null, {
         hk: "15hF7V"
       });
@@ -61,29 +61,29 @@ exports.formatDescriptionNotification = function (e) {
       });
     }
   }
-  if (n != null) {
-    if (r) {
-      if (s) {
-        return o.fbt._("{user_name} changed the community description", [o.fbt._param("user_name", n)], {
+  if (authorClickable != null) {
+    if (isParentGroup) {
+      if (systemMessageActionTextStylingEnabled) {
+        return o.fbt._("{user_name} changed the community description", [o.fbt._param("user_name", authorClickable)], {
           hk: "4mBEdZ"
         });
       } else {
-        return o.fbt._("{user_name} changed the community description. Click to view", [o.fbt._param("user_name", n)], {
+        return o.fbt._("{user_name} changed the community description. Click to view", [o.fbt._param("user_name", authorClickable)], {
           hk: "2PaOdp"
         });
       }
-    } else if (s) {
-      return o.fbt._("{user_name} changed the group description", [o.fbt._param("user_name", n)], {
+    } else if (systemMessageActionTextStylingEnabled) {
+      return o.fbt._("{user_name} changed the group description", [o.fbt._param("user_name", authorClickable)], {
         hk: "46ZqU8"
       });
     } else {
-      return o.fbt._("{user_name} changed the group description. Click to view", [o.fbt._param("user_name", n)], {
+      return o.fbt._("{user_name} changed the group description. Click to view", [o.fbt._param("user_name", authorClickable)], {
         hk: "375pmb"
       });
     }
   }
-  if (r) {
-    if (s) {
+  if (isParentGroup) {
+    if (systemMessageActionTextStylingEnabled) {
       return o.fbt._("A participant changed the community description", null, {
         hk: "bod0C"
       });
@@ -92,7 +92,7 @@ exports.formatDescriptionNotification = function (e) {
         hk: "3urRw0"
       });
     }
-  } else if (s) {
+  } else if (systemMessageActionTextStylingEnabled) {
     return o.fbt._("A participant changed the group description", null, {
       hk: "4Fk1Dx"
     });
@@ -106,4 +106,4 @@ var i = require("./108590.js");
 var a = require("./526424.js");
 var o = require("../vendor/548360.js");
 r(require("../vendor/667294.js"));
-const s = (0, i.systemMessageActionTextStylingEnabled)();
+const systemMessageActionTextStylingEnabled = (0, i.systemMessageActionTextStylingEnabled)();
