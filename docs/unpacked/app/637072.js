@@ -1,0 +1,163 @@
+var r = require("../vendor/595318.js");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+var i = r(require("./345529.js"));
+var a = r(require("./112699.js"));
+var o = r(require("./766671.js"));
+var s = [{
+  type: "audio",
+  processor: null
+}, {
+  type: "buttons_response",
+  processor: null
+}, {
+  type: "chat",
+  processor: null
+}, {
+  type: "chat",
+  processor: null
+}, {
+  type: "ciphertext",
+  processor: null
+}, {
+  type: "comment",
+  processor: i.default
+}, {
+  type: "document",
+  processor: null
+}, {
+  type: "groups_v4_invite",
+  processor: null
+}, {
+  type: "hsm",
+  processor: null
+}, {
+  type: "image",
+  processor: null
+}, {
+  type: "interactive",
+  processor: null
+}, {
+  type: "interactive_response",
+  processor: null
+}, {
+  type: "keep_in_chat",
+  processor: null
+}, {
+  type: "list",
+  processor: null
+}, {
+  type: "list_response",
+  processor: null
+}, {
+  type: "location",
+  processor: null
+}, {
+  type: "multi_vcard",
+  processor: null
+}, {
+  type: "native_flow",
+  processor: null
+}, {
+  type: "notification_template",
+  processor: null
+}, {
+  type: "order",
+  processor: null
+}, {
+  type: "payment",
+  processor: null
+}, {
+  type: "payment",
+  processor: null
+}, {
+  type: "payment",
+  processor: null
+}, {
+  type: "payment",
+  processor: null
+}, {
+  type: "payment",
+  processor: null
+}, {
+  type: "pin_message",
+  processor: a.default
+}, {
+  type: "poll_creation",
+  processor: null
+}, {
+  type: "poll_update",
+  processor: o.default
+}, {
+  type: "product",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "protocol",
+  processor: null
+}, {
+  type: "ptt",
+  processor: null
+}, {
+  type: "ptv",
+  processor: null
+}, {
+  type: "reaction",
+  processor: null
+}, {
+  type: "reaction_enc",
+  processor: null
+}, {
+  type: "request_phone_number",
+  processor: null
+}, {
+  type: "revoked",
+  processor: null
+}, {
+  type: "revoked",
+  processor: null
+}, {
+  type: "sticker",
+  processor: null
+}, {
+  type: "template_button_reply",
+  processor: null
+}, {
+  type: "unknown",
+  processor: null
+}, {
+  type: "unknown",
+  processor: null
+}, {
+  type: "vcard",
+  processor: null
+}, {
+  type: "video",
+  processor: null
+}];
+exports.default = s;

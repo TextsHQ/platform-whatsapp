@@ -1,0 +1,23 @@
+export default {
+  container: "_3XAyL",
+  web: "_3OTrr",
+  containerFixed: "_150oh",
+  graphic: "_3IZS0",
+  logo: "_2MdkY",
+  dots: "_2hRN8",
+  laptop: "_2bTHj",
+  shimmering: "_2h8DS",
+  shimmer: "_3M1gV",
+  initialLoad: "_3xLrC",
+  didYouKnow: "_1i8Mv",
+  logout: "_2hEzC",
+  organizing: "_33Rhi",
+  progress: "etYVR",
+  main: "_3HbCE",
+  secondary: "_3Tugb",
+  warning: "slKWV",
+  showWarning: "_njzC",
+  dot: "_3gKsa",
+  connecting: "_1pE41",
+  downloading: "_1MrDJ"
+};

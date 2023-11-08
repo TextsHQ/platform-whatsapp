@@ -1,0 +1,1 @@
+module.exports = require.p + "img/general_chat_placeholder_5c042af602ed924f918c99ef010b936e.png";

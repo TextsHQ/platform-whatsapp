@@ -1,0 +1,20 @@
+export default {
+  mediaCanvas: "_3ak57",
+  mediaCanvasClickable: "_3qZEG",
+  canvasBody: "_1MnbT",
+  cartList: "dgU5p",
+  list: "_2QyHO",
+  cartListWrapper: "_3E0xt",
+  listWrapper: "_1Ljj0",
+  canvasComponent: "_3nBw-",
+  canvasComponentLarge: "V-udC",
+  canvasSecondRow: "_1Qvxh",
+  canvasComponentLargeGallerySpacing: "_2I0Fd",
+  viewerFlow: "qwoOE",
+  active: "_3dZ2w",
+  overlay: "PQaa1",
+  placeholder: "_1D-28",
+  squareThumb: "_1OhoL",
+  orderSquareThumb: "_2WZ-o",
+  gradient: "D4XnC"
+};

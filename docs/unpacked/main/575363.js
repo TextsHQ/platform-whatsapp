@@ -1,0 +1,22 @@
+export default {
+  "-overlay-border-right": "1px",
+  overlayBorderRight: "1px",
+  "-overlay-border-left": "1px",
+  overlayBorderLeft: "1px",
+  footer: "_3E8Fg",
+  botSuggestions: "p-ODu",
+  blockCompose: "_2lSWV",
+  inputContainer: "_3Uu1_",
+  boxPanelWrapper: "_1bAtO",
+  pttComposerActive: "_2jM8i",
+  attachButtonContainer: "_1OT67",
+  mainContentContainer: "_4r9rJ",
+  textMessageComposerContainer: "_2lryq",
+  textMessageComposerInputContainer: "_1VZX7",
+  pttComposerContainer: "_2_uJo",
+  childPadding: "_2xy_p",
+  sendButtonContainer: "_3XKXx",
+  focusAnimation: "_3D1OZ",
+  focusAnimationKeyframes: "_3BzPU",
+  expressionsPanelPickerWrapper: "_1Rw8K"
+};

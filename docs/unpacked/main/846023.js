@@ -1,0 +1,1 @@
+module.exports = require.p + "img/sticker-empty_9d7feb47a66ef5b59cc731acafd02266.png";

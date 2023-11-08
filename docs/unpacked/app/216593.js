@@ -1,0 +1,5 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+exports.default = e => e;

@@ -1,0 +1,1 @@
+module.exports = require.p + "bryndan_write_20e48b2ec8c64b2a1ceb5b28d9bcc9d0.ttf";

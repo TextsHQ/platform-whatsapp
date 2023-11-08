@@ -1,0 +1,1 @@
+module.exports = require.p + "noto_emoji_regular_74a68c7003890e207589ea43dc7572ca.ttf";

@@ -1,0 +1,1 @@
+module.exports = require("./870441.js")();

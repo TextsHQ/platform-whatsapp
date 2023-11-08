@@ -1,0 +1,71 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.normalizeLocaleToFBTLocale = function (e) {
+  const t = n[e];
+  if (t != null) {
+    return t;
+  }
+  return e;
+};
+const n = {
+  af: "af_ZA",
+  ar: "ar_AR",
+  az: "az_AZ",
+  bg: "bg_BG",
+  bn: "bn_IN",
+  ca: "ca_ES",
+  cs: "cs_CZ",
+  da: "da_DK",
+  de: "de_DE",
+  el: "el_GR",
+  en: "en_GB",
+  es: "es_MX",
+  et: "et_EE",
+  fa: "fa_IR",
+  fi: "fi_FI",
+  fil: "tl_PH",
+  fr: "fr_FR",
+  gu: "gu_IN",
+  he: "he_IL",
+  hi: "hi_IN",
+  hr: "hr_HR",
+  hu: "hu_HU",
+  id: "id_ID",
+  it: "it_IT",
+  ja: "ja_JP",
+  kk: "kk_KZ",
+  kn: "kn_IN",
+  ko: "ko_KR",
+  lt: "lt_LT",
+  lv: "lv_LV",
+  mk: "mk_MK",
+  ml: "ml_IN",
+  mr: "mr_IN",
+  ms: "ms_MY",
+  nb: "nb_NO",
+  nl: "nl_NL",
+  pa: "pa_IN",
+  pl: "pl_PL",
+  pt: "pt_PT",
+  "pt-BR": "pt_BR",
+  ro: "ro_RO",
+  ru: "ru_RU",
+  sk: "sk_SK",
+  sl: "sl_SI",
+  sq: "sq_AL",
+  sr: "sr_RS",
+  sv: "sv_SE",
+  sw: "sw_KE",
+  ta: "ta_IN",
+  te: "te_IN",
+  th: "th_TH",
+  tr: "tr_TR",
+  uk: "uk_UA",
+  ur: "ur_PK",
+  uz: "uz_UZ",
+  vi: "vi_VN",
+  "zh-CN": "zh_CN",
+  "zh-HK": "zh_HK",
+  "zh-TW": "zh_TW"
+};

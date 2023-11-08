@@ -1,0 +1,1 @@
+module.exports = require.p + "img/favicon_94e99ab189284094867d2e1220e42e9f.png";

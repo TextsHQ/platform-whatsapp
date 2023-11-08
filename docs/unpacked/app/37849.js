@@ -1,0 +1,1 @@
+module.exports = require.p + "img/icon-group-default_92b8a80d57227e2f342bd57ccf6382d8.png";

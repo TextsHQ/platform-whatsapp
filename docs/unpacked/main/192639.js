@@ -1,0 +1,20 @@
+export default {
+  mediaViewerAnimate: "_3McsI",
+  "media-viewer-animate": "_3McsI",
+  cursorZoomOut: "_33L_r",
+  mediaViewer: "_3hM62",
+  noThumbnails: "Z2iaL",
+  mediaContent: "_1OVaT",
+  sticker: "_1nf3A",
+  btnMediaNext: "_14SLK",
+  btnMediaPrev: "HvQos",
+  media: "_1I-Pt",
+  mediaWithCaption: "UwYWO",
+  captionWrapper: "_3-3LX",
+  captionWrapperExpandable: "kL1YB",
+  mediaCaption: "_3L6l8",
+  captionHidden: "rw31g",
+  expanded: "_2xH1f",
+  mediaCaptionExpanded: "_1xUWe",
+  captionExpanded: "_27Ggq"
+};

@@ -1,0 +1,14 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.logSendDocumentEvent = function (e, t) {
+  var n;
+  const o = e != null && (n = a.get(e.split(".").pop())) !== null && n !== undefined ? n : i.DOCUMENT_TYPE.OTHER;
+  new r.SendDocumentWamEvent({
+    documentSize: t,
+    documentType: o
+  }).commit();
+};
+var r = require("./872205.js");
+var i = require("./679190.js");
+const a = new Map([["ai", i.DOCUMENT_TYPE.IMAGE], ["ico", i.DOCUMENT_TYPE.IMAGE], ["jpeg", i.DOCUMENT_TYPE.IMAGE], ["jpg", i.DOCUMENT_TYPE.IMAGE], ["png", i.DOCUMENT_TYPE.IMAGE], ["ps", i.DOCUMENT_TYPE.IMAGE], ["psd", i.DOCUMENT_TYPE.IMAGE], ["svg", i.DOCUMENT_TYPE.IMAGE], ["tif", i.DOCUMENT_TYPE.IMAGE], ["tiff", i.DOCUMENT_TYPE.IMAGE], ["3g2", i.DOCUMENT_TYPE.VIDEO], ["3gp", i.DOCUMENT_TYPE.VIDEO], ["avi", i.DOCUMENT_TYPE.VIDEO], ["flv", i.DOCUMENT_TYPE.VIDEO], ["h264", i.DOCUMENT_TYPE.VIDEO], ["m4v", i.DOCUMENT_TYPE.VIDEO], ["mkv", i.DOCUMENT_TYPE.VIDEO], ["mov", i.DOCUMENT_TYPE.VIDEO], ["mp4", i.DOCUMENT_TYPE.VIDEO], ["mpg", i.DOCUMENT_TYPE.VIDEO], ["mpeg", i.DOCUMENT_TYPE.VIDEO], ["rm", i.DOCUMENT_TYPE.VIDEO], ["vob", i.DOCUMENT_TYPE.VIDEO], ["wmv", i.DOCUMENT_TYPE.AUDIO], ["aif", i.DOCUMENT_TYPE.AUDIO], ["cda", i.DOCUMENT_TYPE.AUDIO], ["mpa", i.DOCUMENT_TYPE.AUDIO], ["opus", i.DOCUMENT_TYPE.AUDIO], ["ogg", i.DOCUMENT_TYPE.AUDIO], ["wlp", i.DOCUMENT_TYPE.AUDIO], ["amr", i.DOCUMENT_TYPE.AUDIO], ["mp3", i.DOCUMENT_TYPE.AUDIO], ["m4a", i.DOCUMENT_TYPE.AUDIO], ["aac", i.DOCUMENT_TYPE.AUDIO], ["wav", i.DOCUMENT_TYPE.AUDIO], ["wma", i.DOCUMENT_TYPE.AUDIO], ["pdf", i.DOCUMENT_TYPE.DOCUMENT], ["doc", i.DOCUMENT_TYPE.DOCUMENT], ["docx", i.DOCUMENT_TYPE.DOCUMENT], ["ppt", i.DOCUMENT_TYPE.DOCUMENT], ["pptx", i.DOCUMENT_TYPE.DOCUMENT], ["xls", i.DOCUMENT_TYPE.DOCUMENT], ["xlsx", i.DOCUMENT_TYPE.DOCUMENT], ["txt", i.DOCUMENT_TYPE.DOCUMENT], ["rtf", i.DOCUMENT_TYPE.DOCUMENT], ["tex", i.DOCUMENT_TYPE.DOCUMENT], ["csv", i.DOCUMENT_TYPE.DOCUMENT], ["wpd", i.DOCUMENT_TYPE.DOCUMENT], ["7z", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["arj", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["deb", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["pkg", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["rar", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["rpm", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["gz", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["z", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["zip", i.DOCUMENT_TYPE.COMPRESSED_FILE], ["apk", i.DOCUMENT_TYPE.EXECUTABLE], ["bat", i.DOCUMENT_TYPE.EXECUTABLE], ["bin", i.DOCUMENT_TYPE.EXECUTABLE], ["cgi", i.DOCUMENT_TYPE.EXECUTABLE], ["pl", i.DOCUMENT_TYPE.EXECUTABLE], ["com", i.DOCUMENT_TYPE.EXECUTABLE], ["exe", i.DOCUMENT_TYPE.EXECUTABLE], ["gadget", i.DOCUMENT_TYPE.EXECUTABLE], ["jar", i.DOCUMENT_TYPE.EXECUTABLE], ["msi", i.DOCUMENT_TYPE.EXECUTABLE], ["py", i.DOCUMENT_TYPE.EXECUTABLE], ["wsf", i.DOCUMENT_TYPE.EXECUTABLE]]);

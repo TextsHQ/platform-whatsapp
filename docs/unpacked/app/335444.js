@@ -1,0 +1,1 @@
+module.exports = require.p + "img/f85_10cbc8d1444126f654a032456a74a72c.png";

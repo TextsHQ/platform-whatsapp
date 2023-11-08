@@ -1,0 +1,1 @@
+module.exports = require.p + "img/bg-chat-tile-dark_a4be512e7195b6b733d9110b408f075d.png";

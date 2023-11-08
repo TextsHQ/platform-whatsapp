@@ -1,0 +1,26 @@
+var a = require("../vendor/595318.js");
+exports.$ = function (e) {
+  e.setHandlers("event", (0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)((0, r.default)({}, h.MsgBridgeApi), u.ContactBridgeApi), l.ChatBridgeApi), i.ClockBridgeApi), s.CTWABridgeApi), M.StatusV3BridgeApi), g.MsgInfoBridgeApi), d.GroupBridgeApi), p.HistorySyncBridgeApi), m.IdentityBridgeApi), b.SocketBridgeApi), T.WamBridgeApi), C.ReactionsBridgeApi), o.AddOnsBridgeApi), S.StreamBridgeApi), f.GroupMetadataBridgeApi), E.NewsletterBridgeApi), v.PrimaryFeaturesBridgeApi), y.ProfilePicThumbBridgeApi), c.DeviceSwitchingBridgeApi), _.PrivacyBridgeApi));
+};
+var r = a(require("../vendor/81109.js"));
+var o = require("./639334.js");
+var l = require("./985590.js");
+var i = require("./523485.js");
+var u = require("./937907.js");
+var s = require("./980827.js");
+var c = require("./82978.js");
+var d = require("./273781.js");
+var f = require("./766167.js");
+var p = require("./569087.js");
+var m = require("./404374.js");
+var h = require("./381700.js");
+var g = require("./658428.js");
+var E = require("../app/549142.js");
+var v = require("./35600.js");
+var _ = require("./126494.js");
+var y = require("./608260.js");
+var C = require("./457177.js");
+var b = require("./413459.js");
+var M = require("./6076.js");
+var S = require("./141951.js");
+var T = require("./691231.js");

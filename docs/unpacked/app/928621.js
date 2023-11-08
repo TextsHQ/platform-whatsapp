@@ -1,0 +1,17 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.UI_UPDATE_TIME_MS = exports.ResumeStatus = exports.OFFLINE_STANZA_TIMEOUT_MS = exports.OFFLINE_STANZA_COUNT_LIMIT = exports.OFFLINE_STANZA_COUNT_CHECK_TIMEOUT_MS = exports.OFFLINE_PREVIEW_PERIOD_MS = exports.OFFLINE_DEVICE_SYNC_DELAY = undefined;
+const r = require("../vendor/76672.js")({
+  INIT: "INIT",
+  RESUME_ON_RESTART: "RESUME_ON_RESTART",
+  RESUME_WITH_OPEN_TAB: "RESUME_WITH_OPEN_TAB",
+  COMPLETE: "COMPLETE"
+});
+exports.ResumeStatus = r;
+exports.OFFLINE_STANZA_COUNT_CHECK_TIMEOUT_MS = 20000;
+exports.OFFLINE_STANZA_COUNT_LIMIT = 100;
+exports.OFFLINE_DEVICE_SYNC_DELAY = 2000;
+exports.OFFLINE_STANZA_TIMEOUT_MS = 60000;
+exports.OFFLINE_PREVIEW_PERIOD_MS = 1000;
+exports.UI_UPDATE_TIME_MS = 1000;

@@ -1,0 +1,22 @@
+export default {
+  context: "_2T2Kt",
+  contextIn: "_1bGUW",
+  contextOut: "vBu41",
+  contextIcon: "_3u9t-",
+  contextIconMedia: "_3Gzl9",
+  contextSpecial: "_2NUGw",
+  contextInverse: "SItPa",
+  contextMedia: "_3bpzW",
+  contextMediaLtr: "_2Giii",
+  contextMediaRtl: "xM-ZO",
+  contextMediaDocument: "_1zX9U",
+  contextDoc: "_3mizq",
+  contextPtt: "dyTvA",
+  contextPttFix: "_11BV7",
+  contextMultiVcard: "_2knQN",
+  contextTransparentAuthor: "_2ks6C",
+  contextTransparent: "_1vU0m",
+  badge: "_190UB",
+  contextTransparentInverse: "_1RTNC",
+  contextAnimatedEmoji: "F0yCW"
+};

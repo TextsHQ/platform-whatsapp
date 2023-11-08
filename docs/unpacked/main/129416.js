@@ -1,0 +1,215 @@
+var a = require("../vendor/595318.js");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+var r = a(require("./921985.js"));
+var o = a(require("./945979.js"));
+var l = a(require("./126972.js"));
+var i = a(require("./414625.js"));
+var u = [{
+  type: "audio",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "buttons_response",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "chat",
+  subtype: "url",
+  futureproofMsgText: null
+}, {
+  type: "chat",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "ciphertext",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "comment",
+  subtype: undefined,
+  futureproofMsgText: r.default
+}, {
+  type: "document",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "groups_v4_invite",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "hsm",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "image",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "interactive",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "interactive_response",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "keep_in_chat",
+  subtype: undefined,
+  futureproofMsgText: o.default
+}, {
+  type: "list",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "list_response",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "location",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "multi_vcard",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "native_flow",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "notification_template",
+  subtype: "contact_info_card",
+  futureproofMsgText: null
+}, {
+  type: "order",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "payment",
+  subtype: "ciphertext",
+  futureproofMsgText: null
+}, {
+  type: "payment",
+  subtype: "futureproof",
+  futureproofMsgText: null
+}, {
+  type: "payment",
+  subtype: "invite",
+  futureproofMsgText: null
+}, {
+  type: "payment",
+  subtype: "request",
+  futureproofMsgText: null
+}, {
+  type: "payment",
+  subtype: "send",
+  futureproofMsgText: null
+}, {
+  type: "pin_message",
+  subtype: undefined,
+  futureproofMsgText: l.default
+}, {
+  type: "poll_creation",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "poll_update",
+  subtype: "poll_vote",
+  futureproofMsgText: null
+}, {
+  type: "product",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "admin_revoke",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "bot_feedback",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "bot_request_welcome",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "ephemeral_setting",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "ephemeral_sync_response",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "history_sync_notification",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "message_edit",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "sender_revoke",
+  futureproofMsgText: null
+}, {
+  type: "protocol",
+  subtype: "share_phone_number",
+  futureproofMsgText: null
+}, {
+  type: "ptt",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "ptv",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "reaction",
+  subtype: undefined,
+  futureproofMsgText: i.default
+}, {
+  type: "reaction_enc",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "request_phone_number",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "revoked",
+  subtype: "admin",
+  futureproofMsgText: null
+}, {
+  type: "revoked",
+  subtype: "sender",
+  futureproofMsgText: null
+}, {
+  type: "sticker",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "template_button_reply",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "unknown",
+  subtype: "payment_action_request_declined",
+  futureproofMsgText: null
+}, {
+  type: "unknown",
+  subtype: "payment_transaction_request_cancelled",
+  futureproofMsgText: null
+}, {
+  type: "vcard",
+  subtype: undefined,
+  futureproofMsgText: null
+}, {
+  type: "video",
+  subtype: undefined,
+  futureproofMsgText: null
+}];
+exports.default = u;

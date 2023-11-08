@@ -1,0 +1,1 @@
+module.exports = require.p + "img/bot-assistant_40186e13e39ff31bdc6e3e54ff0cb482.png";

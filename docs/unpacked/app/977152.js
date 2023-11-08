@@ -1,0 +1,1 @@
+module.exports = require.p + "img/qr-video-hq_c001ebd6ddb0ba5fc7de491dfb556024.png";

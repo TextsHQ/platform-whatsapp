@@ -1,0 +1,1 @@
+module.exports = require.p + "img/emoji_shake_hand_right_cfe229340f61367476fb068beed25334.png";

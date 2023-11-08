@@ -1,0 +1,18 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.parseContentTypeMediaMixin = function (e) {
+  const t = (0, i.assertTag)(e, "message");
+  if (!t.success) {
+    return t;
+  }
+  const n = (0, i.literal)(i.attrString, e, "type", "media");
+  if (!n.success) {
+    return n;
+  }
+  return (0, r.makeResult)({
+    type: n.value
+  });
+};
+var r = require("./135781.js");
+var i = require("./686310.js");

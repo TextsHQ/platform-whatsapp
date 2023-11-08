@@ -1,0 +1,1 @@
+module.exports = require.p + "img/icon-user-default_bfb4ec026499f5b2d80e673a1a3a5bd7.png";

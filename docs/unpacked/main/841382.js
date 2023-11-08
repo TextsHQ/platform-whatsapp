@@ -1,0 +1,1 @@
+module.exports = require.p + "img/icon-group-invite-default_f4589ad25b02aabf3f85ca91b97863e7.png";

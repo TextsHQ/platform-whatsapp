@@ -1,0 +1,19 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.MESSAGE_SEND_RESULT_TYPE = undefined;
+const n = Object.freeze({
+  OK: 1,
+  ERROR_UNKNOWN: 3,
+  ERROR_NETWORK: 4,
+  ERROR_EXPIRED: 5,
+  ERROR_CANCELLED: 6,
+  ERROR_UPLOAD: 7,
+  ERROR_BACKFILL_USYNC_FAILED: 8,
+  ERROR_PAYLOAD_TOO_BIG: 9,
+  ERROR_LOCATION: 10,
+  ERROR_INVALID_MESSAGE: 11,
+  ERROR_E2EE: 12,
+  ERROR_INVALID_PROTOBUF: 13
+});
+exports.MESSAGE_SEND_RESULT_TYPE = n;

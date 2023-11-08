@@ -1,0 +1,1 @@
+module.exports = require.p + "img/ptv_placeholder_b1d384b1f37c09de65189e3ee9f0df11.jpg";

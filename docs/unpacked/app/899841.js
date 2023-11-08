@@ -1,0 +1,8 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.PRODUCT_LIST_ITEM_HEIGHT = exports.MAX_REPLY_PRODUCT_TITLE_LENGTH = exports.MAX_REPLY_PRODUCT_DESC_LENGTH = exports.CART_PRODUCT_LIST_ITEM_HEIGHT = undefined;
+exports.PRODUCT_LIST_ITEM_HEIGHT = 96;
+exports.CART_PRODUCT_LIST_ITEM_HEIGHT = 104;
+exports.MAX_REPLY_PRODUCT_TITLE_LENGTH = 40;
+exports.MAX_REPLY_PRODUCT_DESC_LENGTH = 95;

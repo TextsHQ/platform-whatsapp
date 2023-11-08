@@ -1,0 +1,24 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.UI_ACTION_TYPE = undefined;
+const n = Object.freeze({
+  OTHER: 1,
+  APP_OPEN: 2,
+  CHAT_OPEN: 3,
+  IMAGE_OPEN: 4,
+  FIRST_FTS_RESULT: 5,
+  CONTACTS_OPEN: 6,
+  GROUP_INFO_OPEN: 7,
+  MSG_INFO_OPEN: 8,
+  COMMUNITY_INFO_OPEN: 9,
+  DEFAULT_SUBGROUP_INFO_OPEN: 10,
+  COMMUNITY_CREATE: 11,
+  COMMUNITY_LINK: 12,
+  EMOJI_OBI_DECOMPRESSION: 13,
+  EMOJI_PNG_DECOMPRESSION: 14,
+  CHAT_LIST_OPEN: 15,
+  CALL_LIST_OPEN: 16,
+  CHANNEL_INFO_OPEN: 17
+});
+exports.UI_ACTION_TYPE = n;

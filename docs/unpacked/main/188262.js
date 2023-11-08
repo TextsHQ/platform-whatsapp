@@ -1,0 +1,8 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.makeDeleteParentGroupRequest = function (e) {
+  return (0, r.mergeBaseSetGroupMixin)((0, a.smax)("iq", null, (0, a.smax)("delete_parent", null)), e);
+};
+var a = require("../app/758616.js");
+var r = require("../app/667149.js");

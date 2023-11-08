@@ -1,0 +1,1 @@
+module.exports = require.p + "img/favicon-error2_fb2afa4bfd23495c7bd2555bb080bb35.png";

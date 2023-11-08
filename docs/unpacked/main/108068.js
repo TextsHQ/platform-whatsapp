@@ -1,0 +1,1 @@
+module.exports = require.p + "img/emoji_apple_heart_06b457186866f52f95b2a7b728c4ad98.png";

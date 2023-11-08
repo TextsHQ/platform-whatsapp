@@ -1,0 +1,1 @@
+module.exports = require.p + "img/emoji_whatsapp_heart_60b9cbc5c6bddc8d827d4fbb128d1995.png";

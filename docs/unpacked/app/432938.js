@@ -1,0 +1,10 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.STICKER_PADDING = exports.STICKER_PACK_FETCH_TIMEOUT = exports.STICKER_MAKER_IMAGE_PADDING = exports.STICKER_LIST_ITEM_HEIGHT = exports.STICKER_DIMENSION = exports.STICKER_BORDER_WIDTH = undefined;
+exports.STICKER_DIMENSION = 512;
+exports.STICKER_BORDER_WIDTH = 8;
+exports.STICKER_PADDING = 36;
+exports.STICKER_LIST_ITEM_HEIGHT = 156;
+exports.STICKER_MAKER_IMAGE_PADDING = 20;
+exports.STICKER_PACK_FETCH_TIMEOUT = 86400;

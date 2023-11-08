@@ -1,0 +1,9 @@
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.VCARD_MAX_SIZE_KB = exports.VCARD_AS_DOCUMENT_SIZE_KB = exports.PTT_PLAYBACK_SPEED_HIDE_DELAY = exports.MULTICAST_LIMIT_GLOBAL = exports.MMS_VCARD_AUTODOWNLOAD_SIZE_KB = undefined;
+exports.MMS_VCARD_AUTODOWNLOAD_SIZE_KB = 64;
+exports.VCARD_AS_DOCUMENT_SIZE_KB = 64;
+exports.VCARD_MAX_SIZE_KB = 5000;
+exports.MULTICAST_LIMIT_GLOBAL = 5;
+exports.PTT_PLAYBACK_SPEED_HIDE_DELAY = 1500;

@@ -1,0 +1,27 @@
+var r = require("../vendor/595318.js");
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = undefined;
+var i = require("./481173.js");
+var a = require("./177938.js");
+var o = r(require("./124928.js"));
+class s extends i.BaseModel {
+  constructor() {
+    super(...arguments);
+    this.id = (0, i.prop)();
+    this.isAdmin = (0, i.prop)();
+    this.isSuperAdmin = (0, i.prop)();
+    this.leaveTs = (0, i.prop)();
+    this.leaveReason = (0, i.prop)();
+    this.contact = (0, i.session)();
+  }
+  initialize() {
+    super.initialize();
+    this.addChild("contact", a.ContactCollection.gadd(this.id));
+  }
+}
+s.Proxy = "participant";
+s.idClass = o.default;
+var l = (0, i.defineModel)(s);
+exports.default = l;
