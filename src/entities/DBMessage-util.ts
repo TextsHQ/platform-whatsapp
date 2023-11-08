@@ -37,7 +37,7 @@ const getDisappearingModeMessageText = (exp: number, actor: string) => {
 }
 
 const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
-  [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while.',
+  [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while',
 
   [WAMessageStubType.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption',
   [WAMessageStubType.E2E_ENCRYPTED_NOW]: '🔒 Messages you send to this chat and calls are now secured with end-to-end encryption',
@@ -64,9 +64,9 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: '{{{{0}}}} is now an admin',
   [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: '{{{{0}}}} is no longer an admin',
 
-  [WAMessageStubType.GROUP_CREATE]: '{{sender}} created this group',
+  [WAMessageStubType.GROUP_CREATE]: m => (m.key.fromMe ? 'You created this group' : '{{sender}} created this group'),
   [WAMessageStubType.GROUP_DELETE]: 'This chat has been closed',
-  [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: '{{sender}} revoked this group\'s invite link',
+  [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: m => (m.key.fromMe ? 'You reset this group\'s invite link' : '{{sender}} reset this group\'s invite link'),
   [WAMessageStubType.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WAMessageStubType.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [WAMessageStubType.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
@@ -84,7 +84,7 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: participantAdded,
 
   [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_INVITATION]: '{{sender}} notified {{{{0}}}} that you are trying to send a payment',
-  // todo: [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: unknown
+  [WAMessageStubType.PAYMENT_ACTION_SEND_PAYMENT_REMINDER]: 'You can now send {{{{0}}}} a payment.',
 
   [WAMessageStubType.INDIVIDUAL_CHANGE_NUMBER]: message => `{{${message.key.remoteJid}}} changed their phone number to a new number {{{{0}}}}`,
   [WAMessageStubType.GROUP_PARTICIPANT_CHANGE_NUMBER]: '{{sender}} changed their phone number to a new number {{{{0}}}}',
@@ -117,6 +117,127 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP]: 'This group was added to the community "{{1}}"',
   [WAMessageStubType.SUB_GROUP_INVITE_RICH]: 'You joined a group via invite in the community: "{{1}}"',
   [WAMessageStubType.COMMUNITY_INVITE_RICH]: 'Welcome to the community! Admins will send all important updates here.',
+
+  [WAMessageStubType.ADMIN_REVOKE]: 'This message was deleted',
+  // [WAMessageStubType.BIZ_BOT_1P_MESSAGING_ENABLED]: '', // Unsupported by Baileys types
+  // [WAMessageStubType.BIZ_BOT_3P_MESSAGING_ENABLED]: '', // Unsupported by Baileys types
+  [WAMessageStubType.BIZ_CHAT_ASSIGNMENT]: 'Chat assigned to agent',
+  [WAMessageStubType.BIZ_CHAT_ASSIGNMENT_UNASSIGN]: 'Chat was unassigned',
+  [WAMessageStubType.BIZ_NAME_CHANGE]: 'This business changed its name',
+  [WAMessageStubType.BIZ_VERIFIED_TRANSITION_BOTTOM_TO_TOP]: 'This chat is now with the official business account of "{{0}}"',
+  [WAMessageStubType.BIZ_VERIFIED_TRANSITION_TOP_TO_BOTTOM]: 'This chat is no longer with the official business account of "{{0}}',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_TO_BSP_PREMISE]: '{{0}} no longer uses Facebook to manage its WhatsApp conversations. Click to learn how this changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_TO_SELF_FB]: '{{0}} now only uses Facebook to manage its WhatsApp conversations. Click to learn how this changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_TO_SELF_PREMISE]: '{{0}} no longer uses Facebook or other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED]: 'This chat is with a business account that uses Facebook and other companies to manage its WhatsApp conversations. Click to learn more about privacy in this chat',
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_FB_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_FB_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_BSP_PREMISE_TO_SELF_PREMISE]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_UNVERIFIED]: 'This chat is with a business account that uses other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '{businessName} is now a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  // [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '{businessName} is no longer a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_CONSUMER_TO_BSP_FB_UNVERIFIED]: '{{0}} is now a verified account that uses Meta and other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_CONSUMER_TO_BSP_PREMISE_UNVERIFIED]: '{{0}} is now registered as a business account that uses other companies to manage its WhatsApp conversations.chat',
+  [WAMessageStubType.BLUE_MSG_CONSUMER_TO_SELF_FB_UNVERIFIED]: '{{0}} is now registered as a business account that uses Facebook to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_CONSUMER_TO_SELF_PREMISE_UNVERIFIED]: '{{0}} is now registered as a business account',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_TO_BSP_PREMISE]: '{{0}} now uses other companies instead of Facebook to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_TO_SELF_PREMISE]: '{{0}} no longer uses Facebook to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED]: 'This chat is with a business account that uses Facebook to manage its WhatsApp conversations',
+  // [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_SELF_PREMISE_TO_BSP_PREMISE]: '{{0}} now uses other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_SELF_PREMISE_VERIFIED]: 'This chat is with {{0}}\'s verified account',
+  [WAMessageStubType.BLUE_MSG_TO_BSP_FB]: '{{0}} now uses Facebook and other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_TO_CONSUMER]: '{{0}} is no longer registered as a business account',
+  [WAMessageStubType.BLUE_MSG_TO_SELF_FB]: '{{0}} now uses Facebook to manage its WhatsApp conversations',
+  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_FB_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_SELF_FB_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_VERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_FB_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
+  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_SELF_FB_UNVERIFIED]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_VERIFIED_TO_UNVERIFIED]: '{{0}} is no longer a verified account',
+  [WAMessageStubType.CAG_INVITE_AUTO_ADD]: '',
+  [WAMessageStubType.CAG_INVITE_AUTO_JOINED]: '',
+  [WAMessageStubType.CAG_MASKED_THREAD_CREATED]: 'This chat has added privacy for your phone number',
+  // [WAMessageStubType.CHANGE_USERNAME]: '', // Unsupported by Baileys types
+  [WAMessageStubType.CHAT_PSA]: 'This is an official account of WhatsApp',
+  [WAMessageStubType.COMMUNITY_CHANGE_DESCRIPTION]: 'A participant changed the community description',
+  [WAMessageStubType.COMMUNITY_INVITE_AUTO_ADD_RICH]: 'Welcome to the community!',
+  [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP_MEMBERSHIP_APPROVAL]: 'New participants need admin approval to join this group', // TODO: review
+  [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP_RICH]: m => (m.key.fromMe ? 'You added this group to a community' : '{{sender}} added this group to a community'), // TODO: review
+  [WAMessageStubType.COMMUNITY_LINK_SUB_GROUP]: ' ', // TODO: Find a way to skip these messages
+  [WAMessageStubType.COMMUNITY_PARENT_GROUP_DELETED]: m => (m.key.fromMe ? 'You deactivated the community {{0}}' : '{{sender}} deactivated the community {{0}}'), // TODO: review,
+  [WAMessageStubType.COMMUNITY_PARENT_GROUP_SUBJECT_CHANGED]: m => (m.key.fromMe ? 'You changed the subject to "{{1}}"' : '{{sender}} changed the subject to "{{1}}"'),
+  [WAMessageStubType.COMMUNITY_PARTICIPANT_ADD_RICH]: 'Welcome to the community!',
+  [WAMessageStubType.COMMUNITY_PARTICIPANT_DEMOTE]: m => (m.key.fromMe ? 'You\'re no longer a community admin' : '{{sender}} is no longer a community admin'),
+  [WAMessageStubType.COMMUNITY_UNLINK_PARENT_GROUP]: m => (m.key.fromMe ? 'You removed this group from the community {{1}}' : '{{sender}} removed this group from the community {{1}}'),
+  [WAMessageStubType.COMMUNITY_UNLINK_SUB_GROUP]: ' ', // TODO: Find a way to skip these messages
+  [WAMessageStubType.EMPTY_SUBGROUP_CREATE]: 'You created the group: {{2}}',
+  [WAMessageStubType.EPHEMERAL_KEEP_IN_CHAT]: 'Disappearing messages now support keeping messages in the chat',
+  // [WAMessageStubType.GENERAL_CHAT_ADD]: '', // Unsupported by Baileys types
+  // [WAMessageStubType.GENERAL_CHAT_AUTO_ADD_DISABLED]: '', // Unsupported by Baileys types
+  [WAMessageStubType.GROUP_ANNOUNCE_MODE_MESSAGE_BOUNCE]: 'Only admins can message this group',
+  [WAMessageStubType.GROUP_CHANGE_NO_FREQUENTLY_FORWARDED]: '',
+  [WAMessageStubType.GROUP_INVITE_LINK_GROWTH_LOCKED]: '',
+  [WAMessageStubType.GROUP_MEMBER_ADD_MODE]: '',
+  [WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_MODE]: m => {
+    if (m.messageStubParameters![0] === 'on') {
+      return m.key.fromMe ? 'You turned on admin approval to join this group' : '{{sender}} turned on admin approval to join this group'
+    }
+    return m.key.fromMe ? 'You turned off admin approval to join this group' : '{{sender}} turned off admin approval to join this group'
+  },
+  [WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST]: '{{sender}} requested to join',
+  [WAMessageStubType.GROUP_PARTICIPANT_JOINED_GROUP_AND_PARENT_GROUP]: message => `{{${message.participant}}} added you to this group and the community`,
+  [WAMessageStubType.GROUP_PARTICIPANT_LINKED_GROUP_JOIN]: m => (m.key.fromMe ? 'You joined from the community' : '{{sender}} joined from the community'),
+  [WAMessageStubType.GROUP_V4_ADD_INVITE_SENT]: '',
+  [WAMessageStubType.INTEGRITY_UNLINK_PARENT_GROUP]: 'This group is no longer part of a community',
+  [WAMessageStubType.MASKED_THREAD_CREATED]: 'Your phone number is not shared in this chat. Businesses who have your number in their contacts will be able to see it',
+  [WAMessageStubType.NON_VERIFIED_TRANSITION]: 'The business account you were chatting with is now a standard account',
+  [WAMessageStubType.PAYMENT_ACTION_ACCOUNT_SETUP_REMINDER]: 'To receive a payment from {{0}}, set up your payment account on your phone',
+  // [WAMessageStubType.PAYMENT_ACTION_REQUEST_CANCELLED]: '', // Already handled  in messageHeading
+  // [WAMessageStubType.PAYMENT_ACTION_REQUEST_DECLINED]: '', // Already handled  in messageHeading
+  // [WAMessageStubType.PAYMENT_ACTION_REQUEST_EXPIRED]: '', // Already handled  in messageHeading
+  [WAMessageStubType.PAYMENT_CIPHERTEXT]: 'Waiting for this message. This may take a while',
+  [WAMessageStubType.PAYMENT_FUTUREPROOF]: 'This payment message has a note but your version of WhatsApp doesn\'t support viewing it',
+  [WAMessageStubType.PAYMENT_TRANSACTION_STATUS_RECEIVER_PENDING_SETUP]: '{{sender}} sent you {currencyAndAmount}. Use WhatsApp on your phone to accept this transaction',
+  // [WAMessageStubType.PAYMENT_TRANSACTION_STATUS_RECEIVER_SUCCESS_AFTER_HICCUP]: '', // TODO
+  // [WAMessageStubType.PAYMENT_TRANSACTION_STATUS_UPDATE_FAILED]: '', // TODO
+  // [WAMessageStubType.PAYMENT_TRANSACTION_STATUS_UPDATE_REFUND_FAILED]: '', // TODO
+  // [WAMessageStubType.PAYMENT_TRANSACTION_STATUS_UPDATE_REFUNDED]: '', // TODO
+  // [WAMessageStubType.PINNED_MESSAGE_IN_CHAT]: '', // TODO
+  // [WAMessageStubType.RECEIVER_INVITE]: '', // Rendering not supported in the native client
+  [WAMessageStubType.REPORT_TO_ADMIN_ENABLED_STATUS]: '',
+  [WAMessageStubType.SENDER_INVITE]: '"{{sender}} is new to WhatsApp"',
+  [WAMessageStubType.SILENCED_UNKNOWN_CALLER_AUDIO]: 'Silenced unknown caller',
+  [WAMessageStubType.SILENCED_UNKNOWN_CALLER_VIDEO]: 'Silenced unknown caller',
+  [WAMessageStubType.SUB_GROUP_PARTICIPANT_ADD_RICH]: m => (m.key.fromMe ? 'You joined a group via invite in the community: {{1}}' : '{{sender}} added you to a group in the community: {{1}}'),
+  // [WAMessageStubType.SUBGROUP_ADMIN_TRIGGERED_AUTO_ADD_RICH]: '', // Unsupported by Baileys types
+  // [WAMessageStubType.SUGGESTED_SUBGROUP_ANNOUNCE]: '', // Unsupported by Baileys types
+  [WAMessageStubType.UNVERIFIED_TRANSITION]: 'The business account you\'re chatting with may belong to {{0}}. WhatsApp hasn\'t verified their name yet',
+  [WAMessageStubType.VERIFIED_INITIAL_HIGH]: 'WhatsApp has made changes to the business account types. "Verified Business" will now be labeled as "Official Business Account"',
+  [WAMessageStubType.VERIFIED_INITIAL_LOW]: 'WhatsApp has made changes to the business account types. "Confirmed Business" will now be labeled as "Business Account"',
+  [WAMessageStubType.VERIFIED_INITIAL_UNKNOWN]: '{{0}} may be a business account, but WhatsApp hasn\'t verified their name yet',
+  [WAMessageStubType.VERIFIED_LOW_UNKNOWN]: 'The business account you\'re chatting with may belong to {{0}}. WhatsApp hasn\'t verified their name yet',
+  [WAMessageStubType.VERIFIED_TRANSITION]: 'To help you connect with businesses, we have verified that the business account you\'re chatting with belongs to {{0}}',
+  [WAMessageStubType.VERIFIED_TRANSITION_ANY_TO_HIGH]: 'The business account you\'re chatting with is now verified as "{{0}}"',
+  [WAMessageStubType.VERIFIED_TRANSITION_ANY_TO_NONE]: 'This business account has now registered as a standard account',
+  [WAMessageStubType.VERIFIED_TRANSITION_HIGH_TO_LOW]: 'The business account you\'re chatting with is no longer verified as "{{0}}"',
+  [WAMessageStubType.VERIFIED_TRANSITION_HIGH_TO_UNKNOWN]: 'The business account you\'re chatting with is no longer verified as "{{0}}"',
+  [WAMessageStubType.VERIFIED_TRANSITION_LOW_TO_UNKNOWN]: 'The business account you\'re chatting with is no longer confirmed as "{{0}}"',
+  [WAMessageStubType.VERIFIED_TRANSITION_NONE_TO_LOW]: 'This account has registered as a business account',
+  [WAMessageStubType.VERIFIED_TRANSITION_NONE_TO_UNKNOWN]: 'This chat may be with a business account',
+  [WAMessageStubType.VERIFIED_TRANSITION_UNKNOWN_TO_LOW]: 'The business account you\'re chatting with belongs to "{{0}}"',
 }
 
 const ATTACHMENT_MAP = {
