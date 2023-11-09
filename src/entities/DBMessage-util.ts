@@ -176,13 +176,13 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.COMMUNITY_INVITE_AUTO_ADD_RICH]: 'Welcome to the community!',
   [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP_MEMBERSHIP_APPROVAL]: 'New participants need admin approval to join this group', // TODO: review
   [WAMessageStubType.COMMUNITY_LINK_PARENT_GROUP_RICH]: m => (m.key.fromMe ? 'You added this group to a community' : '{{sender}} added this group to a community'), // TODO: review
-  [WAMessageStubType.COMMUNITY_LINK_SUB_GROUP]: ' ', // TODO: Find a way to skip these messages
+  // [WAMessageStubType.COMMUNITY_LINK_SUB_GROUP]: // Hidden in /src/utils/generics.ts `isHiddenMessage()`
   [WAMessageStubType.COMMUNITY_PARENT_GROUP_DELETED]: m => (m.key.fromMe ? 'You deactivated the community {{0}}' : '{{sender}} deactivated the community {{0}}'), // TODO: review,
   [WAMessageStubType.COMMUNITY_PARENT_GROUP_SUBJECT_CHANGED]: m => (m.key.fromMe ? 'You changed the subject to "{{1}}"' : '{{sender}} changed the subject to "{{1}}"'),
   [WAMessageStubType.COMMUNITY_PARTICIPANT_ADD_RICH]: 'Welcome to the community!',
   [WAMessageStubType.COMMUNITY_PARTICIPANT_DEMOTE]: m => (m.key.fromMe ? 'You\'re no longer a community admin' : '{{sender}} is no longer a community admin'),
   [WAMessageStubType.COMMUNITY_UNLINK_PARENT_GROUP]: m => (m.key.fromMe ? 'You removed this group from the community {{1}}' : '{{sender}} removed this group from the community {{1}}'),
-  [WAMessageStubType.COMMUNITY_UNLINK_SUB_GROUP]: ' ', // TODO: Find a way to skip these messages
+  // [WAMessageStubType.COMMUNITY_UNLINK_SUB_GROUP]:, // Hidden in /src/utils/generics.ts `isHiddenMessage()`
   [WAMessageStubType.EMPTY_SUBGROUP_CREATE]: 'You created the group: {{2}}',
   [WAMessageStubType.EPHEMERAL_KEEP_IN_CHAT]: 'Disappearing messages now support keeping messages in the chat',
   // [WAMessageStubType.GENERAL_CHAT_ADD]: '', // Unsupported by Baileys types
