@@ -64,9 +64,9 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: '{{{{0}}}} is now an admin',
   [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: '{{{{0}}}} is no longer an admin',
 
-  [WAMessageStubType.GROUP_CREATE]: m => (m.key.fromMe ? 'You created this group' : '{{sender}} created this group'),
+  [WAMessageStubType.GROUP_CREATE]: m => `${m.key.fromMe ? 'You' : '{{sender}}'} created this group`,
   [WAMessageStubType.GROUP_DELETE]: 'This chat has been closed',
-  [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: m => (m.key.fromMe ? 'You reset this group\'s invite link' : '{{sender}} reset this group\'s invite link'),
+  [WAMessageStubType.GROUP_CHANGE_INVITE_LINK]: m => `${m.key.fromMe ? 'You' : '{{sender}}'} reset this group's invite link`,
   [WAMessageStubType.BROADCAST_CREATE]: '{{sender}} created this broadcast list',
   [WAMessageStubType.BROADCAST_REMOVE]: '{{sender}} was removed from this broadcast list',
   [WAMessageStubType.BROADCAST_ADD]: '{{sender}} was added to this broadcast list',
