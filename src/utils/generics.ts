@@ -194,6 +194,8 @@ export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProt
     // if there is no content or stub type -- should not show the message
     || (!contentType && !msg.messageStubType)
     || msg.messageStubType === WAMessageStubType.E2E_DEVICE_FETCH_FAILED
+    || msg.messageStubType === WAMessageStubType.COMMUNITY_LINK_SUB_GROUP // Not rendered in the native client
+    || msg.messageStubType === WAMessageStubType.COMMUNITY_UNLINK_SUB_GROUP // Not rendered in the native client
     || isHiddenProtocolMessage(normalizedMessageContent)
 }
 
