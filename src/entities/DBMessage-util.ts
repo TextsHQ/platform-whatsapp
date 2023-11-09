@@ -130,18 +130,18 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.BLUE_MSG_BSP_FB_TO_SELF_FB]: '{{0}} now only uses Facebook to manage its WhatsApp conversations. Click to learn how this changes privacy in this chat',
   [WAMessageStubType.BLUE_MSG_BSP_FB_TO_SELF_PREMISE]: '{{0}} no longer uses Facebook or other companies to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED]: 'This chat is with a business account that uses Facebook and other companies to manage its WhatsApp conversations. Click to learn more about privacy in this chat',
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_FB_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_FB_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_BSP_PREMISE_TO_SELF_PREMISE]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '{{0}} is now registered as an official business account. This business no longer uses Facebook to manage its WhatsApp conversations.',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_FB_VERIFIED]: '{{0}} is now a verified account and only uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '{{0}} is now a verified account. This business no longer uses Meta or other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED]: 'This chat is with {{0}}\'s verified account. This account uses Meta and other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account and no longer uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_FB_UNVERIFIED]: '{{0}} is no longer a verified account and now only uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account and no longer uses Meta or other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_TO_SELF_PREMISE]: '{{0}} no longer uses other companies to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_BSP_PREMISE_UNVERIFIED]: 'This chat is with a business account that uses other companies to manage its WhatsApp conversations',
-  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '{businessName} is now a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
-  // [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED]: '', // TODO
-  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '{businessName} is no longer a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '{{0}} is now a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED]: 'This chat is with {{0}}\'s verified account. This account uses other companies to manage its WhatsApp conversations',
+  [WAMessageStubType.BLUE_MSG_BSP_PREMISE_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account and no longer uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
   [WAMessageStubType.BLUE_MSG_CONSUMER_TO_BSP_FB_UNVERIFIED]: '{{0}} is now a verified account that uses Meta and other companies to manage its WhatsApp conversations. This changes privacy in this chat',
   [WAMessageStubType.BLUE_MSG_CONSUMER_TO_BSP_PREMISE_UNVERIFIED]: '{{0}} is now registered as a business account that uses other companies to manage its WhatsApp conversations.chat',
   [WAMessageStubType.BLUE_MSG_CONSUMER_TO_SELF_FB_UNVERIFIED]: '{{0}} is now registered as a business account that uses Facebook to manage its WhatsApp conversations',
@@ -149,23 +149,23 @@ const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) }
   [WAMessageStubType.BLUE_MSG_SELF_FB_TO_BSP_PREMISE]: '{{0}} now uses other companies instead of Facebook to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_SELF_FB_TO_SELF_PREMISE]: '{{0}} no longer uses Facebook to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED]: 'This chat is with a business account that uses Facebook to manage its WhatsApp conversations',
-  // [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '{{0}} is now a verified account and now uses other companies instead of Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_UNVERIFIED_TO_SELF_PREMISE_VERIFIED]: '{{0}} is now a verified account and no longer uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED]: 'This chat is with the official account of {{0}}. This account uses Facebook to manage its WhatsApp conversations.',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account. The account uses other companies instead of Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_SELF_FB_VERIFIED_TO_SELF_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account and no longer uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
   [WAMessageStubType.BLUE_MSG_SELF_PREMISE_TO_BSP_PREMISE]: '{{0}} now uses other companies to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_SELF_PREMISE_VERIFIED]: 'This chat is with {{0}}\'s verified account',
   [WAMessageStubType.BLUE_MSG_TO_BSP_FB]: '{{0}} now uses Facebook and other companies to manage its WhatsApp conversations',
   [WAMessageStubType.BLUE_MSG_TO_CONSUMER]: '{{0}} is no longer registered as a business account',
   [WAMessageStubType.BLUE_MSG_TO_SELF_FB]: '{{0}} now uses Facebook to manage its WhatsApp conversations',
-  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_FB_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_SELF_FB_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_VERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_FB_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '', // TODO
-  // [WAMessageStubType.BLUE_MSG_VERIFIED_TO_SELF_FB_UNVERIFIED]: '', // TODO
+  [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_FB_VERIFIED]: '{{0}} is now a verified account that uses Meta and other companies to manage its WhatsApp conversations. This changes privacy in this chat.',
+  [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_BSP_PREMISE_VERIFIED]: '{{0}} is now a verified account that uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_SELF_FB_VERIFIED]: '{{0}} is now a verified account that uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_UNVERIFIED_TO_VERIFIED]: '{{0}} is now a verified account',
+  [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_FB_UNVERIFIED]: '{{0}} is no longer a verified account and now uses Meta and other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_VERIFIED_TO_BSP_PREMISE_UNVERIFIED]: '{{0}} is no longer a verified account and now uses other companies to manage its WhatsApp conversations. This changes privacy in this chat',
+  [WAMessageStubType.BLUE_MSG_VERIFIED_TO_SELF_FB_UNVERIFIED]: '{{0}} is no longer a verified account and now uses Meta to manage its WhatsApp conversations. This changes privacy in this chat',
   [WAMessageStubType.BLUE_MSG_VERIFIED_TO_UNVERIFIED]: '{{0}} is no longer a verified account',
   [WAMessageStubType.CAG_INVITE_AUTO_ADD]: '',
   [WAMessageStubType.CAG_INVITE_AUTO_JOINED]: '',
