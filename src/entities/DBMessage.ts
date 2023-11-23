@@ -171,6 +171,20 @@ export default class DBMessage implements Message {
       delete partial.status
     }
 
+    // If the message is edited and contains an imageMessage, we need to merge the new imageMessage with the old one
+    // as the edited message only contains the new caption
+    if (partial.message?.editedMessage?.message?.imageMessage) {
+      const existingMessage = this.original.message.message
+      // The image could be in the original imageMessage or within the editedMessage
+      // depending on whether it has been edited before
+      const existingImageMessage = existingMessage?.imageMessage || existingMessage?.editedMessage?.message?.imageMessage
+
+      partial.message.editedMessage.message.imageMessage = {
+        ...(existingImageMessage),
+        ...partial.message.editedMessage.message.imageMessage,
+      }
+    }
+
     Object.assign(this.original.message, partial)
     this.mapFromOriginal(ctx)
   }
