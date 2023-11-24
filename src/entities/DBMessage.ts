@@ -171,17 +171,21 @@ export default class DBMessage implements Message {
       delete partial.status
     }
 
-    // If the message is edited and contains an imageMessage, we need to merge the new imageMessage with the old one
-    // as the edited message only contains the new caption
-    if (partial.message?.editedMessage?.message?.imageMessage) {
-      const existingMessage = this.original.message.message
-      // The image could be in the original imageMessage or within the editedMessage
-      // depending on whether it has been edited before
-      const existingImageMessage = existingMessage?.imageMessage || existingMessage?.editedMessage?.message?.imageMessage
+    if (partial.message?.editedMessage?.message) {
+      const existingMessage = extractMessageContent(this.original.message.message)
+      const editedMessage = extractMessageContent(partial.message)
 
-      partial.message.editedMessage.message.imageMessage = {
-        ...(existingImageMessage),
-        ...partial.message.editedMessage.message.imageMessage,
+      // partial.message.editMessage.message can contain:
+      // imageMessage, documentMessage, videoMessage, locationMessage
+      // We need to merge that with the existing message to preserve all the existing properties
+      if (existingMessage?.imageMessage) {
+        partial.message.editedMessage.message.imageMessage = { ...existingMessage.imageMessage, ...editedMessage?.imageMessage }
+      }
+      if (existingMessage?.documentMessage) {
+        partial.message.editedMessage.message.documentMessage = { ...existingMessage.documentMessage, ...editedMessage?.documentMessage }
+      }
+      if (existingMessage?.videoMessage) {
+        partial.message.editedMessage.message.videoMessage = { ...existingMessage.videoMessage, ...editedMessage?.videoMessage }
       }
     }
 
