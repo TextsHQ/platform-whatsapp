@@ -171,6 +171,24 @@ export default class DBMessage implements Message {
       delete partial.status
     }
 
+    if (partial.message?.editedMessage?.message) {
+      const existingMessage = extractMessageContent(this.original.message.message)
+      const editedMessage = extractMessageContent(partial.message)
+
+      // partial.message.editMessage.message can contain:
+      // imageMessage, documentMessage, videoMessage, locationMessage
+      // We need to merge that with the existing message to preserve all the existing properties
+      if (existingMessage?.imageMessage) {
+        partial.message.editedMessage.message.imageMessage = { ...existingMessage.imageMessage, ...editedMessage?.imageMessage }
+      }
+      if (existingMessage?.documentMessage) {
+        partial.message.editedMessage.message.documentMessage = { ...existingMessage.documentMessage, ...editedMessage?.documentMessage }
+      }
+      if (existingMessage?.videoMessage) {
+        partial.message.editedMessage.message.videoMessage = { ...existingMessage.videoMessage, ...editedMessage?.videoMessage }
+      }
+    }
+
     Object.assign(this.original.message, partial)
     this.mapFromOriginal(ctx)
   }
