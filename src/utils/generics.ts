@@ -185,6 +185,9 @@ const HIDDEN_PROTOCOL_MESSAGE_TYPES = [
 export const isHiddenProtocolMessage = (normalizedMessageContent: WAProto.IMessage | null | undefined) =>
   (normalizedMessageContent?.protocolMessage?.type ? HIDDEN_PROTOCOL_MESSAGE_TYPES.includes(normalizedMessageContent.protocolMessage.type) : false)
 
+export const isHiddenGroupParticipantMessage = (msg: WAMessage) => (msg.messageStubParameters?.[0]?.includes('lid')
+  && (msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD || msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) || false
+
 /** Is the message supposed to be hidden */
 export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined) => {
   const contentType = normalizedMessageContent ? getContentType(normalizedMessageContent) : undefined
@@ -198,6 +201,7 @@ export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProt
     || msg.messageStubType === WAMessageStubType.COMMUNITY_LINK_SUB_GROUP // Not rendered in the native client
     || msg.messageStubType === WAMessageStubType.COMMUNITY_UNLINK_SUB_GROUP // Not rendered in the native client
     || isHiddenProtocolMessage(normalizedMessageContent)
+    || isHiddenGroupParticipantMessage(msg)
 }
 
 export const shouldFetchGroupMetadata = ({ requiresMapWithMetadata, original: { chat, metadata, lastMetadataFetchDate } }: DBThread) => {
