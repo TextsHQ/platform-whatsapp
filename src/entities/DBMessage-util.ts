@@ -509,7 +509,7 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `${MENTION_START_TOKEN}${jid}${MENTION_END_TOKEN}`), text)
 }
 
-const replaceGroupMentions = (groupMentions: WAProto.IGroupMention[], text: string) => groupMentions?.reduce((result, groupMention) => result.replace(groupMention.groupJid!, groupMention.groupSubject!), text)
+const replaceGroupMentions = (groupMentions: WAProto.IGroupMention[], text: string) => (groupMentions?.length ? groupMentions.reduce((result, groupMention) => result.replace(groupMention.groupJid!, groupMention.groupSubject!), text) : text)
 
 const generateDeepLink = (type: ButtonCallbackType, key: WAMessageKey, button: ButtonReplyInfo) => {
   const searchParams = new URLSearchParams({
