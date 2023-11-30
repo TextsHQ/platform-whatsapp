@@ -1,5 +1,5 @@
 import { areJidsSameUser, Chat, GroupMetadata, isJidGroup, isJidUser, STORIES_JID, toNumber, WAProto } from 'baileys'
-import { Message, Paginated, Participant, texts, Thread, ThreadType, User } from '@textshq/platform-sdk'
+import { Message, Paginated, PaginatedWithCursors, Participant, texts, Thread, ThreadType, User } from '@textshq/platform-sdk'
 import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryColumn } from 'typeorm'
 import { CHAT_MUTE_DURATION_S } from '../constants'
 import type { FullBaileysChat, MappingContext } from '../types'
@@ -60,7 +60,7 @@ export default class DBThread implements Thread {
 
   isUnread: boolean
 
-  messages: Paginated<Message>
+  messages: PaginatedWithCursors<Message>
 
   participants: Paginated<Participant>
 
@@ -113,7 +113,7 @@ export default class DBThread implements Thread {
     // use participant list for groups
     if (isJidGroup(item.id || '')) {
       if (!item.messages) {
-        item.messages = { items: [], hasMore: true }
+        item.messages = { items: [], hasMore: true, oldestCursor: null }
       }
 
       item.participants = {
@@ -123,7 +123,7 @@ export default class DBThread implements Thread {
     // use "user" for single threads
     } else if (isJidUser(item.id || '') && typeof item.user !== 'undefined') {
       if (!item.messages) {
-        item.messages = { items: [], hasMore: true }
+        item.messages = { items: [], hasMore: true, oldestCursor: null }
       }
       // if user is truthy
       if (item.user) {

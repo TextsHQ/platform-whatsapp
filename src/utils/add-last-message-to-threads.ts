@@ -44,6 +44,7 @@ const addLastMessageToThreads = async (
         // when the thread is opened
         hasMore: true,
         items: [],
+        oldestCursor: null,
       }
     }
   }

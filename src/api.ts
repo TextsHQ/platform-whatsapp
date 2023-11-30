@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
 import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from 'baileys'
-import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID } from '@textshq/platform-sdk'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
@@ -93,7 +93,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loadedThreadSet = new Set<string>()
 
-  private earliestLoadedThreadCursor?: string
+  private earliestLoadedThreadCursor?: string | null
 
   private latestWAVersion: WAVersion
 
@@ -651,8 +651,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
   }
 
-  getThreads = async (inboxName: ThreadFolderName, pagination?: PaginationArg): Promise<Paginated<Thread>> => {
-    if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false }
+  getThreads = async (inboxName: ThreadFolderName, pagination?: PaginationArg): Promise<PaginatedWithCursors<Thread>> => {
+    if (inboxName !== InboxName.NORMAL) return { items: [], hasMore: false, oldestCursor: '' }
 
     if (!isLoggedIn(this.session)) {
       throw new ReAuthError('No valid login for getThreads')
@@ -1095,14 +1095,14 @@ export default class WhatsAppAPI implements PlatformAPI {
     return repo.findOne({ id: threadID })
   }
 
-  getStickerPacks = async (): Promise<Paginated<StickerPack>> => {
+  getStickerPacks = async (): Promise<PaginatedWithCursors<StickerPack>> => {
     const items = await getStickerPacks(this.country)
-    return { items, hasMore: false }
+    return { items, hasMore: false, oldestCursor: null }
   }
 
-  getStickers = async (stickerPackID: string): Promise<Paginated<Attachment>> => {
+  getStickers = async (stickerPackID: string): Promise<PaginatedWithCursors<Attachment>> => {
     const items = await getStickersInPack(stickerPackID, this.accountID)
-    return { items, hasMore: false }
+    return { items, hasMore: false, oldestCursor: null }
   }
 
   private getDefaultDisappearingMode = () => (

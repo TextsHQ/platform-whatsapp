@@ -1,5 +1,5 @@
 import type { WASocket } from 'baileys'
-import type { PaginationArg } from '@textshq/platform-sdk'
+import type { PaginatedWithCursors, PaginationArg } from '@textshq/platform-sdk'
 
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -19,7 +19,7 @@ const fetchThreads = async (
   tillCursor?: string,
   threadID?: string,
   q?: string,
-) => {
+): Promise<PaginatedWithCursors<DBThread>> => {
   const { db } = mappingCtx
   const repo = db.getRepository(DBThread)
   const cursor = (() => {
@@ -109,7 +109,7 @@ const fetchThreads = async (
     )
   }
 
-  let oldestCursor: string | undefined
+  let oldestCursor: string | null = null
   if (items.length >= THREAD_PAGE_SIZE) {
     let stamp = items[items.length - 1].timestamp
     if (!stamp?.toJSON()) {

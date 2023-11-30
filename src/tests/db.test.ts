@@ -185,7 +185,7 @@ describe('Database Sync Tests', () => {
 
     const threads: DBThread[] = []
 
-    let cursor: string | undefined
+    let cursor: string | null = null
     do {
       const {
         items,
