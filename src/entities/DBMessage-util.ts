@@ -509,6 +509,8 @@ const replaceJids = (jids: string[], text: string) => {
   return jids.reduce((txt, jid) => txt.replace(`@${jidDecode(jid)!.user}`, `${MENTION_START_TOKEN}${jid}${MENTION_END_TOKEN}`), text)
 }
 
+const replaceGroupMentions = (groupMentions: WAProto.IGroupMention[], text: string) => groupMentions.reduce((result, groupMention) => result.replace(groupMention.groupJid!, groupMention.groupSubject!), text)
+
 const generateDeepLink = (type: ButtonCallbackType, key: WAMessageKey, button: ButtonReplyInfo) => {
   const searchParams = new URLSearchParams({
     type,
@@ -674,7 +676,10 @@ export function messageText({ message, key }: Pick<WAMessage, 'key' | 'message'>
 
   const text = messageInner?.text ?? messageInner?.caption
   if (text) {
-    return replaceJids(messageInner?.contextInfo?.mentionedJid, text)
+    return replaceGroupMentions(
+      messageInner?.contextInfo?.groupMentions as WAProto.IGroupMention[],
+      replaceJids(messageInner?.contextInfo?.mentionedJid, text),
+    )
   }
   if (message?.templateMessage || message?.highlyStructuredMessage) {
     const templateMsg = message.templateMessage || message?.highlyStructuredMessage?.hydratedHsm
