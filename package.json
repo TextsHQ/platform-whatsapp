@@ -14,7 +14,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#b52c4877a05fd92fe674f3dd775b3ad2147d3570",
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
     "baileys": "https://github.com/TextsHQ/baileys#master",
     "better-sqlite3": "^8.6.0",
     "jimp": "^0.16.2",

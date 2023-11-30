@@ -2524,13 +2524,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#b52c4877a05fd92fe674f3dd775b3ad2147d3570":
+"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
   version: 0.4.4
-  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=b52c4877a05fd92fe674f3dd775b3ad2147d3570"
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=ecee97cd42232e1050faee52b3ac6ee6e5ac6362"
   dependencies:
     emoji-regex: ^10.1.0
     qrcode.react: ^3.1.0
-  checksum: 6b562805b8ebf3ccd4f8296895cba9dcb70d7593cc2c80bb377b2b5c885196d4d187d3ead259bbe1c356ae02105fa9bffcb89604a2ee54794a126ad80ff7778d
+  checksum: 4d1c275d9a798194a1de53d6e2a72593f67b631f0c0374b528d1d79fe8efda5e01f1fff3555993f048f1347fdeee0374ede22fb29fb5166fd705e80e33adf02c
   languageName: node
   linkType: hard
 
@@ -2539,7 +2539,7 @@ __metadata:
   resolution: "@textshq/platform-whatsapp@workspace:."
   dependencies:
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
-    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#b52c4877a05fd92fe674f3dd775b3ad2147d3570"
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main"
     "@types/eslint": ^8.4.10
     "@types/jest": ^29.0.0
     "@types/match-sorter": ^4.0.0
