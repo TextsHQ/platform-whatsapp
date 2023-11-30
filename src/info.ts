@@ -12,7 +12,8 @@ const info: PlatformInfo = {
 </svg>`,
   loginMode: 'custom',
   deletionMode: MessageDeletionMode.DELETE_FOR_EVERYONE,
-  editMessageTimeLimit: 20 * 60,
+  editMessageTimeLimit: 15 * 60, // 15 minutes
+  deleteForEveryoneTimeLimit: 60 * 60 * 24 * 2, // 2 days
   maxGroupTitleLength: 25,
   reactions: {
     supported: {
