@@ -3507,7 +3507,7 @@ __metadata:
 
 "baileys@https://github.com/TextsHQ/baileys#master":
   version: 6.5.0
-  resolution: "baileys@https://github.com/TextsHQ/baileys.git#commit=8503fada26768e5742aac69d8736e0b396fffe05"
+  resolution: "baileys@https://github.com/TextsHQ/baileys.git#commit=e40642a8b44acf3337c8ea6f6cf37a4057922ee6"
   dependencies:
     "@adiwajshing/keyed-db": ^0.2.4
     "@hapi/boom": ^9.1.3
@@ -3537,7 +3537,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: dbfa66a5e73e5fe5692e6c3def8cb45aefbdddd8c02e758394508a65d3cd7c0d069b4555b981b63f281f3d22084fd28322501e4800ea3fc8eeebff43b1871579
+  checksum: 6f79c56c47458349efe62a5347419ae1e95cf218010e13593534c64ebfd83b7af42e75d39ba0f83a1b0e2ef2b1852586b025619f28c794173449ac41703780b7
   languageName: node
   linkType: hard
 
