@@ -1,11 +1,12 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast } from 'baileys'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast, DEFAULT_CACHE_TTLS } from 'baileys'
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { Connection } from 'typeorm'
 import { PassThrough } from 'stream'
+import NodeCache from 'node-cache'
 import getConnection from './utils/get-connection'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, generateInstanceId, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
@@ -107,6 +108,9 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private nativeArchiveSync: boolean | undefined
 
+  // map to store retry counts of messages when decryption/encryption fails
+  private msgRetryCounterCache: NodeCache
+
   logger: Logger
 
   db: Connection
@@ -133,6 +137,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.fileCache = makeFileCache(path.join(dataDirPath, 'cache'), this.logger)
     process.on('unhandledRejection', this.logUnhandledException)
+
+    this.msgRetryCounterCache = new NodeCache({
+      stdTTL: DEFAULT_CACHE_TTLS.MSG_RETRY, // 1 hour
+      useClones: false,
+    })
 
     this.initPromise = this._init()
     await this.initPromise
@@ -314,6 +323,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         creds: this.session as any,
         keys: makeDBKeyStore(this.db, this.logger),
       },
+      msgRetryCounterCache: this.msgRetryCounterCache,
       getMessage: async key => {
         const msg = await this.loadWAMessageFromDBWithKey(key)
         return msg?.message || undefined
