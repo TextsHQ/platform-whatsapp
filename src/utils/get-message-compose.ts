@@ -66,7 +66,7 @@ const getMessageCompose = async (
       }
 
       content = media
-      if (!!text && !('caption' in media)) {
+      if (!!text && !('caption' in media) && !('mentions' in media)) {
         sendAdditionalTextMessage = true
       }
     }
