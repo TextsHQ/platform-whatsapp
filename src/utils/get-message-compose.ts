@@ -60,8 +60,13 @@ const getMessageCompose = async (
       }
 
       media.mimetype = mimeType || 'application/octet-stream'
+
+      if (!('audio' in media) && !('sticker' in media) && !('document' in media)) {
+        media.mentions = msgContent.mentionedUserIDs
+      }
+
       content = media
-      if (!!text && !('caption' in media)) {
+      if (!!text && !('caption' in media) && !('mentions' in media)) {
         sendAdditionalTextMessage = true
       }
     }

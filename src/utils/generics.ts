@@ -265,19 +265,27 @@ export function generateInstanceId() {
 /**
  * recursively removes all undefined values from an object
  * @param obj obj to remove from
+ * @param visited set of visited objects to avoid circular references
  */
-export function clearUndefineds<T>(obj: T) {
+export function clearUndefineds<T>(obj: T, visited = new WeakSet()) {
   if (!obj) {
     return
   }
 
-  if (typeof obj === 'object') {
+  if (typeof obj === 'object' && obj !== null) {
+    if (visited.has(obj)) {
+      return
+    }
+    visited.add(obj)
+
     for (const key in obj) {
       if (obj[key] === undefined) {
         delete obj[key]
       } else {
-        clearUndefineds(obj[key])
+        clearUndefineds(obj[key], visited)
       }
     }
   }
+
+  return obj
 }
