@@ -14,7 +14,7 @@ const addLastMessageToThreads = async (
     .where(
       `(thread_id, order_key) IN (
           SELECT thread_id, MAX(order_key) from db_message
-          WHERE thread_id IN (:...chats)
+          WHERE thread_id IN (:...chats) AND parse_template IS FALSE
           GROUP BY thread_id
         )`,
       { chats: chats.map(c => c.id) },
