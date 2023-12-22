@@ -36,7 +36,7 @@ const getDisappearingModeMessageText = (exp: number, actor: string) => {
   return `{{${actor}}} uses a default timer for disappearing messages in new chats. All new messages will disappear from this chat ${expDays} days after they're sent.`
 }
 
-const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
+export const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => string) } = {
   [WAMessageStubType.CIPHERTEXT]: '⌛️ Waiting for this message. This may take a while',
 
   [WAMessageStubType.E2E_ENCRYPTED]: '🔒 Messages you send to this chat and calls are secured with end-to-end encryption',
