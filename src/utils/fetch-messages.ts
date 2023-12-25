@@ -40,7 +40,7 @@ const fetchMessages = async (
 
   hasMore = hasMore || items.length >= MESSAGE_PAGE_SIZE
   if (!hasMore) {
-    const thread = await db.getRepository(DBThread).findOne({ id: threadID })
+    const thread = await db.getRepository(DBThread).findOneBy({ id: threadID })
     if (thread?.hasMoreMessageHistory) {
       items.unshift(getEotMessage(threadID, items[0]?.orderKey || 0, items[0]?.timestamp))
     }

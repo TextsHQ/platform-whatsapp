@@ -80,7 +80,7 @@ const getMessageCompose = async (
 
   let quotedMsg: WAMessage | undefined
   if (options?.quotedMessageID) {
-    const msg = await db.getRepository(DBMessage).findOneOrFail({
+    const msg = await db.getRepository(DBMessage).findOneByOrFail({
       id: options!.quotedMessageID,
       threadID: options!.quotedMessageThreadID || threadID,
     })

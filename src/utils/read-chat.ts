@@ -10,7 +10,7 @@ import getLastMessagesOfThread from './get-last-messages-of-thread'
  */
 const readChat = async (db: DataSource | EntityManager, sock: WASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
   const repo = db.getRepository(DBThread)
-  const item = await repo.findOne({ id: threadID })
+  const item = await repo.findOneBy({ id: threadID })
 
   if (item) {
     if (item.unreadCount > 0) {

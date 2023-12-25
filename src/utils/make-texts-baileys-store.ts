@@ -454,7 +454,7 @@ async function handleMessagesDelete(
   if ('all' in item) {
     // isn't supported yet
   } else {
-    const msgs = await repo.find({ id: In(item.keys.map(mapMessageID)) })
+    const msgs = await repo.find({ where: { id: In(item.keys.map(mapMessageID)) } })
     if (excludeEvent) {
       for (const msg of msgs) {
         msg.shouldFireEvent = false
@@ -544,7 +544,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   // execute those updates
   const threadIds = Object.keys(readMsgsUpdateMap)
   if (threadIds.length) {
-    const chats = await chatRepo.find({ id: In(threadIds), unreadCount: MoreThan(0) })
+    const chats = await chatRepo.find({ where: { id: In(threadIds), unreadCount: MoreThan(0) } })
     for (const chat of chats) {
       // if the chat had unread messages
       chat.updateWithDecrementingUnreadCount(readMsgsUpdateMap[chat.id], ctx)
@@ -616,7 +616,7 @@ async function handleGroupParticipantsUpdate(
 
   const threadRepo = db.getRepository(DBThread)
   const participantRepo = db.getRepository(DBParticipant)
-  const thread = await threadRepo.findOne({ id: threadID })
+  const thread = await threadRepo.findOneBy({ id: threadID })
 
   logger.debug({ threadID, participants, action }, 'updating participants')
   if (thread) {
@@ -672,7 +672,7 @@ async function handleChatsDelete(
 ) {
   const repo = db.getRepository(DBThread)
   const msgRepo = db.getRepository(DBMessage)
-  const chats = await repo.find({ id: In(ids) })
+  const chats = await repo.find({ where: { id: In(ids) } })
   if (excludeEvent) {
     for (const chat of chats) {
       chat.shouldFireEvent = false

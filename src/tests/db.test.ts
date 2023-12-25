@@ -67,13 +67,13 @@ describe('Database Sync Tests', () => {
     await delay(500)
 
     expect(
-      await db.getRepository(DBThread).findOne({
+      await db.getRepository(DBThread).findOneBy({
         id: msg.key.remoteJid!,
       }),
     ).toBeTruthy()
 
     expect(
-      await db.getRepository(DBMessage).findOne({
+      await db.getRepository(DBMessage).findOneBy({
         id: mapMessageID(msg.key),
       }),
     ).toBeTruthy()
@@ -124,7 +124,7 @@ describe('Database Sync Tests', () => {
     await delay(200)
 
     const repo = db.getRepository(DBThread)
-    const thread = await repo.findOne({ id: jid })
+    const thread = await repo.findOneBy({ id: jid })
     expect(thread?.unreadCount).toEqual(1)
     expect(thread?.timestamp).toEqual(new Date(ogTimstamp * 1000))
   })
@@ -163,7 +163,7 @@ describe('Database Sync Tests', () => {
     await delay(200)
 
     const repo = db.getRepository(DBThread)
-    const thread = await repo.findOne({ id: jid })
+    const thread = await repo.findOneBy({ id: jid })
     expect(thread?.original?.chat?.ephemeralExpiration).toEqual(60 * 60 * 24)
   })
 
@@ -237,7 +237,7 @@ describe('Database Sync Tests', () => {
     })
 
     const repo = db.getRepository(DBMessage)
-    const messages = await repo.find({ threadID: jid })
+    const messages = await repo.find({ where: { threadID: jid }})
     expect(messages).toHaveLength(3)
   })
 
@@ -347,7 +347,7 @@ describe('Database Sync Tests', () => {
     await db.connect()
 
     const repo = db.getRepository(DBMessage)
-    const dbMessages = await repo.find({ threadID: jid })
+    const dbMessages = await repo.find({ where: { threadID: jid }})
     expect(dbMessages).toHaveLength(3)
   })
 })

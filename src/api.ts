@@ -334,7 +334,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getCurrentUser = async (): Promise<CurrentUser> => {
-    let user: User | undefined = await this.db.getRepository(DBUser).findOne({ where: { isSelf: true } })
+    let user: User | null = await this.db.getRepository(DBUser).findOne({ where: { isSelf: true } })
     if (!user) {
       const id = this.meID
       if (!id) {
@@ -421,7 +421,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private loadWAMessageFromDB = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
-    const dbmsg = await repo.findOne({ id: messageID, threadID })
+    const dbmsg = await repo.findOneBy({ id: messageID, threadID })
     if (dbmsg) {
       await remapMessagesAndSave(repo, [dbmsg], this)
     }
@@ -645,7 +645,7 @@ export default class WhatsAppAPI implements PlatformAPI {
         },
       )
     } else {
-      const user = await this.db.getRepository(DBUser).findOne({ id: thread.id })
+      const user = await this.db.getRepository(DBUser).findOneBy({ id: thread.id })
       thread.user = user || null
     }
 
@@ -655,7 +655,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   deleteThread = async (threadID: string) => {
     // thread deletes are local on WA multi-device
     const repo = this.db.getRepository(DBThread)
-    const item = await repo.findOne({ id: threadID })
+    const item = await repo.findOneBy({ id: threadID })
     if (item) {
       await repo.remove(item)
     }
@@ -727,7 +727,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getOriginalObject = async (objName: 'thread' | 'message', objectID: string) => {
     const repo = this.db.getRepository(objName === 'thread' ? DBThread : DBMessage)
-    const item = await repo.findOne({ id: objectID })
+    const item = await repo.findOneBy({ id: objectID })
     return smartJSONStringify(item?.original)
   }
 
@@ -837,7 +837,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   getMessage = async (threadID: string, messageID: string) => {
     const repo = this.db.getRepository(DBMessage)
-    const msg = await repo.findOne({ threadID, id: messageID })
+    const msg = await repo.findOneBy({ threadID, id: messageID })
     if (msg) {
       await remapMessagesAndSave(repo, [msg], this)
     }
@@ -867,7 +867,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   forwardMessage = async (threadID: string, messageID: string, threadIDs?: string[]) => {
     await this.waitForConnectionOpen()
-    const { original: { message } } = await this.db.getRepository(DBMessage).findOneOrFail({
+    const { original: { message } } = await this.db.getRepository(DBMessage).findOneByOrFail({
       id: messageID,
       threadID,
     })
@@ -1102,7 +1102,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private getChat = (threadID: string) => {
     const repo = this.db.getRepository(DBThread)
-    return repo.findOne({ id: threadID })
+    return repo.findOneBy({ id: threadID })
   }
 
   getStickerPacks = async (): Promise<PaginatedWithCursors<StickerPack>> => {

@@ -12,7 +12,7 @@ const downloadMessage = async (
   opts: MediaDownloadOptions,
   logger: Logger,
 ): Promise<Asset> => {
-  const m = await ds.getRepository(DBMessage).findOneOrFail({
+  const m = await ds.getRepository(DBMessage).findOneByOrFail({
     id: messageID,
     threadID,
   })
@@ -33,7 +33,7 @@ const downloadMessage = async (
   }
 }
 export const getAttachmentInfo = async (ds: DataSource, threadID: string, messageID: string): Promise<Partial<Asset>> => {
-  const m = await ds.getRepository(DBMessage).findOneOrFail({
+  const m = await ds.getRepository(DBMessage).findOneByOrFail({
     id: messageID,
     threadID,
   })

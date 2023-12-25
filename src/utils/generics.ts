@@ -1,7 +1,7 @@
 import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
 import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from 'baileys'
 import { randomBytes } from 'crypto'
-import { In, Repository } from 'typeorm'
+import { FindOptionsWhere, In, Repository } from 'typeorm'
 import type { Logger } from 'pino'
 import type { MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
@@ -141,7 +141,7 @@ export async function updateItems<
   const map: { [jid: string]: D } = { }
   const jids = updates.map(c => jidNormalizedUser(c.id!))
   const dbItems = await repo.find({
-    where: { id: In(jids) },
+    where: { id: In(jids) } as FindOptionsWhere<D>,
   })
 
   for (const dbItem of dbItems) {
