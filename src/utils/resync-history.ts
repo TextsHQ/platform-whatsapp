@@ -1,10 +1,10 @@
 import { texts } from '@textshq/platform-sdk'
-import type { Connection, EntityManager } from 'typeorm'
+import type { DataSource, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
 /// runs history sync using the stored history messages in the DB
 /// only for dev usage
-const resyncHistory = async (db: Connection | EntityManager) => {
+const resyncHistory = async (db: DataSource | EntityManager) => {
   const repo = db.getRepository(DBMessage)
   const msgs = await repo.find({
     where: {

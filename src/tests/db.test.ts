@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/order
-import getConnection from '../utils/get-connection'
+import getDataSource from '../utils/get-data-source'
 
 import { Chat, delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from 'baileys'
 import { unlink, stat } from 'fs/promises'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContextWithDB } from '../types'
@@ -20,7 +20,7 @@ logger.level = 'trace'
 jest.setTimeout(30_000)
 
 describe('Database Sync Tests', () => {
-  let db: Connection
+  let db: DataSource
   let store: ReturnType<typeof makeTextsBaileysStore>
 
   const mappingCtx: MappingContextWithDB = {
@@ -38,7 +38,7 @@ describe('Database Sync Tests', () => {
       logger.info('removing existing DB')
       await unlink(DB_PATH)
     }
-    db = await getConnection('default', DB_PATH, logger)
+    db = await getDataSource('default', DB_PATH, logger)
     mappingCtx.db = db
     store = makeTextsBaileysStore(() => { }, () => { throw new Error('no') }, mappingCtx)
     ev.process(events => store.process(events).then(() => { }))

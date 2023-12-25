@@ -1,6 +1,6 @@
 import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId } from 'baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
-import { Connection, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
+import { DataSource, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -592,7 +592,7 @@ async function handleMessagesSync(
   logger.info({ messages: dbMessages.length }, 'saved message history')
 }
 
-export const fetchMessagesInDB = async (db: Connection | EntityManager, keys: { key: WAMessageKey }[]) => {
+export const fetchMessagesInDB = async (db: DataSource | EntityManager, keys: { key: WAMessageKey }[]) => {
   const repo = db.getRepository(DBMessage)
   const uqIds = keys.map(({ key }) => {
     const msgId = mapMessageID(key)

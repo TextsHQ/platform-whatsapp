@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import type { Logger } from 'pino'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import { makeMutex } from './generics'
 
 /**
@@ -9,17 +9,17 @@ import { makeMutex } from './generics'
  *
  * to prevent that, we queue each transaction with this wrapper
 */
-const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
+const dbMutexAllTransactions = (ds: DataSource, logger: Logger) => {
   logger = logger.child({ class: 'transactions' })
 
   const { mutex } = makeMutex()
-  const { transaction, close } = db
+  const { transaction, close } = ds
 
-  db.transaction = (...args: any) => {
+  ds.transaction = (...args: any) => {
     if (logger.level === 'trace') logger.trace('called transaction')
     return mutex(async () => {
       try {
-        const result = await transaction.apply(db, args)
+        const result = await transaction.apply(ds, args)
         return result
       } catch (error) {
         logger.error({ trace: error?.stack }, `error in transaction: ${error}`)
@@ -30,8 +30,8 @@ const dbMutexAllTransactions = (db: Connection, logger: Logger) => {
     })
   }
 
-  db.close = async () => {
-    await mutex(() => close.apply(db))
+  ds.close = async () => {
+    await mutex(() => close.apply(ds))
   }
 }
 

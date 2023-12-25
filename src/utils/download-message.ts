@@ -1,18 +1,18 @@
 import { WASocket, downloadMediaMessage, MediaDownloadOptions } from 'baileys'
 import type { Asset } from '@textshq/platform-sdk'
 import type { Logger } from 'pino'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
 const downloadMessage = async (
-  db: Connection,
+  ds: DataSource,
   sock: WASocket,
   threadID: string,
   messageID: string,
   opts: MediaDownloadOptions,
   logger: Logger,
 ): Promise<Asset> => {
-  const m = await db.getRepository(DBMessage).findOneOrFail({
+  const m = await ds.getRepository(DBMessage).findOneOrFail({
     id: messageID,
     threadID,
   })
@@ -32,8 +32,8 @@ const downloadMessage = async (
     data: result,
   }
 }
-export const getAttachmentInfo = async (db: Connection, threadID: string, messageID: string): Promise<Partial<Asset>> => {
-  const m = await db.getRepository(DBMessage).findOneOrFail({
+export const getAttachmentInfo = async (ds: DataSource, threadID: string, messageID: string): Promise<Partial<Asset>> => {
+  const m = await ds.getRepository(DBMessage).findOneOrFail({
     id: messageID,
     threadID,
   })

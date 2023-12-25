@@ -4,10 +4,10 @@ import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, Socke
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import { PassThrough } from 'stream'
 import NodeCache from 'node-cache'
-import getConnection from './utils/get-connection'
+import getDataSource from './utils/get-data-source'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, generateInstanceId, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
 import DBMessage from './entities/DBMessage'
@@ -113,7 +113,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   logger: Logger
 
-  db: Connection
+  db: DataSource
 
   get meID(): string | undefined {
     if (!this.client) return
@@ -170,7 +170,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     this.logger.info({ dbPath, waVersion: this.latestWAVersion }, 'platform whatsapp init')
 
-    this.db = await getConnection(this.accountID, dbPath, this.logger)
+    this.db = await getDataSource(this.accountID, dbPath, this.logger)
 
     this.dataStore = makeTextsBaileysStore(
       this.publishEvent,

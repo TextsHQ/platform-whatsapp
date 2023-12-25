@@ -1,6 +1,6 @@
 import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from 'baileys'
 import type { Logger } from 'pino'
-import type { Connection, EntityManager } from 'typeorm'
+import type { DataSource, EntityManager } from 'typeorm'
 
 export type FullBaileysChat = {
   chat: Partial<Chat> & {
@@ -30,7 +30,7 @@ export type MappingContext = {
   logger: Logger
 }
 
-export type MappingContextWithDB = MappingContext & { db: Connection | EntityManager }
+export type MappingContextWithDB = MappingContext & { db: DataSource | EntityManager }
 
 export type Transaction = any
 

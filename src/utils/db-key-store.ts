@@ -1,4 +1,4 @@
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import type { Logger } from 'pino'
 import { SignalKeyStore, SignalDataTypeMap, makeCacheableSignalKeyStore } from 'baileys'
 import AccountKeyValue from '../entities/AccountKeyValue'
@@ -16,12 +16,12 @@ const KEY_MAP: { [T in keyof SignalDataTypeMap]: string } = {
  * Key store required for baileys.
  * Stores all keys in the sqlite database
  */
-const _makeDBKeyStore = (db: Connection): SignalKeyStore => {
-  const repo = db.getRepository(AccountKeyValue)
+const _makeDBKeyStore = (ds: DataSource): SignalKeyStore => {
+  const repo = ds.getRepository(AccountKeyValue)
 
   return {
     get: async (type, ids) => {
-      const items = await db
+      const items = await ds
         .createQueryBuilder(AccountKeyValue, 'acc')
         .where('category = :category AND id IN (:...ids)', {
           category: KEY_MAP[type],
@@ -51,7 +51,7 @@ const _makeDBKeyStore = (db: Connection): SignalKeyStore => {
         }
       }
 
-      await db.transaction(
+      await ds.transaction(
         async db => {
           const repo = db.getRepository(AccountKeyValue)
 
@@ -75,8 +75,8 @@ const _makeDBKeyStore = (db: Connection): SignalKeyStore => {
   }
 }
 
-export const makeDBKeyStore = (db: Connection, logger: Logger) => {
-  const store = _makeDBKeyStore(db)
+export const makeDBKeyStore = (ds: DataSource, logger: Logger) => {
+  const store = _makeDBKeyStore(ds)
   return makeCacheableSignalKeyStore(
     store,
     logger,

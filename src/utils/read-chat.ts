@@ -1,5 +1,5 @@
 import type { WASocket } from 'baileys'
-import type { Connection, EntityManager } from 'typeorm'
+import type { DataSource, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContext } from '../types'
@@ -8,7 +8,7 @@ import getLastMessagesOfThread from './get-last-messages-of-thread'
 /**
  * utility function to mark a chat read
  */
-const readChat = async (db: Connection | EntityManager, sock: WASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
+const readChat = async (db: DataSource | EntityManager, sock: WASocket, ctx: MappingContext, threadID: string, messageID?: string) => {
   const repo = db.getRepository(DBThread)
   const item = await repo.findOne({ id: threadID })
 
