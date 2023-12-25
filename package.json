@@ -25,7 +25,7 @@
     "pino": "^7.8.0",
     "react": "https://github.com/TextsHQ/react-global-shim#main",
     "sanitize-filename": "^1.6.3",
-    "typeorm": "^0.2.41",
+    "typeorm": "^0.3.17",
     "typeorm-naming-strategies": "^2.0.0"
   },
   "devDependencies": {
