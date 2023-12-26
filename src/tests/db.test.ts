@@ -341,10 +341,10 @@ describe('Database Sync Tests', () => {
     )
 
     await store.wait()
-    await db.close()
+    await db.destroy()
     await tasks
 
-    await db.connect()
+    await db.initialize()
 
     const repo = db.getRepository(DBMessage)
     const dbMessages = await repo.find({ where: { threadID: jid }})

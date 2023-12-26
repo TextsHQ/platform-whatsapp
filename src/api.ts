@@ -231,7 +231,7 @@ export default class WhatsAppAPI implements PlatformAPI {
     }
 
     await this.dataStore?.wait()
-    await this.db?.close()
+    await this.db?.destroy()
 
     this.logger?.info('disposed')
   }
