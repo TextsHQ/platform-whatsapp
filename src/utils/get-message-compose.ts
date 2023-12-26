@@ -84,11 +84,7 @@ const getMessageCompose = async (
       id: options!.quotedMessageID,
       threadID: options!.quotedMessageThreadID || threadID,
     })
-    if (msg) {
-      quotedMsg = msg.original.message
-    } else {
-      throw new Error('could not find message to quote')
-    }
+    quotedMsg = msg.original.message
   }
 
   const ephemeralOpts = await getEphemeralOptions(db, threadID)
