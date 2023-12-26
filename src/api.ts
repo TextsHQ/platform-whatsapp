@@ -1123,13 +1123,11 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async cleanUpExpiredMessages() {
     const repo = this.db.getRepository(DBMessage)
-    const expiredMessages = await repo.createQueryBuilder('db_message')
-      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < :now', { now: new Date().toISOString() })
-      .getMany()
+    const result = await repo.createQueryBuilder('db_message')
+      .delete()
+      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
+      .execute()
 
-    if (expiredMessages.length > 0) {
-      this.logger.info({ count: expiredMessages.length }, 'cleaning up expired messages')
-      await repo.remove(expiredMessages)
-    }
+    this.logger.info({ result }, 'cleaned up expired messages')
   }
 }
