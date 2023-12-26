@@ -7,7 +7,7 @@ import dbMutexAllTransactions from './db-mutex-all-transactions'
 
 const logSql = process.env.LOG_SQL === '1'
 
-const getDataSource = (name: string, sqlitePath: string, logger: Logger) => {
+const getDataSource = async (name: string, sqlitePath: string, logger: Logger) => {
   const dataSource = new DataSource(
     {
       name,
@@ -21,6 +21,7 @@ const getDataSource = (name: string, sqlitePath: string, logger: Logger) => {
       namingStrategy: new SnakeNamingStrategy(),
     } as DataSourceOptions,
   )
+  await dataSource.initialize()
   dbMutexAllTransactions(dataSource, logger)
   return dataSource
 }
