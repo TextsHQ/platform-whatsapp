@@ -13,7 +13,7 @@ const dbMutexAllTransactions = (ds: DataSource, logger: Logger) => {
   logger = logger.child({ class: 'transactions' })
 
   const { mutex } = makeMutex()
-  const { transaction, close } = ds
+  const { transaction, destroy } = ds
 
   ds.transaction = (...args: any) => {
     if (logger.level === 'trace') logger.trace('called transaction')
@@ -30,8 +30,8 @@ const dbMutexAllTransactions = (ds: DataSource, logger: Logger) => {
     })
   }
 
-  ds.close = async () => {
-    await mutex(() => close.apply(ds))
+  ds.destroy = async () => {
+    await mutex(() => destroy.apply(ds))
   }
 }
 
