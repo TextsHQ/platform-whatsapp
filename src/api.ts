@@ -4,7 +4,7 @@ import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, Socke
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
-import type { Connection } from 'typeorm'
+import { LessThanOrEqual, type Connection } from 'typeorm'
 import { PassThrough } from 'stream'
 import NodeCache from 'node-cache'
 import getConnection from './utils/get-connection'
@@ -192,6 +192,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     const existingData = await hasSomeCachedData(this.db)
     this.canServeThreads = existingData.hasChats
     this.canServeMessages = existingData.hasMessages
+
+    await this.cleanUpExpiredMessages()
 
     this.connect()
   }
@@ -1118,4 +1120,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   private getDefaultDisappearingMode = () => (
     this.client?.authState?.creds?.accountSettings?.defaultDisappearingMode
   )
+
+  private async cleanUpExpiredMessages() {
+    const repo = this.db.getRepository(DBMessage)
+    const result = await repo.createQueryBuilder('db_message')
+      .delete()
+      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
+      .execute()
+
+    this.logger.info({ result }, 'cleaned up expired messages')
+  }
 }
