@@ -1,4 +1,4 @@
-import type { Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from 'baileys'
+import type { BinaryNode, Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from 'baileys'
 import type { Logger } from 'pino'
 import type { DataSource, EntityManager } from 'typeorm'
 
@@ -14,6 +14,7 @@ export type FullBaileysChat = {
 
 export type FullBaileysMessage = {
   message: WAMessage
+  node?: BinaryNode
   seenByMe?: boolean
   // the last version of platform-whatsapp the message was mapped on
   lastMappedVersion: number | undefined
