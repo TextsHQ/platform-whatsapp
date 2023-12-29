@@ -290,3 +290,16 @@ export function clearUndefineds<T>(obj: T, visited = new WeakSet()) {
 
   return obj
 }
+
+export function getPhoneNumberFromId(id: string) {
+  const result = jidDecode(id)
+  if (!result) {
+    return
+  }
+
+  if (result.server !== 's.whatsapp.net') {
+    return
+  }
+
+  return result.user
+}
