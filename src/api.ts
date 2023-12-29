@@ -193,6 +193,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     this.canServeThreads = existingData.hasChats
     this.canServeMessages = existingData.hasMessages
 
+    await this.cleanUpExpiredMessages()
+
     this.connect()
   }
 
@@ -1118,4 +1120,14 @@ export default class WhatsAppAPI implements PlatformAPI {
   private getDefaultDisappearingMode = () => (
     this.client?.authState?.creds?.accountSettings?.defaultDisappearingMode
   )
+
+  private async cleanUpExpiredMessages() {
+    const repo = this.db.getRepository(DBMessage)
+    const result = await repo.createQueryBuilder('db_message')
+      .delete()
+      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
+      .execute()
+
+    this.logger.info({ result }, 'cleaned up expired messages')
+  }
 }
