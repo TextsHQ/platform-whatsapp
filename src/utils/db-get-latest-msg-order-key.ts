@@ -1,8 +1,8 @@
-import type { Connection, EntityManager } from 'typeorm'
+import { Not, type DataSource, type EntityManager, IsNull } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
-export default async (db: EntityManager | Connection) => {
+export default async (db: EntityManager | DataSource) => {
   const msg = await db.getRepository(DBMessage)
-    .findOne({ order: { orderKey: 'DESC' }, select: ['orderKey'] })
+    .findOne({ where: { id: Not(IsNull()) }, order: { orderKey: 'DESC' }, select: ['orderKey'] })
   return msg?.orderKey
 }

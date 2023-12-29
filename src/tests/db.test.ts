@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/order
-import getConnection from '../utils/get-connection'
+import getDataSource from '../utils/get-data-source'
 
 import { Chat, delay, generateMessageID, makeEventBuffer, unixTimestampSeconds, WAMessageStubType, WAProto } from 'baileys'
 import { unlink, stat } from 'fs/promises'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContextWithDB } from '../types'
@@ -20,7 +20,7 @@ logger.level = 'trace'
 jest.setTimeout(30_000)
 
 describe('Database Sync Tests', () => {
-  let db: Connection
+  let db: DataSource
   let store: ReturnType<typeof makeTextsBaileysStore>
 
   const mappingCtx: MappingContextWithDB = {
@@ -38,7 +38,7 @@ describe('Database Sync Tests', () => {
       logger.info('removing existing DB')
       await unlink(DB_PATH)
     }
-    db = await getConnection('default', DB_PATH, logger)
+    db = await getDataSource('default', DB_PATH, logger)
     mappingCtx.db = db
     store = makeTextsBaileysStore(() => { }, () => { throw new Error('no') }, mappingCtx)
     ev.process(events => store.process(events).then(() => { }))
@@ -67,13 +67,13 @@ describe('Database Sync Tests', () => {
     await delay(500)
 
     expect(
-      await db.getRepository(DBThread).findOne({
+      await db.getRepository(DBThread).findOneBy({
         id: msg.key.remoteJid!,
       }),
     ).toBeTruthy()
 
     expect(
-      await db.getRepository(DBMessage).findOne({
+      await db.getRepository(DBMessage).findOneBy({
         id: mapMessageID(msg.key),
       }),
     ).toBeTruthy()
@@ -124,7 +124,7 @@ describe('Database Sync Tests', () => {
     await delay(200)
 
     const repo = db.getRepository(DBThread)
-    const thread = await repo.findOne({ id: jid })
+    const thread = await repo.findOneBy({ id: jid })
     expect(thread?.unreadCount).toEqual(1)
     expect(thread?.timestamp).toEqual(new Date(ogTimstamp * 1000))
   })
@@ -163,7 +163,7 @@ describe('Database Sync Tests', () => {
     await delay(200)
 
     const repo = db.getRepository(DBThread)
-    const thread = await repo.findOne({ id: jid })
+    const thread = await repo.findOneBy({ id: jid })
     expect(thread?.original?.chat?.ephemeralExpiration).toEqual(60 * 60 * 24)
   })
 
@@ -237,7 +237,7 @@ describe('Database Sync Tests', () => {
     })
 
     const repo = db.getRepository(DBMessage)
-    const messages = await repo.find({ threadID: jid })
+    const messages = await repo.find({ where: { threadID: jid }})
     expect(messages).toHaveLength(3)
   })
 
@@ -341,13 +341,13 @@ describe('Database Sync Tests', () => {
     )
 
     await store.wait()
-    await db.close()
+    await db.destroy()
     await tasks
 
-    await db.connect()
+    await db.initialize()
 
     const repo = db.getRepository(DBMessage)
-    const dbMessages = await repo.find({ threadID: jid })
+    const dbMessages = await repo.find({ where: { threadID: jid }})
     expect(dbMessages).toHaveLength(3)
   })
 })

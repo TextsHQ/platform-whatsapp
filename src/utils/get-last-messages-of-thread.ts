@@ -1,12 +1,12 @@
 import { LastMessageList, toNumber } from 'baileys'
-import type { Connection, EntityManager } from 'typeorm'
+import type { DataSource, EntityManager } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 
 /**
  * fetches the last messages of a thread. Required for chat updates + reading chats
  * The function also ensures that the earliest message returned in the list must be from the other party in the chat (I don't know why, ask WA)
 */
-const getLastMessagesOfThread = async (db: Connection | EntityManager, threadID: string): Promise<LastMessageList> => (
+const getLastMessagesOfThread = async (db: DataSource | EntityManager, threadID: string): Promise<LastMessageList> => (
   db.transaction(
     async em => {
       const repo = em.getRepository(DBMessage)

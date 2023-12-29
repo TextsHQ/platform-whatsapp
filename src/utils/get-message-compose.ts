@@ -2,14 +2,14 @@ import fsp from 'fs/promises'
 import { AccountSettings, AnyMediaMessageContent, AnyMessageContent, AnyRegularMessageContent, jidDecode, MiscMessageGenerationOptions, WAMessage } from 'baileys'
 import { parseVCard } from '@textshq/platform-sdk/dist/vcard'
 import type { MessageContent, MessageSendOptions } from '@textshq/platform-sdk'
-import type { Connection, EntityManager } from 'typeorm'
+import type { DataSource, EntityManager } from 'typeorm'
 
 import generateMessageID from './generate-message-id'
 import DBMessage from '../entities/DBMessage'
 import getEphemeralOptions from './get-ephemeral-options'
 
 const getMessageCompose = async (
-  db: Connection | EntityManager,
+  db: DataSource | EntityManager,
   threadID: string,
   msgContent: MessageContent,
   defaultMode: AccountSettings['defaultDisappearingMode'],
@@ -80,15 +80,11 @@ const getMessageCompose = async (
 
   let quotedMsg: WAMessage | undefined
   if (options?.quotedMessageID) {
-    const msg = await db.getRepository(DBMessage).findOneOrFail({
+    const msg = await db.getRepository(DBMessage).findOneByOrFail({
       id: options!.quotedMessageID,
       threadID: options!.quotedMessageThreadID || threadID,
     })
-    if (msg) {
-      quotedMsg = msg.original.message
-    } else {
-      throw new Error('could not find message to quote')
-    }
+    quotedMsg = msg.original.message
   }
 
   const ephemeralOpts = await getEphemeralOptions(db, threadID)

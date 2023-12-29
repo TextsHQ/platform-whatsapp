@@ -1,5 +1,5 @@
 import { ServerEvent, ServerEventType } from '@textshq/platform-sdk'
-import type { Connection } from 'typeorm'
+import type { DataSource } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
@@ -15,7 +15,7 @@ const registerDBSubscribers = (
   publishEvent: (event: ServerEvent) => void,
   ctx: MappingContextWithDB,
 ) => {
-  const db = ctx.db as Connection
+  const db = ctx.db as DataSource
   const { logger } = ctx
   db.subscribers.push(
     new DBEventsPublisher(DBThread, {

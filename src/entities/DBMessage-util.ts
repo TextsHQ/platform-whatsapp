@@ -755,7 +755,7 @@ export const MessageTransformer: ValueTransformer = {
   },
   to: (item: FullBaileysMessage | null) => {
     if (item) {
-      return serialize({ ...item, message: WAProto.WebMessageInfo.encode(item.message).finish() })
+      return serialize({ ...item, node: item.message.node, message: WAProto.WebMessageInfo.encode(item.message).finish() })
     }
     return null
   },
