@@ -1,4 +1,5 @@
 import type { PaginationArg } from '@textshq/platform-sdk'
+import { WAMessageStubType } from 'baileys'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
 import type { MappingContextWithDB } from '../types'
@@ -12,6 +13,7 @@ const fetchMessages = async (
   mappingCtx: MappingContextWithDB,
   threadID: string,
   pagination?: PaginationArg,
+  senderRetryRequest?: (message: DBMessage) => Promise<void>,
 ) => {
   const { db } = mappingCtx
   const { direction = 'before', cursor } = pagination || {}
@@ -49,9 +51,13 @@ const fetchMessages = async (
   await remapMessagesAndSave(repo, items, mappingCtx)
 
   return {
-    items: items.map(item => (
-      DBMessage.prepareForSending(item, mappingCtx.accountID)
-    )),
+    items: items.map(item => {
+      if (senderRetryRequest && item.original.message.messageStubType === WAMessageStubType.CIPHERTEXT) {
+        // If there is any message that previously failed to be decrypted, send a retry request now
+        senderRetryRequest(item)
+      }
+      return DBMessage.prepareForSending(item, mappingCtx.accountID)
+    }),
     hasMore,
     oldestCursor: items[0]?.orderKey?.toString(),
   }

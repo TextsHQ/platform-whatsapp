@@ -703,8 +703,18 @@ export default class WhatsAppAPI implements PlatformAPI {
       await delay(50)
     }
 
-    const result = await fetchMessages(this, threadID, pagination)
+    const result = await fetchMessages(this, threadID, pagination, this.senderRetryRequest)
+
     return result
+  }
+
+  senderRetryRequest = async (message: DBMessage) => {
+    if (!this.client) {
+      throw new Error('client not initialized')
+    }
+    if (message.original.node) {
+      this.client.sendRetryRequest(message.original.node)
+    }
   }
 
   getUser = async (ids: { userID: UserID } | { username: string } | { phoneNumber: PhoneNumber } | { email: string }): Promise<User | undefined> => {
