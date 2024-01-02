@@ -243,7 +243,7 @@ async function fetchUserFullNameById(
 ) {
   const user = await db
     .getRepository(DBUser)
-    .findOne({ id: jidNormalizedUser(id) })
+    .findOneBy({ id: jidNormalizedUser(id) })
   return user?.fullName || getPhoneNumberFromId(id)
 }
 
