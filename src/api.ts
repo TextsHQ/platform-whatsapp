@@ -598,7 +598,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           const msg = await this.db.getRepository(DBMessage).findOneBy({ id: mapMessageID(key) })
           if (msg && msg.attachments?.length > 0) {
             // The cache key is URL encoded (due to the HTTP request to getAsset) so we need to encode it here too
-            msg.attachments.map(a => a.fileName && this.fileCache.clear(['attachment', msg.threadID, a.id, a.fileName].map(p => encodeURIComponent(p))))
+            msg.attachments.forEach(a => a.fileName && this.fileCache.clear(['attachment', msg.threadID, a.id, a.fileName].map(p => encodeURIComponent(p))))
           }
         }
       }
