@@ -1,6 +1,6 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast, DEFAULT_CACHE_TTLS } from 'baileys'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast, DEFAULT_CACHE_TTLS, WAMessageStubType } from 'baileys'
 import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
@@ -586,6 +586,19 @@ export default class WhatsAppAPI implements PlatformAPI {
                 { id: id!, imgURL: this.fileCache.getFileURLForPathParams(params) },
               ],
             })
+          }
+        }
+      }
+    })
+
+    ev.on('messages.update', async updates => {
+      for (const { key, update } of updates) {
+        // If it's a message deletion, check if it had any attachment
+        if (update.messageStubType === WAMessageStubType.REVOKE) {
+          const msg = await this.db.getRepository(DBMessage).findOneBy({ id: mapMessageID(key) })
+          if (msg && msg.attachments?.length > 0) {
+            // The cache key is URL encoded (due to the HTTP request to getAsset) so we need to encode it here too
+            msg.attachments.forEach(a => a.fileName && this.fileCache.clear(['attachment', msg.threadID, a.id, a.fileName].map(p => encodeURIComponent(p))))
           }
         }
       }
