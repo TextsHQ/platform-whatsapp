@@ -15,7 +15,7 @@ import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
 import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
-import makeTextsBaileysStore from './utils/make-texts-baileys-store'
+import makeTextsBaileysStore, { cleanAttachments } from './utils/make-texts-baileys-store'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
@@ -1133,11 +1133,16 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private async cleanUpExpiredMessages() {
     const repo = this.db.getRepository(DBMessage)
-    const result = await repo.createQueryBuilder('db_message')
-      .delete()
+    const expiredMessages = await repo.createQueryBuilder('db_message')
       .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
-      .execute()
+      .getMany()
 
-    this.logger.info({ result }, 'cleaned up expired messages')
+    if (expiredMessages.length > 0) {
+      this.logger.info({ count: expiredMessages.length }, 'cleaning up expired messages')
+      for (const msg of expiredMessages) {
+        if (msg.attachments?.length > 0) await cleanAttachments(this.fileCache, msg.threadID, msg.attachments)
+      }
+      await repo.remove(expiredMessages)
+    }
   }
 }
