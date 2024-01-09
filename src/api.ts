@@ -104,12 +104,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private country: string
 
-  private fileCache: FileCache
-
   private nativeArchiveSync: boolean | undefined
 
   // map to store retry counts of messages when decryption/encryption fails
   private msgRetryCounterCache: NodeCache
+
+  fileCache: FileCache
 
   logger: Logger
 
