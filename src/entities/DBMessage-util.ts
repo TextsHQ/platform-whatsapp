@@ -3,7 +3,7 @@ import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBe
 import type { ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { ButtonCallbackType, FullBaileysMessage } from '../types'
-import { attachmentUrl, getDataURIFromBuffer, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
+import { attachmentUrl, getDataURIFromBuffer, getExtFromMimeType, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
@@ -410,7 +410,7 @@ export function messageAttachments(message: WAMessageContent, jid: string, id: s
   } else if (message.audioMessage || message.imageMessage || message.documentMessage || message.videoMessage || message.stickerMessage || message.ptvMessage) {
     const messageType = getContentType(message)!
     const jpegThumbnail = (message.videoMessage || message.imageMessage || message.ptvMessage)?.jpegThumbnail
-    const fileName = message.documentMessage?.fileName
+    const fileName = message.documentMessage?.fileName || `${id}.${getExtFromMimeType(messageInner.mimetype)}`
     const content = message[messageType] as WAGenericMediaMessage
 
     let fileSize: number | undefined
