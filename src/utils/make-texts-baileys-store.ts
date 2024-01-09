@@ -1,4 +1,4 @@
-import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId } from 'baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId, WAMessage } from 'baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { DataSource, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -481,10 +481,9 @@ async function handleMessagesDelete(
     // isn't supported yet
   } else {
     const msgs = await repo.find({ where: { id: In(item.keys.map(mapMessageID)) } })
-    if (excludeEvent) {
-      for (const msg of msgs) {
-        msg.shouldFireEvent = false
-      }
+    for (const msg of msgs) {
+      if (excludeEvent) msg.shouldFireEvent = false
+      if (msg && msg.attachments?.length > 0) cleanAttachments(fileCache, msg.threadID, msg.attachments)
     }
 
     logger.info(
@@ -520,13 +519,13 @@ async function handleChatsSync(
   return { chats }
 }
 
-async function updateMessages<T extends { key: WAMessageKey }>(
+async function updateMessages<T extends { key: WAMessageKey, update?: Partial<WAMessage> }>(
   updates: T[],
   excludeEvent: boolean,
   applyUpdate: (msg: DBMessage, update: T) => void,
   ctx: MappingContextWithDBAndFileCache,
 ) {
-  const { db, logger } = ctx
+  const { db, logger, fileCache } = ctx
   updates = updates.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
   if (!updates.length) {
     return
@@ -550,6 +549,11 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   // update each message & save
   for (const item of dbItems) {
     const id = `${item.threadID},${item.id!}`
+
+    if (map[id].update?.messageStubType === WAMessageStubType.REVOKE && item.attachments.length > 0) {
+      cleanAttachments(fileCache, item.threadID, item.attachments)
+    }
+
     const wasSeenEarlier = item.original.seenByMe
     applyUpdate(item, map[id])
     // if the message was just marked seen
@@ -616,6 +620,11 @@ async function handleMessagesSync(
   await chunkedWrite(db.getRepository(DBMessage), dbMessages, DEFAULT_CHUNK_SIZE)
 
   logger.info({ messages: dbMessages.length }, 'saved message history')
+}
+
+function cleanAttachments(fileCache: MappingContextWithDBAndFileCache['fileCache'], threadID: string, attachments: DBMessage['attachments']) {
+  // The cache key is URL encoded (due to the HTTP request to getAsset) so we need to encode it here too
+  attachments.forEach(a => fileCache.clear(['attachment', threadID, a.id, a.fileName || ''].map(p => encodeURIComponent(p))))
 }
 
 export const fetchMessagesInDB = async (db: DataSource | EntityManager, keys: { key: WAMessageKey }[]) => {
