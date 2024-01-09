@@ -5,7 +5,7 @@ import DBMessage from '../entities/DBMessage'
 import DBParticipant from '../entities/DBParticipant'
 import DBThread from '../entities/DBThread'
 import DBUser from '../entities/DBUser'
-import type { MappingContextWithDB } from '../types'
+import type { MappingContextWithDB, MappingContextWithDBAndFileCache } from '../types'
 import chunkedWrite from './chunked-write'
 import dbGetEarliestMsgOrderKey from './db-get-earliest-msg-order-key'
 import dbGetLatestMsgOrderKey from './db-get-latest-msg-order-key'
@@ -20,7 +20,7 @@ const DEFAULT_CHUNK_SIZE = 100
 const makeTextsBaileysStore = (
   publishEvent: (event: ServerEvent) => void,
   getGroupMetadata: WASocket['groupMetadata'],
-  mappingCtx: MappingContextWithDB,
+  mappingCtx: MappingContextWithDBAndFileCache,
   { onDroppedEvents, getDroppedEvents, acknowledgeRetryDroppedEvents }: DroppedEventHandlerOptions = {},
 ) => {
   registerDBSubscribers(publishEvent, mappingCtx)
@@ -32,7 +32,7 @@ const makeTextsBaileysStore = (
 
   async function processEvents(
     events: Partial<BaileysEventMap>,
-    ctx: MappingContextWithDB,
+    ctx: MappingContextWithDBAndFileCache,
   ) {
     let didSyncHistory = false
     mappingCtx.logger.trace({ events }, 'recv event')
@@ -191,6 +191,7 @@ const makeTextsBaileysStore = (
               meID: mappingCtx.meID,
               logger: mappingCtx.logger,
               accountID: mappingCtx.accountID,
+              fileCache: mappingCtx.fileCache,
             },
           )
         ),
@@ -473,7 +474,7 @@ async function handleMessagesUpsert(
 async function handleMessagesDelete(
   item: BaileysEventMap['messages.delete'],
   excludeEvent: boolean,
-  { db, logger }: MappingContextWithDB,
+  { db, logger, fileCache }: MappingContextWithDBAndFileCache,
 ) {
   const repo = db.getRepository(DBMessage)
   if ('all' in item) {
@@ -523,7 +524,7 @@ async function updateMessages<T extends { key: WAMessageKey }>(
   updates: T[],
   excludeEvent: boolean,
   applyUpdate: (msg: DBMessage, update: T) => void,
-  ctx: MappingContextWithDB,
+  ctx: MappingContextWithDBAndFileCache,
 ) {
   const { db, logger } = ctx
   updates = updates.filter(u => u.key.remoteJid && !isJidStatusBroadcast(u.key.remoteJid))
