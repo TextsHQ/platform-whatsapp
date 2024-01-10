@@ -1132,17 +1132,25 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async cleanUpExpiredMessages() {
+    const CHUNK_SIZE = 1000
     const repo = this.db.getRepository(DBMessage)
-    const expiredMessages = await repo.createQueryBuilder('db_message')
-      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
-      .getMany()
 
-    if (expiredMessages.length > 0) {
+    let expiredMessages: DBMessage[]
+    do {
+      expiredMessages = await repo.createQueryBuilder('db_message')
+        .select(['db_message.id', 'db_message.threadID', 'db_message.attachments'])
+        .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
+        .limit(CHUNK_SIZE)
+        .getMany()
+
       this.logger.info({ count: expiredMessages.length }, 'cleaning up expired messages')
+
+      if (expiredMessages.length === 0) break
+
       for (const msg of expiredMessages) {
         if (msg.attachments?.length > 0) await cleanAttachments(this.fileCache, msg.threadID, msg.attachments)
       }
       await repo.remove(expiredMessages)
-    }
+    } while (expiredMessages.length > 0)
   }
 }
