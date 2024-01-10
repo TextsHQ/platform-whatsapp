@@ -6,7 +6,7 @@ import { unlink, stat } from 'fs/promises'
 import type { DataSource } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
 import DBThread from '../entities/DBThread'
-import type { MappingContextWithDB } from '../types'
+import type { MappingContextWithDB, MappingContextWithDBAndFileCache } from '../types'
 import { mapMessageID } from '../utils/generics'
 import getLogger from '../utils/get-logger'
 import makeTextsBaileysStore, { fetchMessagesInDB } from '../utils/make-texts-baileys-store'
@@ -23,11 +23,12 @@ describe('Database Sync Tests', () => {
   let db: DataSource
   let store: ReturnType<typeof makeTextsBaileysStore>
 
-  const mappingCtx: MappingContextWithDB = {
+  const mappingCtx: MappingContextWithDBAndFileCache = {
     logger: logger.child({ level: 'debug' }),
     accountID: '1234',
     meID: '911724345330@s.whatsapp.net',
     db: undefined as any,
+    fileCache: undefined as any,
   }
 
   const ev = makeEventBuffer(logger)

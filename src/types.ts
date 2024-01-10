@@ -1,6 +1,7 @@
 import type { BinaryNode, Chat, Contact, GroupMetadata, GroupParticipant, WAMessage } from 'baileys'
 import type { Logger } from 'pino'
 import type { DataSource, EntityManager } from 'typeorm'
+import { FileCache } from './utils/file-cache'
 
 export type FullBaileysChat = {
   chat: Partial<Chat> & {
@@ -32,6 +33,7 @@ export type MappingContext = {
 }
 
 export type MappingContextWithDB = MappingContext & { db: DataSource | EntityManager }
+export type MappingContextWithDBAndFileCache = MappingContextWithDB & { fileCache: FileCache }
 
 export type Transaction = any
 

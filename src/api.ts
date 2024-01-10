@@ -15,7 +15,7 @@ import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
 import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
-import makeTextsBaileysStore from './utils/make-texts-baileys-store'
+import makeTextsBaileysStore, { cleanAttachments } from './utils/make-texts-baileys-store'
 import fetchMessages from './utils/fetch-messages'
 import getLastMessagesOfThread from './utils/get-last-messages-of-thread'
 import readChat from './utils/read-chat'
@@ -104,12 +104,12 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private country: string
 
-  private fileCache: FileCache
-
   private nativeArchiveSync: boolean | undefined
 
   // map to store retry counts of messages when decryption/encryption fails
   private msgRetryCounterCache: NodeCache
+
+  fileCache: FileCache
 
   logger: Logger
 
@@ -586,19 +586,6 @@ export default class WhatsAppAPI implements PlatformAPI {
                 { id: id!, imgURL: this.fileCache.getFileURLForPathParams(params) },
               ],
             })
-          }
-        }
-      }
-    })
-
-    ev.on('messages.update', async updates => {
-      for (const { key, update } of updates) {
-        // If it's a message deletion, check if it had any attachment
-        if (update.messageStubType === WAMessageStubType.REVOKE) {
-          const msg = await this.db.getRepository(DBMessage).findOneBy({ id: mapMessageID(key) })
-          if (msg && msg.attachments?.length > 0) {
-            // The cache key is URL encoded (due to the HTTP request to getAsset) so we need to encode it here too
-            msg.attachments.forEach(a => a.fileName && this.fileCache.clear(['attachment', msg.threadID, a.id, a.fileName].map(p => encodeURIComponent(p))))
           }
         }
       }
@@ -1145,12 +1132,25 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async cleanUpExpiredMessages() {
+    const CHUNK_SIZE = 1000
     const repo = this.db.getRepository(DBMessage)
-    const result = await repo.createQueryBuilder('db_message')
-      .delete()
-      .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
-      .execute()
 
-    this.logger.info({ result }, 'cleaned up expired messages')
+    let expiredMessages: DBMessage[]
+    do {
+      expiredMessages = await repo.createQueryBuilder('db_message')
+        .select(['db_message.id', 'db_message.threadID', 'db_message.attachments'])
+        .where('datetime(db_message.timestamp, db_message.expires_in_seconds || \' seconds\') < CURRENT_TIMESTAMP')
+        .limit(CHUNK_SIZE)
+        .getMany()
+
+      this.logger.info({ count: expiredMessages.length }, 'cleaning up expired messages')
+
+      if (expiredMessages.length === 0) break
+
+      for (const msg of expiredMessages) {
+        if (msg.attachments?.length > 0) await cleanAttachments(this.fileCache, msg.threadID, msg.attachments)
+      }
+      await repo.remove(expiredMessages)
+    } while (expiredMessages.length > 0)
   }
 }

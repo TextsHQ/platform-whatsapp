@@ -21,6 +21,7 @@
     "link-preview-js": "2.1.15",
     "match-sorter": "^4.2.1",
     "mem": "^8.0.0",
+    "mime-db": "^1.52.0",
     "node-cache": "^5.1.2",
     "pino": "^7.8.0",
     "react": "https://github.com/TextsHQ/react-global-shim#main",

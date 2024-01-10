@@ -2562,6 +2562,7 @@ __metadata:
     link-preview-js: 2.1.15
     match-sorter: ^4.2.1
     mem: ^8.0.0
+    mime-db: ^1.52.0
     node-cache: ^5.1.2
     pino: ^7.8.0
     react: "https://github.com/TextsHQ/react-global-shim#main"
@@ -6770,7 +6771,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mime-db@npm:1.52.0":
+"mime-db@npm:1.52.0, mime-db@npm:^1.52.0":
   version: 1.52.0
   resolution: "mime-db@npm:1.52.0"
   checksum: 0d99a03585f8b39d68182803b12ac601d9c01abfa28ec56204fa330bc9f3d1c5e14beb049bafadb3dbdf646dfb94b87e24d4ec7b31b7279ef906a8ea9b6a513f

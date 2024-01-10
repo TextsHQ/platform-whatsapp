@@ -3,6 +3,7 @@ import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, W
 import { randomBytes } from 'crypto'
 import { FindOptionsWhere, In, Repository } from 'typeorm'
 import type { Logger } from 'pino'
+import mimeDb from 'mime-db'
 import type { MappingContext } from '../types'
 import type DBThread from '../entities/DBThread'
 import { MAX_EVENT_BUFFER_WAIT } from '../config.json'
@@ -106,6 +107,11 @@ export const makeMutex = () => {
       return task
     },
   }
+}
+
+export const getExtFromMimeType = (mimeType: string) => {
+  const entry = mimeDb[mimeType]
+  return entry?.extensions?.[0] || mimeType.split('/')?.[1].split(/\W/)[0]
 }
 
 export const profilePictureUrl = (accountID: string, jid: string) =>
