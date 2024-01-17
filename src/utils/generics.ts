@@ -1,4 +1,4 @@
-import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType } from '@textshq/platform-sdk'
+import { ActivityType, Awaitable, ConnectionStatus, Message, ThreadType, texts } from '@textshq/platform-sdk'
 import { makeEventBuffer, DisconnectReason, extractMessageContent, WAPresence, WAConnectionState, WAGenericMediaMessage, WAMessage, WAMessageKey, jidNormalizedUser, jidDecode, WAProto, isJidBroadcast, normalizeMessageContent, isJidGroup, getContentType, AuthenticationCreds, WAMessageStubType, delay } from 'baileys'
 import { randomBytes } from 'crypto'
 import { FindOptionsWhere, In, Repository } from 'typeorm'
@@ -80,6 +80,8 @@ export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
   if (statusCode === DisconnectReason.multideviceMismatch) {
     isReconnecting = false
   }
+
+  if (!isReconnecting) texts?.Sentry.captureMessage(`Whatsapp cannot reconnect. Error: ${error?.message}. Status code: ${statusCode}`, { extra: { retriesLeft } })
 
   return {
     isReconnecting,
