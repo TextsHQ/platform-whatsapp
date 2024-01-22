@@ -275,6 +275,7 @@ export default class WhatsAppAPI implements PlatformAPI {
       if (this.connState.connection === 'close') {
         throw this.connState.lastDisconnect?.error || new ConnectionError('failed to open')
       }
+      this.getSubscribedNewsletters()
     } catch (error) {
       this.logger.info({ msSinceConnect, trace: error.stack }, 'connect failed')
 
@@ -1152,5 +1153,29 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       await repo.remove(expiredMessages)
     } while (expiredMessages.length > 0)
+  }
+
+  private getSubscribedNewsletters = async () => {
+    const subscribedNewsletters = await this.client?.getSubscribedNewsletters()
+    if (subscribedNewsletters) {
+      await Promise.all(subscribedNewsletters.map(async newsletter => {
+        const thread = new DBThread()
+        thread.original = {
+          chat: {
+            id: newsletter.id,
+            name: newsletter.threadMetadata.name.text,
+            createdAt: newsletter.threadMetadata.creationTime,
+          },
+          metadata: undefined,
+        }
+        thread.shouldFireEvent = false
+        thread.mapFromOriginal(this)
+
+        await this.db.transaction(async db => {
+          await db.getRepository(DBThread).save(thread)
+        })
+      }))
+    }
+    return subscribedNewsletters
   }
 }
