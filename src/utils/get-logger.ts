@@ -5,7 +5,7 @@ import P, { multistream } from 'pino'
 const getLogger = (filename: string | undefined) => {
   const opts = {
     timestamp: () => `,"time":"${new Date().toJSON()}"`,
-    level: texts?.isLoggingEnabled ? 'debug' : 'fatal',
+    level: texts?.isLoggingEnabled ? 'trace' : 'fatal',
   } as const
   if (filename) {
     return P(
