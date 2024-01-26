@@ -81,7 +81,11 @@ export const canReconnect = (error: Error | undefined, retriesLeft: number) => {
     isReconnecting = false
   }
 
-  if (!isReconnecting) texts?.Sentry.captureMessage(`Whatsapp cannot reconnect. Error: ${error?.message}. Status code: ${statusCode}`, { extra: { retriesLeft } })
+  if (!isReconnecting) {
+    texts?.Sentry.captureMessage(`Whatsapp cannot reconnect. Error: ${error?.message}. Status code: ${statusCode}`, { extra: { retriesLeft } })
+    texts.error(`Whatsapp cannot reconnect. Error: ${error?.message}. Status code: ${statusCode}. Retries left: ${retriesLeft}`)
+    texts.error(safeJSONStringify(error))
+  }
   if (error) texts?.Sentry.captureException(error)
 
   return {
