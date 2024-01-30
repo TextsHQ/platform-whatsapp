@@ -52,7 +52,7 @@ const fetchMessages = async (
 
   return {
     items: items.map(item => {
-      if (senderRetryRequest && item.original.message.messageStubType === WAMessageStubType.CIPHERTEXT) {
+      if (senderRetryRequest && item.original?.message?.messageStubType === WAMessageStubType.CIPHERTEXT) {
         // If there is any message that previously failed to be decrypted, send a retry request now
         senderRetryRequest(item)
       }
