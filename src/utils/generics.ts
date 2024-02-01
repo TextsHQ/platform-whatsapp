@@ -113,6 +113,7 @@ export const makeMutex = () => {
 }
 
 export const getExtFromMimeType = (mimeType: string) => {
+  if (!mimeType) return
   const entry = mimeDb[mimeType]
   return entry?.extensions?.[0] || mimeType.split('/')?.[1].split(/\W/)[0]
 }
