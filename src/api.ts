@@ -541,7 +541,7 @@ export default class WhatsAppAPI implements PlatformAPI {
           }
         }
 
-        this.connCallback?.({ status: CONNECTION_STATE_MAP[connection] })
+        this.connCallback?.({ status: CONNECTION_STATE_MAP[connection], canRetry: true })
       }
     })
 
