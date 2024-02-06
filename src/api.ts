@@ -1,7 +1,7 @@
 import path from 'path'
 import { promises as fs } from 'fs'
-import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast, DEFAULT_CACHE_TTLS, WAMessageStubType } from 'baileys'
-import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors } from '@textshq/platform-sdk'
+import makeWASocket, { Browsers, ChatModification, ConnectionState, delay, SocketConfig, UNAUTHORIZED_CODES, WAProto, Chat as WAChat, unixTimestampSeconds, jidNormalizedUser, isJidGroup, initAuthCreds, GroupMetadata, WAVersion, DEFAULT_CONNECTION_CONFIG, WAMessageKey, toNumber, ButtonReplyInfo, getUrlInfo, WASocket, AuthenticationCreds, MediaDownloadOptions, downloadContentFromMessage, AnyRegularMessageContent, isJidStatusBroadcast, DEFAULT_CACHE_TTLS, WAMessageStubType, S_WHATSAPP_NET } from 'baileys'
+import { texts, StickerPack, PlatformAPI, OnServerEventCallback, MessageSendOptions, InboxName, LoginResult, OnConnStateChangeCallback, ReAuthError, CurrentUser, MessageContent, ConnectionError, PaginationArg, ClientContext, ActivityType, Thread, Paginated, User, PhoneNumber, ServerEvent, ConnectionStatus, ServerEventType, GetAssetOptions, AssetInfo, MessageLink, Attachment, ThreadFolderName, UserID, PaginatedWithCursors, NotificationsInfo } from '@textshq/platform-sdk'
 import { smartJSONStringify } from '@textshq/platform-sdk/dist/json'
 import type { Logger } from 'pino'
 import type { DataSource } from 'typeorm'
@@ -1152,5 +1152,24 @@ export default class WhatsAppAPI implements PlatformAPI {
       }
       await repo.remove(expiredMessages)
     } while (expiredMessages.length > 0)
+  }
+
+  registerForPushNotifications = async (type: keyof NotificationsInfo, token: string) => {
+    await this.client?.query({
+      tag: 'iq',
+      attrs: {
+        to: S_WHATSAPP_NET,
+        xmlns: 'urn:xmpp:whatsapp:push',
+        type: 'set',
+      },
+      content: [{
+        tag: 'config',
+        attrs: {
+          id: token,
+          num_acc: '1',
+          platform: 'gcm',
+        },
+      }],
+    })
   }
 }
