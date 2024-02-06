@@ -117,7 +117,11 @@ export const makeMutex = () => {
 export const getExtFromMimeType = (mimeType: string) => {
   if (!mimeType) return
   const entry = mimeDb[mimeType]
-  return entry?.extensions?.[0] || mimeType.split('/')?.[1].split(/\W/)[0]
+  if (entry?.extensions?.length) return entry.extensions[0]
+  if (mimeType.includes('/')) return mimeType.split('/')[1].split(/\W/)[0]
+
+  texts?.Sentry.captureMessage(`Found weird mimeType: ${mimeType}`)
+  return mimeType
 }
 
 export const profilePictureUrl = (accountID: string, jid: string) =>
