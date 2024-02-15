@@ -48,7 +48,7 @@ const info: PlatformInfo = {
     Attribute.SUPPORTS_EDIT_MESSAGE,
     Attribute.GET_MESSAGES_SUPPORTS_AFTER_DIRECTION,
     // Attribute.SUPPORTS_SEARCH,
-    // Attribute.SUPPORTS_PUSH_NOTIFICATIONS,
+    Attribute.SUPPORTS_PUSH_NOTIFICATIONS,
   ]),
   attachments: {
     recordedAudioMimeType: 'audio/ogg',
