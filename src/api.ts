@@ -147,6 +147,8 @@ export default class WhatsAppAPI implements PlatformAPI {
     await this.initPromise
   }
 
+  private connectPromise: Promise<void> | undefined
+
   private async _init() {
     await fs.mkdir(this.dataDirPath, { recursive: true })
     await makeDroppedEventsRegistryFolder({ dataDirPath: this.dataDirPath })
@@ -195,7 +197,7 @@ export default class WhatsAppAPI implements PlatformAPI {
 
     await this.cleanUpExpiredMessages()
 
-    this.connect()
+    this.connectPromise = this.connect()
   }
 
   private logoutAllInterval: NodeJS.Timer
@@ -1155,6 +1157,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   registerForPushNotifications = async (type: keyof NotificationsInfo, token: string) => {
+    await this.connectPromise
+
     await this.client?.query({
       tag: 'iq',
       attrs: {
