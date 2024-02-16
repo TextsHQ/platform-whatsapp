@@ -1155,6 +1155,8 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   registerForPushNotifications = async (type: keyof NotificationsInfo, token: string) => {
+    await this.waitForConnectionOpen()
+
     await this.client?.query({
       tag: 'iq',
       attrs: {
