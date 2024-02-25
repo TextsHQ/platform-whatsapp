@@ -312,7 +312,7 @@ export default class DBMessage implements Message {
 
     if (STORIES_JID !== linked?.threadID) {
       mapped.linkedMessageID = linked?.id
-      mapped.linkedMessageThreadID = linked?.threadID
+      if (linked?.threadID !== threadID) mapped.linkedMessageThreadID = linked?.threadID
     }
 
     if (messageContent?.ptvMessage) {
