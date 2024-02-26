@@ -190,7 +190,12 @@ export const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => st
   [WAMessageStubType.GROUP_ANNOUNCE_MODE_MESSAGE_BOUNCE]: 'Only admins can message this group',
   [WAMessageStubType.GROUP_CHANGE_NO_FREQUENTLY_FORWARDED]: '',
   [WAMessageStubType.GROUP_INVITE_LINK_GROWTH_LOCKED]: '',
-  [WAMessageStubType.GROUP_MEMBER_ADD_MODE]: '',
+  [WAMessageStubType.GROUP_MEMBER_ADD_MODE]: m => {
+    if (m.messageStubParameters![0] === 'on') {
+      return `{{${m.participant}}} changed this group's setting to allow all particpants to add others to this group`
+    }
+    return `{{${m.participant}}} changed this group's setting to allow only admins to add others to this group`
+  },
   [WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_MODE]: m => {
     if (m.messageStubParameters![0] === 'on') {
       return m.key.fromMe ? 'You turned on admin approval to join this group' : '{{sender}} turned on admin approval to join this group'
