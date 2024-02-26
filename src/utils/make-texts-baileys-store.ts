@@ -1,4 +1,4 @@
-import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId, WAMessage } from 'baileys'
+import { WASocket, BaileysEvent, BaileysEventMap, Chat, Contact, GroupMetadata, isJidGroup, isJidUser, jidNormalizedUser, toNumber, unixTimestampSeconds, WAMessageKey, WAMessageStubType, WAMessageStatus, isJidStatusBroadcast, getChatId, WAMessage, isLidUser } from 'baileys'
 import { Awaitable, MessageBehavior, ServerEvent, ServerEventType, texts } from '@textshq/platform-sdk'
 import { DataSource, EntityManager, EntityTarget, In, IsNull, MoreThan } from 'typeorm'
 import DBMessage from '../entities/DBMessage'
@@ -501,13 +501,20 @@ async function handleChatsSync(
   const { db, logger } = ctx
 
   const items = chats.map(chat => {
+    // Baileys returns some chats (threads) where the other party is a lid user (hidden contact)
+    // and the last message is an E2E_ENCRYPTED message. We don't want to display these chats.
+    // Note that often, there is another regular thread (with a non-lid identifier) for the same user
+    if (isLidUser(chat?.id) && chat?.messages?.[0]?.message?.messageStubType === WAMessageStubType.E2E_ENCRYPTED) {
+      return
+    }
+
     const mapped = new DBThread()
     mapped.original = { chat, metadata: undefined }
     mapped.shouldFireEvent = false
     mapped.mapFromOriginal(ctx)
 
     return mapped
-  })
+  }).filter(Boolean) as DBThread[]
 
   await chunkedWrite(db.getRepository(DBThread), items, DEFAULT_CHUNK_SIZE)
 
