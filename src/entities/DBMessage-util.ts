@@ -198,9 +198,9 @@ export const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => st
   },
   [WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_MODE]: m => {
     if (m.messageStubParameters![0] === 'on') {
-      return m.key.fromMe ? 'You turned on admin approval to join this group' : '{{sender}} turned on admin approval to join this group'
+      return `{{${m.participant}}} turned on admin approval to join this group`
     }
-    return m.key.fromMe ? 'You turned off admin approval to join this group' : '{{sender}} turned off admin approval to join this group'
+    return `{{${m.participant}}} turned off admin approval to join this group`
   },
   [WAMessageStubType.GROUP_MEMBERSHIP_JOIN_APPROVAL_REQUEST]: '{{sender}} requested to join',
   [WAMessageStubType.GROUP_PARTICIPANT_JOINED_GROUP_AND_PARENT_GROUP]: message => `{{${message.participant}}} added you to this group and the community`,
