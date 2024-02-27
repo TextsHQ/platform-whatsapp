@@ -1132,7 +1132,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   )
 
   private async cleanUpExpiredMessages() {
-    const CHUNK_SIZE = 1000
+    const CHUNK_SIZE = 100
     const repo = this.db.getRepository(DBMessage)
 
     let expiredMessages: DBMessage[]
