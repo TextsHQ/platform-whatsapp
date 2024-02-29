@@ -3,7 +3,7 @@ import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBe
 import type { ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { ButtonCallbackType, FullBaileysMessage } from '../types'
-import { attachmentUrl, getDataURIFromBuffer, getExtFromMimeType, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
+import { attachmentUrl, getDataURIFromBuffer, getExtFromMimeType, isGroupParticipantMessage, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
@@ -91,11 +91,11 @@ export const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => st
   [WAMessageStubType.CHANGE_EPHEMERAL_SETTING]: message => getEphemeralMessageSettingChangedText(+message.messageStubParameters![0], message.messageStubParameters![1]),
   [WAMessageStubType.DISAPPEARING_MODE]: message => getDisappearingModeMessageText(+message.messageStubParameters![0], message.messageStubParameters![1]),
 
-  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: '{{sender}} changed the group description',
-  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: '{{sender}} removed {{{{0}}}} from this group',
-  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: '{{sender}} changed the group subject to "{{0}}"',
-  [WAMessageStubType.GROUP_CHANGE_ICON]: '{{sender}} changed this group\'s icon',
-  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: '{{sender}} joined using this group\'s invite link',
+  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: message => `{{${message.participant}}} changed the group description`,
+  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: message => `{{${message.participant}}} removed {{{{0}}}} from this group`,
+  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: message => `{{${message.participant}}} changed the group subject to "{{0}}"`,
+  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${message.participant}}} changed this group's icon'`,
+  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: message => `{{${message.participant}}} joined using this group's invite link`,
 
   [WAMessageStubType.GROUP_PARTICIPANT_LEAVE]: message =>
     `${message.messageStubParameters!.map(p => `{{${p}}}`).join(', ')} left`,
@@ -386,6 +386,8 @@ export function messageAction(message: WAMessage, normalizedMessageContent: WAPr
 
 export function getNotificationType(message: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined, currentUserId: string): MessageBehavior | null {
   if (isHiddenProtocolMessage(normalizedMessageContent)) return MessageBehavior.SILENT
+  if (isGroupParticipantMessage(message)) return MessageBehavior.SILENT
+
   // no flag for fromMe messages
   if (message.key.fromMe) return null
 
