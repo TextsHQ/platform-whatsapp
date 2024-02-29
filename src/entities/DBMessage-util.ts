@@ -3,7 +3,7 @@ import { MessageAction, MessageActionType, Attachment, AttachmentType, MessageBe
 import type { ValueTransformer } from 'typeorm'
 import { serialize, deserialize } from 'v8'
 import type { ButtonCallbackType, FullBaileysMessage } from '../types'
-import { attachmentUrl, getDataURIFromBuffer, getExtFromMimeType, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
+import { attachmentUrl, getDataURIFromBuffer, getExtFromMimeType, isGroupParticipantMessage, isHiddenProtocolMessage, mapMessageID } from '../utils/generics'
 import { MENTION_START_TOKEN, MENTION_END_TOKEN } from '../utils/text-attributes'
 
 const participantAdded = (message: WAMessage) =>
@@ -386,6 +386,8 @@ export function messageAction(message: WAMessage, normalizedMessageContent: WAPr
 
 export function getNotificationType(message: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined, currentUserId: string): MessageBehavior | null {
   if (isHiddenProtocolMessage(normalizedMessageContent)) return MessageBehavior.SILENT
+  if (isGroupParticipantMessage(message)) return MessageBehavior.SILENT
+
   // no flag for fromMe messages
   if (message.key.fromMe) return null
 

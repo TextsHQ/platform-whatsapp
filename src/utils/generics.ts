@@ -201,8 +201,10 @@ const HIDDEN_PROTOCOL_MESSAGE_TYPES = [
 export const isHiddenProtocolMessage = (normalizedMessageContent: WAProto.IMessage | null | undefined) =>
   (normalizedMessageContent?.protocolMessage?.type ? HIDDEN_PROTOCOL_MESSAGE_TYPES.includes(normalizedMessageContent.protocolMessage.type) : false)
 
+export const isGroupParticipantMessage = (msg: WAMessage) => (msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD || msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_LEAVE)
+
 export const isHiddenGroupParticipantMessage = (msg: WAMessage) => (msg.messageStubParameters?.[0]?.includes('lid')
-  && (msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_ADD || msg.messageStubType === WAMessageStubType.GROUP_PARTICIPANT_LEAVE)) || false
+  && isGroupParticipantMessage(msg))
 
 /** Is the message supposed to be hidden */
 export const isHiddenMessage = (msg: WAMessage, normalizedMessageContent: WAProto.IMessage | undefined) => {
