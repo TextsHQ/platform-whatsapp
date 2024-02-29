@@ -460,7 +460,10 @@ export default class WhatsAppAPI implements PlatformAPI {
 
   private registerCallbacks = () => {
     const { ev } = this.client!
-    ev.process(events => {
+    ev.process(async events => {
+      // Attempt to fix the "The database connection is not open" error
+      if (!this.db.isInitialized) await this.db.initialize()
+
       this.dataStore
         .process(events)
         .then(res => {
