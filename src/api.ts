@@ -11,7 +11,7 @@ import getDataSource from './utils/get-data-source'
 import DBUser from './entities/DBUser'
 import { canReconnect, CONNECTION_STATE_MAP, generateInstanceId, isLoggedIn, LOGGED_OUT_CODES, makeMutex, mapMessageID, numberFromJid, PARTICIPANT_ACTION_MAP, PRESENCE_MAP, profilePictureUrl, waitForAllEventsToBeHandled } from './utils/generics'
 import DBMessage from './entities/DBMessage'
-import { CHAT_MUTE_DURATION_S, THUMBNAIL_WIDTH_PX } from './constants'
+import { CHAT_MUTE_DURATION_S } from './constants'
 import DBThread from './entities/DBThread'
 import { makeDBKeyStore } from './utils/db-key-store'
 import DBParticipant from './entities/DBParticipant'
@@ -354,15 +354,7 @@ export default class WhatsAppAPI implements PlatformAPI {
   }
 
   getLinkPreview = async (link: string): Promise<MessageLink | undefined> => {
-    const info = await getUrlInfo(link, {
-      thumbnailWidth: THUMBNAIL_WIDTH_PX,
-      fetchOpts: {
-        timeout: 6000,
-        headers: {
-          'User-Agent': texts.constants.USER_AGENT,
-        },
-      },
-    })
+    const info = await getUrlInfo(link, undefined)
     if (!info) return undefined
     return {
       url: info['canonical-url'],
