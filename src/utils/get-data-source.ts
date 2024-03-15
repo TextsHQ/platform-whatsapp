@@ -14,6 +14,7 @@ const getDataSource = async (name: string, sqlitePath: string, logger: Logger) =
       database: sqlitePath,
       type: 'better-sqlite3',
       synchronize: true,
+      enableWAL: true,
       logging: logSql ? true : (texts?.isLoggingEnabled ? ['error'] : false),
       entities,
       migrations: [],
