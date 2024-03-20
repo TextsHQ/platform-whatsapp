@@ -508,6 +508,7 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
     if (content.productMessage?.product) yield '📦 Product'
     if (content.listMessage) yield `${content.listMessage!.title}`
     if (content.pollCreationMessage) yield `📊 Poll: ${content.pollCreationMessage!.name}\n- ${content.pollCreationMessage?.options?.map(option => option.optionName).join('\n- ')}`
+    if (message.message?.templateMessage?.hydratedTemplate?.hydratedTitleText) yield message.message?.templateMessage?.hydratedTemplate?.hydratedTitleText
   }
 }
 
