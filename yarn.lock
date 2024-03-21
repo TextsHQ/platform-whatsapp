@@ -2576,18 +2576,18 @@ __metadata:
   linkType: soft
 
 "@thi.ng/bitstream@npm:^2.2.12":
-  version: 2.2.40
-  resolution: "@thi.ng/bitstream@npm:2.2.40"
+  version: 2.2.54
+  resolution: "@thi.ng/bitstream@npm:2.2.54"
   dependencies:
-    "@thi.ng/errors": ^2.4.10
-  checksum: b59c42a33a2ecf892768830028747113b903e8ebf10cc227a8dafe3e9df39a0eca02cc521ebd67eda96f184244692766eb9a772927bcbd8b78af848b7b95013a
+    "@thi.ng/errors": ^2.5.1
+  checksum: 10b9ca2c939a90ee834a7a5bf40890ecba93477e5fcae25f5b193499aa66de2ae37a5f27956814cb79a08f5dfc778c9d8092dc6ee423e0b6ba420df30d7b2fda
   languageName: node
   linkType: hard
 
-"@thi.ng/errors@npm:^2.4.10":
-  version: 2.4.10
-  resolution: "@thi.ng/errors@npm:2.4.10"
-  checksum: da99570cf73e1a62147b5d1abee179900fadc2e497d0c86c712de78e4e5d80b70a75c78d085a841e6984ec224451a72addc7ee1bf27409c52b6ba78196b29386
+"@thi.ng/errors@npm:^2.5.1":
+  version: 2.5.1
+  resolution: "@thi.ng/errors@npm:2.5.1"
+  checksum: fe895a4e13e321ac47b95be2ac4cb9e0e56bda85431719174a2894ae529df389121d6c3031644d9187afd574e4b183412ee26afc7d539583e89a848d5f7e1996
   languageName: node
   linkType: hard
 
@@ -2749,7 +2749,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/long@npm:^4.0.0, @types/long@npm:^4.0.1":
+"@types/long@npm:^4.0.0":
   version: 4.0.2
   resolution: "@types/long@npm:4.0.2"
   checksum: d16cde7240d834cf44ba1eaec49e78ae3180e724cd667052b194a372f350d024cba8dd3f37b0864931683dab09ca935d52f0c4c1687178af5ada9fc85b0635f4
@@ -2778,11 +2778,11 @@ __metadata:
   linkType: hard
 
 "@types/node@npm:>=13.7.0":
-  version: 20.11.0
-  resolution: "@types/node@npm:20.11.0"
+  version: 20.11.30
+  resolution: "@types/node@npm:20.11.30"
   dependencies:
     undici-types: ~5.26.4
-  checksum: 1bd6890db7e0404d11c33d28f46f19f73256f0ba35d19f0ef2a0faba09f366f188915fb9338eebebcc472075c1c4941e17c7002786aa69afa44980737846b200
+  checksum: 7597767aa3e44b0f1bf62efa522dd17741135f283c11de6a20ead8bb7016fb4999cc30adcd8f2bb29ebb216906c92894346ccd187de170927dc1e212d2c07c81
   languageName: node
   linkType: hard
 
@@ -3010,23 +3010,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wasm-audio-decoders/flac@npm:^0.2.1":
-  version: 0.2.3
-  resolution: "@wasm-audio-decoders/flac@npm:0.2.3"
+"@wasm-audio-decoders/common@npm:9.0.5":
+  version: 9.0.5
+  resolution: "@wasm-audio-decoders/common@npm:9.0.5"
   dependencies:
-    "@wasm-audio-decoders/common": 9.0.4
+    "@eshaz/web-worker": 1.2.2
+    simple-yenc: ^1.0.4
+  checksum: a0b07ed2faa934782d31a851398b1def8b8d383711a30dc88271f58f8c39d858ec35e443db2903b20ce8e38c51aa1f125dfa37461e40e0e6fa8cbc027da84a2c
+  languageName: node
+  linkType: hard
+
+"@wasm-audio-decoders/flac@npm:^0.2.1":
+  version: 0.2.4
+  resolution: "@wasm-audio-decoders/flac@npm:0.2.4"
+  dependencies:
+    "@wasm-audio-decoders/common": 9.0.5
     codec-parser: 2.4.3
-  checksum: baaa1b03712ce20ac2dcea4f3862dfa813978596c8b331e76ef7833550b678d9564d2a5fa3ef91707797356cba52e38b6f04e980d260693473a09316a732846d
+  checksum: 524ff24e3e05765095bfcd49e3f8635af3f3068085ee7bf93768383578db0b0adc5a2984a6aaa71d7514d6a1b51d43c7b0e68c16aa2434221543ae9dd76ab34b
   languageName: node
   linkType: hard
 
 "@wasm-audio-decoders/ogg-vorbis@npm:^0.1.12":
-  version: 0.1.14
-  resolution: "@wasm-audio-decoders/ogg-vorbis@npm:0.1.14"
+  version: 0.1.15
+  resolution: "@wasm-audio-decoders/ogg-vorbis@npm:0.1.15"
   dependencies:
-    "@wasm-audio-decoders/common": 9.0.4
+    "@wasm-audio-decoders/common": 9.0.5
     codec-parser: 2.4.3
-  checksum: e8212814fb0f738c049f0e0529c92575442d4f5bdf4a10f7192924bef6da407efb09226872abf2b1467c77f73229a9bf796143b4972412a7b557b4abc315fb3f
+  checksum: 199ecdd09959c7fb52a3a7fb89746b1461d6e4a2a9be6ff65572667c91d2ac52d8fa47f9fb27f899fc8f6529ca0c5b4d9575fcb6d0df29bccb2db82628f63bc0
   languageName: node
   linkType: hard
 
@@ -3286,6 +3296,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"async@npm:3.2.3":
+  version: 3.2.3
+  resolution: "async@npm:3.2.3"
+  checksum: c4bee57ab2249af3dc83ca3ef9acfa8e822c0d5e5aa41bae3eaf7f673648343cd64ecd7d26091ffd357f3f044428b17b5f00098494b6cf8b6b3e9681f0636ca1
+  languageName: node
+  linkType: hard
+
 "asynckit@npm:^0.4.0":
   version: 0.4.0
   resolution: "asynckit@npm:0.4.0"
@@ -3338,13 +3355,13 @@ __metadata:
   linkType: hard
 
 "axios@npm:^1.3.3":
-  version: 1.6.5
-  resolution: "axios@npm:1.6.5"
+  version: 1.6.8
+  resolution: "axios@npm:1.6.8"
   dependencies:
-    follow-redirects: ^1.15.4
+    follow-redirects: ^1.15.6
     form-data: ^4.0.0
     proxy-from-env: ^1.1.0
-  checksum: e28d67b2d9134cb4608c44d8068b0678cfdccc652742e619006f27264a30c7aba13b2cd19c6f1f52ae195b5232734925928fb192d5c85feea7edd2f273df206d
+  checksum: bf007fa4b207d102459300698620b3b0873503c6d47bf5a8f6e43c0c64c90035a4f698b55027ca1958f61ab43723df2781c38a99711848d232cad7accbcdfcdd
   languageName: node
   linkType: hard
 
@@ -3519,28 +3536,28 @@ __metadata:
   linkType: hard
 
 "baileys@https://github.com/TextsHQ/baileys#master":
-  version: 6.5.0
-  resolution: "baileys@https://github.com/TextsHQ/baileys.git#commit=bd55d4d8ca3a450c3d0c1c22febfef7c64dd0e63"
+  version: 6.6.0
+  resolution: "baileys@https://github.com/TextsHQ/baileys.git#commit=0817135fc0019f8c8c6b8381c1b41bf38311f985"
   dependencies:
     "@adiwajshing/keyed-db": ^0.2.4
     "@hapi/boom": ^9.1.3
     audio-decode: ^2.1.3
     axios: ^1.3.3
-    cache-manager: ^5.2.2
+    cache-manager: 4.0.1
     futoin-hkdf: ^1.5.1
     libphonenumber-js: ^1.10.20
     libsignal: "github:adiwajshing/libsignal-node"
     music-metadata: ^7.12.3
     node-cache: ^5.1.2
     pino: ^7.0.0
-    protobufjs: ^6.11.3
+    protobufjs: ^7.2.4
     uuid: ^9.0.0
     ws: ^8.13.0
   peerDependencies:
     jimp: ^0.16.1
     link-preview-js: ^3.0.0
     qrcode-terminal: ^0.12.0
-    sharp: ^0.30.5
+    sharp: ^0.32.2
   peerDependenciesMeta:
     jimp:
       optional: true
@@ -3550,7 +3567,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 449b5eb3ecf7ddd421d898d9802f582f405121caf592b3083baf703b05f09c2138973110ffeceacfe87ee528533681e4445e22c93a8c5d4c2c1ee53223257831
+  checksum: 6fd9c26304d9d3440aa3c99f76897580be689ccd7dcf9435f1bb17b35581770c5cac9a8ba2df872e79647b74377ca98132e35558a620924eff9547d965041c57
   languageName: node
   linkType: hard
 
@@ -3733,14 +3750,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cache-manager@npm:^5.2.2":
-  version: 5.3.2
-  resolution: "cache-manager@npm:5.3.2"
+"cache-manager@npm:4.0.1":
+  version: 4.0.1
+  resolution: "cache-manager@npm:4.0.1"
   dependencies:
+    async: 3.2.3
     lodash.clonedeep: ^4.5.0
-    lru-cache: ^10.1.0
-    promise-coalesce: ^1.1.2
-  checksum: e88eeadb35e1ed211afb1a89cc22c3818fd1d564f09905b8f8335a440a11210c9f3d57ed7c6200067f5f9b4464c845854744e6a3f9f6337a5b6b377cce1ea572
+    lru-cache: ^7.10.1
+  checksum: 8ca25b1e603111f033d1a3f1463b2a9203e9ea61a0706265a4d4f63d54a8be95f9e79efb04fc43103219becb4903a5db747a346e009e7102767a47e5677219b2
   languageName: node
   linkType: hard
 
@@ -5112,13 +5129,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.15.4":
-  version: 1.15.5
-  resolution: "follow-redirects@npm:1.15.5"
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.6
+  resolution: "follow-redirects@npm:1.15.6"
   peerDependenciesMeta:
     debug:
       optional: true
-  checksum: 5ca49b5ce6f44338cbfc3546823357e7a70813cecc9b7b768158a1d32c1e62e7407c944402a918ea8c38ae2e78266312d617dc68783fac502cbb55e1047b34ec
+  checksum: a62c378dfc8c00f60b9c80cab158ba54e99ba0239a5dd7c81245e5a5b39d10f0c35e249c3379eae719ff0285fff88c365dd446fab19dee771f1d76252df1bbf5
   languageName: node
   linkType: hard
 
@@ -6520,9 +6537,9 @@ __metadata:
   linkType: hard
 
 "libphonenumber-js@npm:^1.10.20":
-  version: 1.10.53
-  resolution: "libphonenumber-js@npm:1.10.53"
-  checksum: e8376a344c799f03b1b499075068a937dcc7d77c9bee9df860095bf7c74a025c27a6d298971893320c8f2874b19094fa50f25fc24fc8a6ca36a9edd6aafb0945
+  version: 1.10.58
+  resolution: "libphonenumber-js@npm:1.10.58"
+  checksum: c6e6c5cc7b917eff604b528cbb417285f4c5d2ab730266a0a5339876714ae4b841556b7dd2faa00c0ced989dfb9f77eb562e2f401c98a988c2533ec09898ca74
   languageName: node
   linkType: hard
 
@@ -6631,6 +6648,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"long@npm:^5.0.0":
+  version: 5.2.3
+  resolution: "long@npm:5.2.3"
+  checksum: 885ede7c3de4facccbd2cacc6168bae3a02c3e836159ea4252c87b6e34d40af819824b2d4edce330bfb5c4d6e8ce3ec5864bdcf9473fa1f53a4f8225860e5897
+  languageName: node
+  linkType: hard
+
 "loose-envify@npm:^1.4.0":
   version: 1.4.0
   resolution: "loose-envify@npm:1.4.0"
@@ -6642,19 +6666,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "lru-cache@npm:10.1.0"
-  checksum: 58056d33e2500fbedce92f8c542e7c11b50d7d086578f14b7074d8c241422004af0718e08a6eaae8705cee09c77e39a61c1c79e9370ba689b7010c152e6a76ab
-  languageName: node
-  linkType: hard
-
 "lru-cache@npm:^6.0.0":
   version: 6.0.0
   resolution: "lru-cache@npm:6.0.0"
   dependencies:
     yallist: ^4.0.0
   checksum: f97f499f898f23e4585742138a22f22526254fdba6d75d41a1c2526b3b6cc5747ef59c5612ba7375f42aca4f8461950e925ba08c991ead0651b4918b7c978297
+  languageName: node
+  linkType: hard
+
+"lru-cache@npm:^7.10.1":
+  version: 7.18.3
+  resolution: "lru-cache@npm:7.18.3"
+  checksum: e550d772384709deea3f141af34b6d4fa392e2e418c1498c078de0ee63670f1f46f5eee746e8ef7e69e1c895af0d4224e62ee33e66a543a14763b0f2e74c1356
   languageName: node
   linkType: hard
 
@@ -7235,13 +7259,13 @@ __metadata:
   linkType: hard
 
 "ogg-opus-decoder@npm:^1.6.8":
-  version: 1.6.10
-  resolution: "ogg-opus-decoder@npm:1.6.10"
+  version: 1.6.12
+  resolution: "ogg-opus-decoder@npm:1.6.12"
   dependencies:
-    "@wasm-audio-decoders/common": 9.0.4
+    "@wasm-audio-decoders/common": 9.0.5
     codec-parser: 2.4.3
-    opus-decoder: 0.7.5
-  checksum: 76c9aaf747a4fca0ebaa260aba5860674dde7c9e2466f7cfbe3288f422713f11dfa5b2cfef8be97cf4ff167e5fe8b0ef3995a376e28263d18e2de33348c4eef3
+    opus-decoder: 0.7.6
+  checksum: d1012957071d128a018070ef8e5aa786908fad2ca9d478b2719f717092498a2a4c5d193d87b95dc06373ab131504f5d0155ae948fd5f025db52e72276b0a7660
   languageName: node
   linkType: hard
 
@@ -7298,12 +7322,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"opus-decoder@npm:0.7.5":
-  version: 0.7.5
-  resolution: "opus-decoder@npm:0.7.5"
+"opus-decoder@npm:0.7.6":
+  version: 0.7.6
+  resolution: "opus-decoder@npm:0.7.6"
   dependencies:
-    "@wasm-audio-decoders/common": 9.0.4
-  checksum: 80f117635c55de606ae031c497874022f41bd847709cf579f956ff9c1a91c63e1ffce3119970b775ba1053e6636156d09bca84f0f6a5a4fd7e98b40717f7a999
+    "@wasm-audio-decoders/common": 9.0.5
+  checksum: cbf24ce2059ce24e1dc439e1d5d24b6de423b4eded7b11bbda5cb1f2313355646a2603961bb4fc1be64dd483e844b10a20c6de545607055590a994980edb99f8
   languageName: node
   linkType: hard
 
@@ -7682,13 +7706,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"promise-coalesce@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "promise-coalesce@npm:1.1.2"
-  checksum: 6f951b5db40ca78d09ad0f72adea0a2e9c5bdb0fc5b3ef218c611e2191c6ce2e9f752f815630fd07875dd1c9f04cc7327d6bada04b662dce986ce86ab88c2d5e
-  languageName: node
-  linkType: hard
-
 "promise-inflight@npm:^1.0.1":
   version: 1.0.1
   resolution: "promise-inflight@npm:1.0.1"
@@ -7751,9 +7768,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"protobufjs@npm:^6.11.3":
-  version: 6.11.4
-  resolution: "protobufjs@npm:6.11.4"
+"protobufjs@npm:^7.2.4":
+  version: 7.2.6
+  resolution: "protobufjs@npm:7.2.6"
   dependencies:
     "@protobufjs/aspromise": ^1.1.2
     "@protobufjs/base64": ^1.1.2
@@ -7765,13 +7782,9 @@ __metadata:
     "@protobufjs/path": ^1.1.2
     "@protobufjs/pool": ^1.1.0
     "@protobufjs/utf8": ^1.1.0
-    "@types/long": ^4.0.1
     "@types/node": ">=13.7.0"
-    long: ^4.0.0
-  bin:
-    pbjs: bin/pbjs
-    pbts: bin/pbts
-  checksum: b2fc6a01897b016c2a7e43a854ab4a3c57080f61be41e552235436e7a730711b8e89e47cb4ae52f0f065b5ab5d5989fc932f390337ce3a8ccf07203415700850
+    long: ^5.0.0
+  checksum: 3c62e48f7d50017ac3b0dcd2a58e617cf858f9fba56a488bd48b9aa3482893a75540052dbcb3c12dfbaab42b1d04964611175faf06bdadcd33a4ebac982a511e
   languageName: node
   linkType: hard
 
@@ -8288,6 +8301,13 @@ __metadata:
     once: ^1.3.1
     simple-concat: ^1.0.0
   checksum: e4132fd27cf7af230d853fa45c1b8ce900cb430dd0a3c6d3829649fe4f2b26574c803698076c4006450efb0fad2ba8c5455fbb5755d4b0a5ec42d4f12b31d27e
+  languageName: node
+  linkType: hard
+
+"simple-yenc@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "simple-yenc@npm:1.0.4"
+  checksum: 94d9abcf0f5c4fe359b230b5c6d3160be41d4f39febfb81cbf22d1fe4166c2b9319ef0baecab1d79b52a427dbe6c7e16fe1954fa6b69a4db4a166409086ace2f
   languageName: node
   linkType: hard
 
