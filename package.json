@@ -13,6 +13,10 @@
     "lint:fix": "yarn lint --fix",
     "test": "jest"
   },
+  "nativeDeps": {
+    "@signalapp/libsignal-client": "0.36.0",
+    "better-sqlite3": "^8.6.0"
+  },
   "dependencies": {
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#69d1d78006b09323c4e5f6b6e512c7ce20f9c456",
     "baileys": "https://github.com/TextsHQ/baileys#master",
