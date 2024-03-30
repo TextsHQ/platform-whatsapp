@@ -14,7 +14,6 @@
     "test": "jest"
   },
   "nativeDeps": {
-    "@signalapp/libsignal-client": "0.36.0",
     "better-sqlite3": "npm:@signalapp/better-sqlite3@8.7.1"
   },
   "dependencies": {
