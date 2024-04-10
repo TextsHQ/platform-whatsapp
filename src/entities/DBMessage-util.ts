@@ -507,7 +507,10 @@ export function* messageHeading(message: WAMessage, content: WAProto.IMessage | 
     if (content.liveLocationMessage) yield '📍 Live Location'
     if (content.productMessage?.product) yield '📦 Product'
     if (content.listMessage) yield `${content.listMessage!.title}`
-    if (content.pollCreationMessage) yield `📊 Poll: ${content.pollCreationMessage!.name}\n- ${content.pollCreationMessage?.options?.map(option => option.optionName).join('\n- ')}`
+    if (content.pollCreationMessage || content.pollCreationMessageV2 || content.pollCreationMessageV3) { 
+      const poll = content.pollCreationMessage || content.pollCreationMessageV2 || content.pollCreationMessageV3
+      yield `📊 Poll: ${poll!.name}\n- ${poll?.options?.map(option => option.optionName).join('\n- ')}`
+    }
     if (message.message?.templateMessage?.hydratedTemplate?.hydratedTitleText) yield message.message?.templateMessage?.hydratedTemplate?.hydratedTitleText
   }
 }
