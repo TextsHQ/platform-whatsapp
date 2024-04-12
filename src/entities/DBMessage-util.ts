@@ -94,7 +94,7 @@ export const PRE_DEFINED_MESSAGES: { [k: number]: string | ((m: WAMessage) => st
   [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: message => `{{${message.participant}}} changed the group description`,
   [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: message => `{{${message.participant}}} removed {{{{0}}}} from this group`,
   [WAMessageStubType.GROUP_CHANGE_SUBJECT]: message => `{{${message.participant}}} changed the group subject to "{{0}}"`,
-  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${message.participant}}} changed this group's icon'`,
+  [WAMessageStubType.GROUP_CHANGE_ICON]: message => `{{${message.participant}}} changed this group's icon`,
   [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: message => `{{${message.participant}}} joined using this group's invite link`,
 
   [WAMessageStubType.GROUP_PARTICIPANT_LEAVE]: message =>
