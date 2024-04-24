@@ -24,8 +24,8 @@ const instructions = (
 const phoneInstructions = (
   <div className="list">
     <div><span>1</span>Open Texts desktop app</div>
-    <div><span>2</span>Go to Prefs and add a Whatsapp account</div>
-    <div><span>3</span>Wait for Whatsapp to finish syncing</div>
+    <div><span>2</span>Go to Prefs and add a WhatsApp account</div>
+    <div><span>3</span>Wait for WhatsApp to finish syncing</div>
     <div><span>4</span>Click Add to iOS</div>
     <div><span>5</span>Go to Texts iOS prefs → Add Account → Move from Desktop</div>
     <div><span>6</span>Scan QR code using the app</div>
