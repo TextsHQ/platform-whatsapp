@@ -14,7 +14,7 @@
     "test": "jest"
   },
   "nativeDeps": {
-    "better-sqlite3": "npm:@signalapp/better-sqlite3@8.7.1"
+    "better-sqlite3": "npm:@signalapp/better-sqlite3@8.8.1"
   },
   "dependencies": {
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#69d1d78006b09323c4e5f6b6e512c7ce20f9c456",
