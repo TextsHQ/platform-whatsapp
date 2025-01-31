@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#69d1d78006b09323c4e5f6b6e512c7ce20f9c456",
-    "baileys": "https://github.com/WhiskeySockets/Baileys#master",
+    "baileys": "https://github.com/WhiskeySockets/Baileys#9f61f3acf0a4591046ef36c4027ed5cda7817405",
     "better-sqlite3": "^8.6.0",
     "jimp": "^0.16.2",
     "link-preview-js": "2.1.15",
