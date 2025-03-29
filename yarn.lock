@@ -1521,13 +1521,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eshaz/web-worker@npm:1.2.2":
-  version: 1.2.2
-  resolution: "@eshaz/web-worker@npm:1.2.2"
-  checksum: 608afe769df965d33ab1c3441b7d44b12ad7d6681b9a3ed9edbd8daa7d0498a953ffd238358d09d2544e7fb2b8cfd658c6e7f223418f6b14a4cf23330085d481
-  languageName: node
-  linkType: hard
-
 "@eslint-community/eslint-utils@npm:^4.4.0":
   version: 4.4.1
   resolution: "@eslint-community/eslint-utils@npm:4.4.1"
@@ -2599,7 +2592,7 @@ __metadata:
     "@types/match-sorter": ^4.0.0
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
-    baileys: ^6.7.16
+    baileys: "https://github.com/WhiskeySockets/Baileys"
     better-sqlite3: ^8.6.0
     eslint: ^8.30.0
     jest: ^29.0.0
@@ -2619,22 +2612,6 @@ __metadata:
     typescript: ^5.0.2
   languageName: unknown
   linkType: soft
-
-"@thi.ng/bitstream@npm:^2.2.12":
-  version: 2.4.13
-  resolution: "@thi.ng/bitstream@npm:2.4.13"
-  dependencies:
-    "@thi.ng/errors": ^2.5.27
-  checksum: 3cc1c863e13b81a6d7c33c14a8f3d8f70e9baa514a4877e67b55931fd229c0397c7efa033d94498a23de74abe6d725936e20ec4e2ce578532f75ae7b51d6be78
-  languageName: node
-  linkType: hard
-
-"@thi.ng/errors@npm:^2.5.27":
-  version: 2.5.27
-  resolution: "@thi.ng/errors@npm:2.5.27"
-  checksum: 42e827a7ca4b4ad1d98112d3f908e86c68002003e18ad7da383769f2969f775980d8f36551d4ed7e91983669711b68677ad0e42ec7550ea089e22ad1b07efc56
-  languageName: node
-  linkType: hard
 
 "@tokenizer/token@npm:^0.3.0":
   version: 0.3.0
@@ -3164,36 +3141,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wasm-audio-decoders/common@npm:9.0.5":
-  version: 9.0.5
-  resolution: "@wasm-audio-decoders/common@npm:9.0.5"
-  dependencies:
-    "@eshaz/web-worker": 1.2.2
-    simple-yenc: ^1.0.4
-  checksum: a0b07ed2faa934782d31a851398b1def8b8d383711a30dc88271f58f8c39d858ec35e443db2903b20ce8e38c51aa1f125dfa37461e40e0e6fa8cbc027da84a2c
-  languageName: node
-  linkType: hard
-
-"@wasm-audio-decoders/flac@npm:^0.2.4":
-  version: 0.2.5
-  resolution: "@wasm-audio-decoders/flac@npm:0.2.5"
-  dependencies:
-    "@wasm-audio-decoders/common": 9.0.5
-    codec-parser: 2.5.0
-  checksum: a95ea0d3597d6a48e2814b155cdf00672443e2e656310500ce3b9ba282addabf3010b231a6691a122fc117551390e8982f3a65e38b9cd7799a4108eaab3579eb
-  languageName: node
-  linkType: hard
-
-"@wasm-audio-decoders/ogg-vorbis@npm:^0.1.15":
-  version: 0.1.16
-  resolution: "@wasm-audio-decoders/ogg-vorbis@npm:0.1.16"
-  dependencies:
-    "@wasm-audio-decoders/common": 9.0.5
-    codec-parser: 2.5.0
-  checksum: 06d02be82c47ab9b3031409e9f5d073b24e004903b7f9399d615786d9a2f7bbd4c5a5f5469f49abedd3e6b8d50887519dddc1e54ba757ed88a79d0b4815e0760
-  languageName: node
-  linkType: hard
-
 "@whiskeysockets/eslint-config@github:whiskeysockets/eslint-config":
   version: 1.0.0
   resolution: "@whiskeysockets/eslint-config@https://github.com/whiskeysockets/eslint-config.git#commit=326b55f2842668f4e11f471451c4e39819a0e1bf"
@@ -3464,10 +3411,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"async-lock@npm:^1.4.1":
-  version: 1.4.1
-  resolution: "async-lock@npm:1.4.1"
-  checksum: 29e70cd892932b7c202437786cedc39ff62123cb6941014739bd3cabd6106326416e9e7c21285a5d1dc042cad239a0f7ec9c44658491ee4a615fd36a21c1d10a
+"async-mutex@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "async-mutex@npm:0.5.0"
+  dependencies:
+    tslib: ^2.4.0
+  checksum: be1587f4875f3bb15e34e9fcce82eac2966daef4432c8d0046e61947fb9a1b95405284601bc7ce4869319249bc07c75100880191db6af11d1498931ac2a2f9ea
   languageName: node
   linkType: hard
 
@@ -3482,36 +3431,6 @@ __metadata:
   version: 1.0.0
   resolution: "atomic-sleep@npm:1.0.0"
   checksum: b95275afb2f80732f22f43a60178430c468906a415a7ff18bcd0feeebc8eec3930b51250aeda91a476062a90e07132b43a1794e8d8ffcf9b650e8139be75fa36
-  languageName: node
-  linkType: hard
-
-"audio-buffer@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "audio-buffer@npm:5.0.0"
-  checksum: cba9c85611ff28d4ab238dfadc698bd7d6c9b1c25bf6710b0289f645afb23c512a93bcbe99115d5f50412d450797a669e0ef14c45738943cef914bda1d226c60
-  languageName: node
-  linkType: hard
-
-"audio-decode@npm:^2.1.3":
-  version: 2.2.2
-  resolution: "audio-decode@npm:2.2.2"
-  dependencies:
-    "@wasm-audio-decoders/flac": ^0.2.4
-    "@wasm-audio-decoders/ogg-vorbis": ^0.1.15
-    audio-buffer: ^5.0.0
-    audio-type: ^2.2.1
-    mpg123-decoder: ^1.0.0
-    node-wav: ^0.0.2
-    ogg-opus-decoder: ^1.6.12
-    qoa-format: ^1.0.1
-  checksum: a8997cb65aa742b94d209069c8992dd1c66cf1439c12ee630d059c68c99dff8262a94ee10e8aaf0c9cfd20f1d54394438e21513879c38812c685e6e4dd6e2890
-  languageName: node
-  linkType: hard
-
-"audio-type@npm:^2.2.1":
-  version: 2.2.1
-  resolution: "audio-type@npm:2.2.1"
-  checksum: da588e69383321321eb951055436795906ed916a6cc10ea8c7eca82531d8a1a17d4cf287e9ca3aa3cc0932724b81f3e639da42dd358ee6f87818b9ced1db97ea
   languageName: node
   linkType: hard
 
@@ -3703,41 +3622,38 @@ __metadata:
   languageName: node
   linkType: hard
 
-"baileys@npm:^6.7.16":
+"baileys@https://github.com/WhiskeySockets/Baileys":
   version: 6.7.16
-  resolution: "baileys@npm:6.7.16"
+  resolution: "baileys@https://github.com/WhiskeySockets/Baileys.git#commit=f19ffa7cca270d3b17bb04a019f68678ce1faca5"
   dependencies:
     "@adiwajshing/keyed-db": ^0.2.4
     "@cacheable/node-cache": ^1.4.0
     "@hapi/boom": ^9.1.3
     "@whiskeysockets/eslint-config": "github:whiskeysockets/eslint-config"
-    async-lock: ^1.4.1
-    audio-decode: ^2.1.3
+    async-mutex: ^0.5.0
     axios: ^1.6.0
     cache-manager: ^5.7.6
-    libphonenumber-js: ^1.10.20
     libsignal: "github:WhiskeySockets/libsignal-node"
     lodash: ^4.17.21
     music-metadata: ^7.12.3
     pino: ^9.6
     protobufjs: ^7.2.4
-    uuid: ^10.0.0
     ws: ^8.13.0
   peerDependencies:
+    audio-decode: ^2.1.3
     jimp: ^0.16.1
     link-preview-js: ^3.0.0
-    qrcode-terminal: ^0.12.0
     sharp: ^0.32.6
   peerDependenciesMeta:
+    audio-decode:
+      optional: true
     jimp:
       optional: true
     link-preview-js:
       optional: true
-    qrcode-terminal:
-      optional: true
     sharp:
       optional: true
-  checksum: fbf10ae86367653026bf22994dd9f33a252fdea408743a81f325f5b685c03026a0511c5c11795e4ccdb4389f2d9336b9ed58e0eaa083efb518d0cbd4ed473bbc
+  checksum: 85afc1cdb8051b2157a309f7014a7daa805a0239076178fd36485283e2554a45ebdb4c5d652c33a6985e6224ade51397e4668935ed81a929425acdd876ca7ff2
   languageName: node
   linkType: hard
 
@@ -4130,13 +4046,6 @@ __metadata:
   version: 4.6.0
   resolution: "co@npm:4.6.0"
   checksum: 5210d9223010eb95b29df06a91116f2cf7c8e0748a9013ed853b53f362ea0e822f1e5bb054fb3cefc645239a4cf966af1f6133a3b43f40d591f3b68ed6cf0510
-  languageName: node
-  linkType: hard
-
-"codec-parser@npm:2.5.0":
-  version: 2.5.0
-  resolution: "codec-parser@npm:2.5.0"
-  checksum: 0a8d961269a7c9779bfe27569c8ac3469d546f8ca3c7e9c028c85c76ffd8f3326779e1bc543fdba5d2e81effe767dcac921e1075a18a0e345411d9b5abddc498
   languageName: node
   linkType: hard
 
@@ -6887,13 +6796,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"libphonenumber-js@npm:^1.10.20":
-  version: 1.12.5
-  resolution: "libphonenumber-js@npm:1.12.5"
-  checksum: a6f943d605d39107fd6f02bf343869a813dc0d00f936e1f0625858fe6a1730da407bd058d07a0ea000f2f52e9d4cb5bc038850d3ea5adec65ea9087b47244454
-  languageName: node
-  linkType: hard
-
 "libsignal@github:WhiskeySockets/libsignal-node":
   version: 2.0.1
   resolution: "libsignal@https://github.com/WhiskeySockets/libsignal-node.git#commit=1bd9275d9e621d2ba899087ebdf548b3a5a4f05e"
@@ -7351,15 +7253,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mpg123-decoder@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "mpg123-decoder@npm:1.0.0"
-  dependencies:
-    "@wasm-audio-decoders/common": 9.0.5
-  checksum: dd4ae6f2a488fb99caf583fa60b57835278cdfe0f6a97a2e251813aacda2f0841e976586eeddcc7e993b2453152b66c1a4b23b5c4f47b12d74cb9f2812fc4de1
-  languageName: node
-  linkType: hard
-
 "ms@npm:2.0.0":
   version: 2.0.0
   resolution: "ms@npm:2.0.0"
@@ -7494,13 +7387,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"node-wav@npm:^0.0.2":
-  version: 0.0.2
-  resolution: "node-wav@npm:0.0.2"
-  checksum: b2c855d3dc9b9a31cb9e5d6fb5cb852c540d084ac0a9b9174023406fb98e9c23b9327f699923a839a6c9a423a36d310a7c8382375fd9f2d41c0720c125b47195
-  languageName: node
-  linkType: hard
-
 "nopt@npm:^6.0.0":
   version: 6.0.0
   resolution: "nopt@npm:6.0.0"
@@ -7625,17 +7511,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ogg-opus-decoder@npm:^1.6.12":
-  version: 1.6.14
-  resolution: "ogg-opus-decoder@npm:1.6.14"
-  dependencies:
-    "@wasm-audio-decoders/common": 9.0.5
-    codec-parser: 2.5.0
-    opus-decoder: 0.7.7
-  checksum: a7cc439f6715ceba988978d46e763c8716a29a5cad4c31cc38b292fdf54782af63bc5acdab745753453376afa9baa7ce8bc0a435e688961a29d2a76a74ac6423
-  languageName: node
-  linkType: hard
-
 "omggif@npm:^1.0.10, omggif@npm:^1.0.9":
   version: 1.0.10
   resolution: "omggif@npm:1.0.10"
@@ -7686,15 +7561,6 @@ __metadata:
     type-check: ^0.4.0
     word-wrap: ^1.2.3
   checksum: dbc6fa065604b24ea57d734261914e697bd73b69eff7f18e967e8912aa2a40a19a9f599a507fa805be6c13c24c4eae8c71306c239d517d42d4c041c942f508a0
-  languageName: node
-  linkType: hard
-
-"opus-decoder@npm:0.7.7":
-  version: 0.7.7
-  resolution: "opus-decoder@npm:0.7.7"
-  dependencies:
-    "@wasm-audio-decoders/common": 9.0.5
-  checksum: 426e7ad68234f20eee00d440fee8af3dc2c3ebf18702ef6e4eee3eb45f10b8a8a4c171e5c48d3b93ccd7dac65cefc4a7610449f7573ee67b401e167a409fe962
   languageName: node
   linkType: hard
 
@@ -8237,15 +8103,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"qoa-format@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "qoa-format@npm:1.0.1"
-  dependencies:
-    "@thi.ng/bitstream": ^2.2.12
-  checksum: 555b7e654af68a520534e9b5e88a6c58a3274a34a9644fd05d7524e93248271acf7c8c229b0a084760835935c353f38a3fa321e0bda178fc83d952cf9528bac3
-  languageName: node
-  linkType: hard
-
 "qrcode.react@npm:^3.1.0":
   version: 3.1.0
   resolution: "qrcode.react@npm:3.1.0"
@@ -8741,13 +8598,6 @@ __metadata:
     once: ^1.3.1
     simple-concat: ^1.0.0
   checksum: e4132fd27cf7af230d853fa45c1b8ce900cb430dd0a3c6d3829649fe4f2b26574c803698076c4006450efb0fad2ba8c5455fbb5755d4b0a5ec42d4f12b31d27e
-  languageName: node
-  linkType: hard
-
-"simple-yenc@npm:^1.0.4":
-  version: 1.0.4
-  resolution: "simple-yenc@npm:1.0.4"
-  checksum: 94d9abcf0f5c4fe359b230b5c6d3160be41d4f39febfb81cbf22d1fe4166c2b9319ef0baecab1d79b52a427dbe6c7e16fe1954fa6b69a4db4a166409086ace2f
   languageName: node
   linkType: hard
 
@@ -9310,6 +9160,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tslib@npm:^2.4.0":
+  version: 2.8.1
+  resolution: "tslib@npm:2.8.1"
+  checksum: e4aba30e632b8c8902b47587fd13345e2827fa639e7c3121074d5ee0880723282411a8838f830b55100cbe4517672f84a2472667d355b81e8af165a55dc6203a
+  languageName: node
+  linkType: hard
+
 "tslib@npm:^2.5.0":
   version: 2.6.2
   resolution: "tslib@npm:2.6.2"
@@ -9597,15 +9454,6 @@ __metadata:
   version: 1.0.2
   resolution: "util-deprecate@npm:1.0.2"
   checksum: 474acf1146cb2701fe3b074892217553dfcf9a031280919ba1b8d651a068c9b15d863b7303cb15bd00a862b498e6cf4ad7b4a08fb134edd5a6f7641681cb54a2
-  languageName: node
-  linkType: hard
-
-"uuid@npm:^10.0.0":
-  version: 10.0.0
-  resolution: "uuid@npm:10.0.0"
-  bin:
-    uuid: dist/bin/uuid
-  checksum: 4b81611ade2885d2313ddd8dc865d93d8dccc13ddf901745edca8f86d99bc46d7a330d678e7532e7ebf93ce616679fb19b2e3568873ac0c14c999032acb25869
   languageName: node
   linkType: hard
 
