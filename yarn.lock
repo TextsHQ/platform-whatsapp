@@ -2592,7 +2592,7 @@ __metadata:
     "@types/match-sorter": ^4.0.0
     "@types/pino": ^7.0.5
     "@types/react": 17.0.21
-    baileys: "https://github.com/WhiskeySockets/Baileys"
+    baileys: "https://github.com/WhiskeySockets/Baileys#master"
     better-sqlite3: ^8.6.0
     eslint: ^8.30.0
     jest: ^29.0.0
@@ -3622,9 +3622,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"baileys@https://github.com/WhiskeySockets/Baileys":
+"baileys@https://github.com/WhiskeySockets/Baileys#master":
   version: 6.7.16
-  resolution: "baileys@https://github.com/WhiskeySockets/Baileys.git#commit=f19ffa7cca270d3b17bb04a019f68678ce1faca5"
+  resolution: "baileys@https://github.com/WhiskeySockets/Baileys.git#commit=d5dc75887493f25877028d43b81101e050a3695b"
   dependencies:
     "@adiwajshing/keyed-db": ^0.2.4
     "@cacheable/node-cache": ^1.4.0
@@ -3653,7 +3653,7 @@ __metadata:
       optional: true
     sharp:
       optional: true
-  checksum: 85afc1cdb8051b2157a309f7014a7daa805a0239076178fd36485283e2554a45ebdb4c5d652c33a6985e6224ade51397e4668935ed81a929425acdd876ca7ff2
+  checksum: 30fc624d18c1e2fc4fef5085115b96defaf6e6bf33975c37599ca8bb392bbf967d9f5dde33974a38b110b0b923e1bda4e22492404cd865346fed1b94e56b6f04
   languageName: node
   linkType: hard
 
