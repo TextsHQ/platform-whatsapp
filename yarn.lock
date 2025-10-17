@@ -3474,7 +3474,7 @@ __metadata:
 
 "baileys@https://github.com/WhiskeySockets/Baileys#master":
   version: 7.0.0-rc.5
-  resolution: "baileys@https://github.com/WhiskeySockets/Baileys.git#commit=48b0cb4bc2b16901ea325203f6132629642c845e"
+  resolution: "baileys@https://github.com/WhiskeySockets/Baileys.git#commit=08f1d816d160cc9c1873a6f0e98b85f4b17c1347"
   dependencies:
     "@cacheable/node-cache": ^1.4.0
     "@hapi/boom": ^9.1.3
@@ -3498,7 +3498,7 @@ __metadata:
       optional: true
     link-preview-js:
       optional: true
-  checksum: 2a598597cbf90f6471d45484d72ee00181c182b5b61e41616f854bd94627075277eb8645cbb2b29044df731ff66ae51a052501418eda4885d3cf21e3ffb3cee4
+  checksum: b0a2126e63f23d8f472a65563825dd9755dd840ada68e52dccef72ab704ec700d4ca09286688ed3dc44375f8bd8767f0e03e3f2d27e0266a79f607d290278b99
   languageName: node
   linkType: hard
 
